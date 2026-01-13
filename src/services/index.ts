@@ -8,3 +8,5 @@ export * from './admin.service';
 export * from './ratings.service';
 export * from './upload.service';
 export * from './payments.service';
+export * from './portal.service';
+export * from './deposits.service';

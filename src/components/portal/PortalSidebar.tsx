@@ -7,17 +7,17 @@ import {
     FileText,
     Package,
     DollarSign,
-    Wallet,
-    Building2,
-    Calendar,
-    Sparkles,
     LogOut,
     ChevronDown,
     ChevronRight,
+    ChevronLeft,
     Menu,
     X,
     User,
-    Bell
+    Bell,
+    Gauge,
+    PanelLeftClose,
+    PanelLeft
 } from 'lucide-react';
 
 interface NavItem {
@@ -36,6 +36,15 @@ const navItems: NavItem[] = [
         path: '/portal/inicio',
     },
     {
+        id: 'pedidos',
+        label: 'Pedidos',
+        icon: <Package className="h-5 w-5" />,
+        children: [
+            { label: 'Gerenciamento', path: '/portal/pedidos' },
+            { label: 'Oportunidades', path: '/portal/oportunidades' },
+        ],
+    },
+    {
         id: 'desempenho',
         label: 'Desempenho',
         icon: <BarChart3 className="h-5 w-5" />,
@@ -48,10 +57,10 @@ const navItems: NavItem[] = [
         path: '/portal/relatorios',
     },
     {
-        id: 'pedidos',
-        label: 'Pedidos',
-        icon: <Package className="h-5 w-5" />,
-        path: '/portal/pedidos',
+        id: 'capacidade',
+        label: 'Capacidade',
+        icon: <Gauge className="h-5 w-5" />,
+        path: '/portal/capacidade',
     },
     {
         id: 'financeiro',
@@ -66,13 +75,18 @@ const navItems: NavItem[] = [
     },
 ];
 
+
 export const PortalSidebar: React.FC = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const [expandedItems, setExpandedItems] = useState<string[]>(['financeiro']);
+    const [expandedItems, setExpandedItems] = useState<string[]>(['pedidos', 'financeiro']);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const toggleExpand = (id: string) => {
+        if (isCollapsed) {
+            setIsCollapsed(false);
+        }
         setExpandedItems(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
@@ -83,39 +97,49 @@ export const PortalSidebar: React.FC = () => {
         navigate('/login');
     };
 
-    const NavContent = () => (
+    const toggleCollapse = () => {
+        setIsCollapsed(!isCollapsed);
+    };
+
+    const NavContent = ({ collapsed = false }: { collapsed?: boolean }) => (
         <>
             {/* Logo / Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center">
+                <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center flex-shrink-0">
                         <span className="text-white font-bold text-lg">T</span>
                     </div>
-                    <div>
-                        <h1 className="font-bold text-gray-900 dark:text-white">Portal do Parceiro</h1>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Texlink</p>
-                    </div>
+                    {!collapsed && (
+                        <div className="overflow-hidden">
+                            <h1 className="font-bold text-gray-900 dark:text-white whitespace-nowrap">Portal do Parceiro</h1>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Texlink</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* User Info */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+                    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                         <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {user?.name || 'Parceiro'}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {user?.email}
-                        </p>
-                    </div>
-                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
-                        <Bell className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                    </button>
+                    {!collapsed && (
+                        <>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {user?.name || 'Parceiro'}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {user?.email}
+                                </p>
+                            </div>
+                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative flex-shrink-0">
+                                <Bell className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -127,19 +151,22 @@ export const PortalSidebar: React.FC = () => {
                             <>
                                 <button
                                     onClick={() => toggleExpand(item.id)}
-                                    className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+                                    title={collapsed ? item.label : undefined}
                                 >
-                                    <span className="flex items-center gap-3">
+                                    <span className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
                                         {item.icon}
-                                        {item.label}
+                                        {!collapsed && item.label}
                                     </span>
-                                    {expandedItems.includes(item.id) ? (
-                                        <ChevronDown className="h-4 w-4" />
-                                    ) : (
-                                        <ChevronRight className="h-4 w-4" />
+                                    {!collapsed && (
+                                        expandedItems.includes(item.id) ? (
+                                            <ChevronDown className="h-4 w-4" />
+                                        ) : (
+                                            <ChevronRight className="h-4 w-4" />
+                                        )
                                     )}
                                 </button>
-                                {expandedItems.includes(item.id) && (
+                                {!collapsed && expandedItems.includes(item.id) && (
                                     <div className="ml-8 mt-1 space-y-1">
                                         {item.children.map((child) => (
                                             <NavLink
@@ -164,14 +191,15 @@ export const PortalSidebar: React.FC = () => {
                                 to={item.path!}
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className={({ isActive }) =>
-                                    `flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
+                                    `flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
                                         ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400'
                                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                                     }`
                                 }
+                                title={collapsed ? item.label : undefined}
                             >
                                 {item.icon}
-                                {item.label}
+                                {!collapsed && item.label}
                             </NavLink>
                         )}
                     </div>
@@ -179,13 +207,31 @@ export const PortalSidebar: React.FC = () => {
             </nav>
 
             {/* Footer */}
-            <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
+                {/* Collapse Toggle (Desktop only) */}
+                <button
+                    onClick={toggleCollapse}
+                    className={`hidden lg:flex w-full items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+                    title={collapsed ? 'Expandir' : 'Recolher'}
+                >
+                    {collapsed ? (
+                        <PanelLeft className="h-5 w-5" />
+                    ) : (
+                        <>
+                            <PanelLeftClose className="h-5 w-5" />
+                            <span>Recolher menu</span>
+                        </>
+                    )}
+                </button>
+
+                {/* Logout */}
                 <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+                    title={collapsed ? 'Sair' : undefined}
                 >
                     <LogOut className="h-5 w-5" />
-                    Sair
+                    {!collapsed && 'Sair'}
                 </button>
             </div>
         </>
@@ -209,7 +255,7 @@ export const PortalSidebar: React.FC = () => {
                 />
             )}
 
-            {/* Mobile Sidebar */}
+            {/* Mobile Sidebar - Always expanded */}
             <aside
                 className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
                     }`}
@@ -220,12 +266,15 @@ export const PortalSidebar: React.FC = () => {
                 >
                     <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                 </button>
-                <NavContent />
+                <NavContent collapsed={false} />
             </aside>
 
-            {/* Desktop Sidebar */}
-            <aside className="hidden lg:flex w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col">
-                <NavContent />
+            {/* Desktop Sidebar - Collapsible */}
+            <aside
+                className={`hidden lg:flex bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'
+                    }`}
+            >
+                <NavContent collapsed={isCollapsed} />
             </aside>
         </>
     );

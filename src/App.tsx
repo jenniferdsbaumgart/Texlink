@@ -27,6 +27,17 @@ const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'));
 const AdminApprovals = React.lazy(() => import('./pages/admin/ApprovalsPage'));
 const AdminSuppliers = React.lazy(() => import('./pages/admin/SuppliersPage'));
 
+// Portal do Parceiro pages
+const PortalLayout = React.lazy(() => import('./components/portal/PortalLayout'));
+const PortalDashboard = React.lazy(() => import('./pages/portal/PortalDashboard'));
+const PerformancePage = React.lazy(() => import('./pages/portal/PerformancePage'));
+const ReportsPage = React.lazy(() => import('./pages/portal/ReportsPage'));
+const DepositsPage = React.lazy(() => import('./pages/portal/financial/DepositsPage'));
+const DepositDetailPage = React.lazy(() => import('./pages/portal/financial/DepositDetailPage'));
+const BankDetailsPage = React.lazy(() => import('./pages/portal/financial/BankDetailsPage'));
+const PayoutFrequencyPage = React.lazy(() => import('./pages/portal/financial/PayoutFrequencyPage'));
+const AdvancePage = React.lazy(() => import('./pages/portal/financial/AdvancePage'));
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -56,13 +67,33 @@ const App: React.FC = () => {
                             {/* Dashboard redirect */}
                             <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
 
-                            {/* Supplier routes */}
-                            <Route path="/supplier" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><SupplierKanbanDashboard /></ProtectedRoute>} />
-                            <Route path="/supplier/orders" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><SupplierOrdersList /></ProtectedRoute>} />
+                            {/* Portal do Parceiro routes - includes all supplier pages with sidebar */}
+                            <Route path="/portal" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><PortalLayout /></ProtectedRoute>}>
+                                <Route index element={<Navigate to="/portal/inicio" replace />} />
+                                <Route path="inicio" element={<PortalDashboard />} />
+                                <Route path="desempenho" element={<PerformancePage />} />
+                                <Route path="relatorios" element={<ReportsPage />} />
+                                {/* Pedidos - integrated supplier pages */}
+                                <Route path="pedidos" element={<SupplierKanbanDashboard />} />
+                                <Route path="pedidos/lista" element={<SupplierOrdersList />} />
+                                <Route path="pedidos/:id" element={<SupplierOrderDetails />} />
+                                <Route path="oportunidades" element={<SupplierOpportunities />} />
+                                <Route path="capacidade" element={<SupplierCapacity />} />
+                                {/* Financeiro */}
+                                <Route path="financeiro/depositos" element={<DepositsPage />} />
+                                <Route path="financeiro/depositos/:id" element={<DepositDetailPage />} />
+                                <Route path="financeiro/dados-bancarios" element={<BankDetailsPage />} />
+                                <Route path="financeiro/frequencia" element={<PayoutFrequencyPage />} />
+                                <Route path="financeiro/antecipacao" element={<AdvancePage />} />
+                            </Route>
+
+                            {/* Legacy supplier routes - redirect to portal */}
+                            <Route path="/supplier" element={<Navigate to="/portal/pedidos" replace />} />
+                            <Route path="/supplier/orders" element={<Navigate to="/portal/pedidos/lista" replace />} />
                             <Route path="/supplier/orders/:id" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><SupplierOrderDetails /></ProtectedRoute>} />
-                            <Route path="/supplier/opportunities" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><SupplierOpportunities /></ProtectedRoute>} />
-                            <Route path="/supplier/financial" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><SupplierFinancial /></ProtectedRoute>} />
-                            <Route path="/supplier/capacity" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><SupplierCapacity /></ProtectedRoute>} />
+                            <Route path="/supplier/opportunities" element={<Navigate to="/portal/oportunidades" replace />} />
+                            <Route path="/supplier/financial" element={<Navigate to="/portal/financeiro/depositos" replace />} />
+                            <Route path="/supplier/capacity" element={<Navigate to="/portal/capacidade" replace />} />
 
                             {/* Brand routes */}
                             <Route path="/brand" element={<ProtectedRoute allowedRoles={['BRAND']}><BrandKanbanDashboard /></ProtectedRoute>} />
@@ -93,7 +124,7 @@ const DashboardRouter: React.FC = () => {
 
     switch (user.role) {
         case 'SUPPLIER':
-            return <Navigate to="/supplier" replace />;
+            return <Navigate to="/portal/inicio" replace />;
         case 'BRAND':
             return <Navigate to="/brand" replace />;
         case 'ADMIN':
@@ -104,3 +135,4 @@ const DashboardRouter: React.FC = () => {
 };
 
 export default App;
+
