@@ -34,9 +34,9 @@ export const MOCK_ORDERS: Order[] = [
     materialsProvided: true,
     createdAt: '2026-01-25',
     attachments: [
-        { id: 'a1', type: 'pdf', name: 'Ficha_Tecnica_Completa_v2.pdf', url: '#', size: '2.4 MB' },
-        { id: 'a2', type: 'video', name: 'Instrucao_Bolso_Traseiro.mp4', url: '#', size: '15 MB' },
-        { id: 'a3', type: 'image', name: 'Ref_Lavagem.jpg', url: '#', size: '1.2 MB' }
+      { id: 'a1', type: 'pdf', name: 'Ficha_Tecnica_Completa_v2.pdf', url: '#', size: '2.4 MB' },
+      { id: 'a2', type: 'video', name: 'Instrucao_Bolso_Traseiro.mp4', url: '#', size: '15 MB' },
+      { id: 'a3', type: 'image', name: 'Ref_Lavagem.jpg', url: '#', size: '1.2 MB' }
     ],
     timeline: [
       { step: 'Pedido Criado', date: '25/01 • 09:45', completed: true, icon: 'check' },
@@ -64,7 +64,7 @@ export const MOCK_ORDERS: Order[] = [
     pricePerUnit: 39.90,
     totalValue: 19950,
     deliveryDeadline: '2026-02-05',
-    status: OrderStatus.NEGOTIATION,
+    status: OrderStatus.ACCEPTED,
     paymentTerms: '30/60/90 dias',
     paymentStatus: 'pending',
     description: 'Conjunto infantil (3-8 anos) em moletom felpado. Estampa localizada.',
@@ -72,7 +72,7 @@ export const MOCK_ORDERS: Order[] = [
     materialsProvided: true,
     createdAt: '2026-01-20',
     attachments: [
-        { id: 'a4', type: 'pdf', name: 'Molde_Dino_Escala_1_1.pdf', url: '#', size: '5.1 MB' }
+      { id: 'a4', type: 'pdf', name: 'Molde_Dino_Escala_1_1.pdf', url: '#', size: '5.1 MB' }
     ],
     timeline: [
       { step: 'Pedido Criado', date: '20/01 • 10:15', completed: true, icon: 'check' },
@@ -100,7 +100,7 @@ export const MOCK_ORDERS: Order[] = [
     pricePerUnit: 18.50,
     totalValue: 46250,
     deliveryDeadline: '2026-02-20',
-    status: OrderStatus.WAITING,
+    status: OrderStatus.PREPARING_BRAND,
     waitingReason: 'Aguardando Etiquetas',
     missingItems: ['Etiquetas', 'Embalagem'],
     paymentTerms: 'À vista na retirada',
@@ -142,8 +142,8 @@ export const MOCK_ORDERS: Order[] = [
     materialsProvided: true,
     createdAt: '2026-01-05',
     attachments: [
-        { id: 'a5', type: 'video', name: 'Acabamento_Gola_Video.mp4', url: '#', size: '22 MB' },
-        { id: 'a6', type: 'pdf', name: 'Spec_Blazer.pdf', url: '#', size: '1.8 MB' }
+      { id: 'a5', type: 'video', name: 'Acabamento_Gola_Video.mp4', url: '#', size: '22 MB' },
+      { id: 'a6', type: 'pdf', name: 'Spec_Blazer.pdf', url: '#', size: '1.8 MB' }
     ],
     timeline: [
       { step: 'Pedido Criado', date: '05/01 • 08:30', completed: true, icon: 'check' },
@@ -188,7 +188,7 @@ export const MOCK_ORDERS: Order[] = [
       { step: 'Avaliação', completed: false, icon: 'check' }
     ]
   },
-    {
+  {
     id: '6',
     displayId: '#9210',
     brand: {
@@ -272,7 +272,7 @@ export const MOCK_ORDERS: Order[] = [
     pricePerUnit: 70.00,
     totalValue: 24500, // Recalculado
     deliveryDeadline: '2026-02-10',
-    status: OrderStatus.NEGOTIATION,
+    status: OrderStatus.ACCEPTED,
     paymentTerms: 'À vista',
     paymentStatus: 'pending',
     description: 'Camisa unissex linho misto.',
@@ -339,7 +339,7 @@ export const MOCK_ORDERS: Order[] = [
     pricePerUnit: 12.00,
     totalValue: 18000,
     deliveryDeadline: '2026-02-15',
-    status: OrderStatus.WAITING,
+    status: OrderStatus.TRANSIT_TO_SUPPLIER,
     waitingReason: 'Aguardando Botões',
     missingItems: ['Botões de Pressão', 'Linha 120'],
     paymentTerms: '30/60',
@@ -424,7 +424,7 @@ export const MOCK_ORDERS: Order[] = [
       { step: 'Avaliação', completed: false, icon: 'check' }
     ]
   },
-   {
+  {
     id: '13',
     displayId: '#9105',
     brand: {
@@ -457,7 +457,7 @@ export const MOCK_ORDERS: Order[] = [
       { step: 'Avaliação', date: '★★★★★', completed: true, icon: 'check' }
     ]
   },
-    {
+  {
     id: '14',
     displayId: '#9901',
     brand: {
@@ -473,7 +473,7 @@ export const MOCK_ORDERS: Order[] = [
     pricePerUnit: 48.00,
     totalValue: 36000,
     deliveryDeadline: '2026-02-18',
-    status: OrderStatus.WAITING,
+    status: OrderStatus.PREPARING_BRAND,
     waitingReason: 'Aguardando Insumos',
     missingItems: ['Rebite', 'Zíper Metal', 'Tecido Denim'],
     paymentTerms: '50/50',
@@ -496,9 +496,12 @@ export const MOCK_ORDERS: Order[] = [
 
 export const STATUS_COLUMNS = [
   { id: OrderStatus.NEW, label: 'Novos Pedidos', color: 'bg-slate-100 text-slate-800 border-slate-200' },
-  { id: OrderStatus.NEGOTIATION, label: 'Em Negociação', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  { id: OrderStatus.WAITING, label: 'Aguardando', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+  { id: OrderStatus.ACCEPTED, label: 'Aceitos', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+  { id: OrderStatus.PREPARING_BRAND, label: 'Preparação (Marca)', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+  { id: OrderStatus.TRANSIT_TO_SUPPLIER, label: 'Em Trânsito → Facção', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  { id: OrderStatus.RECEIVED_SUPPLIER, label: 'Recebido na Facção', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
   { id: OrderStatus.PRODUCTION, label: 'Em Produção', color: 'bg-brand-100 text-brand-800 border-brand-200' },
-  { id: OrderStatus.READY_SEND, label: 'Pronto / Envio', color: 'bg-teal-100 text-teal-800 border-teal-200' },
+  { id: OrderStatus.READY_SEND, label: 'Pronto p/ Envio', color: 'bg-teal-100 text-teal-800 border-teal-200' },
+  { id: OrderStatus.TRANSIT_TO_BRAND, label: 'Em Trânsito → Marca', color: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
   { id: OrderStatus.FINALIZED, label: 'Finalizados', color: 'bg-green-100 text-green-800 border-green-200' }
 ];
