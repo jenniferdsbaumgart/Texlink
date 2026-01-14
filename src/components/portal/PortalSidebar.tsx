@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -17,7 +17,10 @@ import {
     Bell,
     Gauge,
     PanelLeftClose,
-    PanelLeft
+    PanelLeft,
+    Moon,
+    Sun,
+    Settings
 } from 'lucide-react';
 
 interface NavItem {
@@ -82,6 +85,24 @@ export const PortalSidebar: React.FC = () => {
     const [expandedItems, setExpandedItems] = useState<string[]>(['pedidos', 'financeiro']);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [darkMode, setDarkMode] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return document.documentElement.classList.contains('dark');
+        }
+        return false;
+    });
+
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }, [darkMode]);
+
+    const toggleDarkMode = () => setDarkMode(!darkMode);
 
     const toggleExpand = (id: string) => {
         if (isCollapsed) {
@@ -106,13 +127,26 @@ export const PortalSidebar: React.FC = () => {
             {/* Logo / Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+                    {/* Texlink Logo Icon */}
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-bold text-lg">T</span>
+                        <svg
+                            className="h-6 w-6 text-white"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
                     </div>
                     {!collapsed && (
                         <div className="overflow-hidden">
-                            <h1 className="font-bold text-gray-900 dark:text-white whitespace-nowrap">Portal do Parceiro</h1>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Texlink</p>
+                            <h1 className="font-bold text-gray-900 dark:text-white whitespace-nowrap">Texlink</h1>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Portal do Parceiro</p>
                         </div>
                     )}
                 </div>
@@ -208,6 +242,35 @@ export const PortalSidebar: React.FC = () => {
 
             {/* Footer */}
             <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
+                {/* Theme Toggle */}
+                <button
+                    onClick={toggleDarkMode}
+                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+                    title={collapsed ? (darkMode ? 'Modo claro' : 'Modo escuro') : undefined}
+                >
+                    {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    {!collapsed && (darkMode ? 'Modo Claro' : 'Modo Escuro')}
+                </button>
+
+                {/* Notifications */}
+                <button
+                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative`}
+                    title={collapsed ? 'Notificações' : undefined}
+                >
+                    <Bell className="h-5 w-5" />
+                    {!collapsed && 'Notificações'}
+                    <span className="absolute top-2 left-7 w-2 h-2 bg-red-500 rounded-full" />
+                </button>
+
+                {/* Settings */}
+                <button
+                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+                    title={collapsed ? 'Configurações' : undefined}
+                >
+                    <Settings className="h-5 w-5" />
+                    {!collapsed && 'Configurações'}
+                </button>
+
                 {/* Collapse Toggle (Desktop only) */}
                 <button
                     onClick={toggleCollapse}
@@ -227,7 +290,7 @@ export const PortalSidebar: React.FC = () => {
                 {/* Logout */}
                 <button
                     onClick={handleLogout}
-                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors`}
                     title={collapsed ? 'Sair' : undefined}
                 >
                     <LogOut className="h-5 w-5" />

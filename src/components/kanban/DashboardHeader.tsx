@@ -138,33 +138,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 className="block w-full pl-10 pr-3 py-1.5 border border-brand-700 dark:border-gray-700 rounded-md leading-5 bg-brand-800 dark:bg-gray-800 text-brand-50 dark:text-gray-200 placeholder-brand-400 dark:placeholder-gray-500 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:text-gray-900 dark:focus:text-white focus:placeholder-gray-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition-all duration-200 ease-in-out w-64 focus:w-80"
               />
             </div>
-
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 text-brand-300 dark:text-gray-400 hover:text-white hover:bg-brand-800 dark:hover:bg-gray-800 rounded-full transition-colors"
-              title={darkMode ? "Mudar para modo claro" : "Mudar para modo escuro"}
-            >
-              {darkMode ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-            </button>
-
-            <button className="p-2 text-brand-300 dark:text-gray-400 hover:text-white hover:bg-brand-800 dark:hover:bg-gray-800 rounded-full transition-colors relative">
-              <Bell className="h-6 w-6" />
-              <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-brand-900 dark:ring-gray-900"></span>
-            </button>
-            <button className="p-2 text-brand-300 dark:text-gray-400 hover:text-white hover:bg-brand-800 dark:hover:bg-gray-800 rounded-full transition-colors">
-              <Settings className="h-6 w-6" />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-brand-300 dark:text-gray-400 hover:text-red-400 hover:bg-brand-800 dark:hover:bg-gray-800 rounded-full transition-colors"
-              title="Sair"
-            >
-              <LogOut className="h-6 w-6" />
-            </button>
-
-            <div className="ml-2 flex items-center md:hidden">
-              <img className="h-8 w-8 rounded-full bg-brand-800 border border-brand-700" src={`https://ui-avatars.com/api/?name=${encodeURIComponent(workshopName)}&background=random`} alt="" />
-            </div>
           </div>
         </div>
       </div>
