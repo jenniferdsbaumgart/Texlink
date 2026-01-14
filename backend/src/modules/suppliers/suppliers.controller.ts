@@ -41,11 +41,34 @@ export class SuppliersController {
         return this.suppliersService.updatePhase3(userId, dto);
     }
 
+    @Patch('onboarding/complete')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPPLIER)
+    async completeOnboarding(@CurrentUser('id') userId: string) {
+        return this.suppliersService.completeOnboarding(userId);
+    }
+
+
     @Get('dashboard')
     @UseGuards(RolesGuard)
     @Roles(UserRole.SUPPLIER)
     async getDashboard(@CurrentUser('id') userId: string) {
         return this.suppliersService.getDashboard(userId);
+    }
+
+    @Get('reports')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPPLIER)
+    async getReports(
+        @CurrentUser('id') userId: string,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string,
+    ) {
+        return this.suppliersService.getReports(
+            userId,
+            startDate ? new Date(startDate) : undefined,
+            endDate ? new Date(endDate) : undefined,
+        );
     }
 
     @Get('opportunities')

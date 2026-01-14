@@ -70,6 +70,164 @@ export class SuppliersService {
         });
     }
 
+    // Mark onboarding as complete (for existing users)
+    async completeOnboarding(userId: string) {
+        const company = await this.getMyProfile(userId);
+
+        if (!company.supplierProfile) {
+            throw new NotFoundException('Supplier profile not found');
+        }
+
+        return this.prisma.supplierProfile.update({
+            where: { id: company.supplierProfile.id },
+            data: {
+                onboardingPhase: 3,
+                onboardingComplete: true,
+            },
+        });
+    }
+
+    // Get unified report data for supplier
+    async getReports(userId: string, startDate?: Date, endDate?: Date) {
+        const company = await this.getMyProfile(userId);
+
+        const start = startDate || new Date(new Date().getFullYear(), new Date().getMonth() - 2, 1);
+        const end = endDate || new Date();
+
+        const dateFilter = {
+            gte: start,
+            lte: end,
+        };
+
+        // Get all orders in the period
+        const [
+            allOrders,
+            acceptedOrders,
+            rejectedOrders,
+            completedOrders,
+            cancelledOrders,
+            totalRevenue,
+            avgRating,
+        ] = await Promise.all([
+            // All orders
+            this.prisma.order.count({
+                where: { supplierId: company.id, createdAt: dateFilter },
+            }),
+            // Accepted orders
+            this.prisma.order.count({
+                where: {
+                    supplierId: company.id,
+                    createdAt: dateFilter,
+                    status: { notIn: [OrderStatus.LANCADO_PELA_MARCA, OrderStatus.RECUSADO_PELA_FACCAO] },
+                },
+            }),
+            // Rejected by supplier
+            this.prisma.order.count({
+                where: {
+                    supplierId: company.id,
+                    createdAt: dateFilter,
+                    status: OrderStatus.RECUSADO_PELA_FACCAO,
+                },
+            }),
+            // Completed orders
+            this.prisma.order.count({
+                where: {
+                    supplierId: company.id,
+                    createdAt: dateFilter,
+                    status: OrderStatus.FINALIZADO,
+                },
+            }),
+            // Cancelled orders with details
+            this.prisma.order.findMany({
+                where: {
+                    supplierId: company.id,
+                    createdAt: dateFilter,
+                    status: OrderStatus.RECUSADO_PELA_FACCAO,
+                },
+                select: {
+                    id: true,
+                    displayId: true,
+                    createdAt: true,
+                    totalValue: true,
+                    rejectionReason: true,
+                    brand: { select: { tradeName: true } },
+                },
+            }),
+            // Total revenue
+            this.prisma.order.aggregate({
+                where: {
+                    supplierId: company.id,
+                    createdAt: dateFilter,
+                    status: OrderStatus.FINALIZADO,
+                },
+                _sum: { totalValue: true },
+            }),
+            // Average rating
+            this.prisma.rating.aggregate({
+                where: {
+                    toCompanyId: company.id,
+                    createdAt: dateFilter,
+                },
+                _avg: { score: true },
+            }),
+        ]);
+
+        // Group cancellations by reason
+        const cancellationsByReason = cancelledOrders.reduce((acc, order) => {
+            const reason = order.rejectionReason || 'Sem motivo informado';
+            if (!acc[reason]) {
+                acc[reason] = { count: 0, value: 0 };
+            }
+            acc[reason].count++;
+            acc[reason].value += Number(order.totalValue) || 0;
+            return acc;
+        }, {} as Record<string, { count: number; value: number }>);
+
+        const totalCancellationValue = cancelledOrders.reduce((sum, o) => sum + (Number(o.totalValue) || 0), 0);
+        const revenue = Number(totalRevenue._sum.totalValue) || 0;
+
+        return {
+            period: { start, end },
+            summary: {
+                totalOrders: allOrders,
+                totalRevenue: revenue,
+                avgTicket: acceptedOrders > 0 ? Math.round(revenue / acceptedOrders) : 0,
+                avgRating: avgRating._avg.score || company.avgRating || 0,
+            },
+            sales: {
+                accepted: acceptedOrders,
+                rejected: rejectedOrders,
+                completed: completedOrders,
+                acceptanceRate: allOrders > 0 ? Math.round((acceptedOrders / allOrders) * 100) : 0,
+            },
+            cancellations: {
+                total: cancelledOrders.length,
+                totalLoss: totalCancellationValue,
+                percentage: allOrders > 0 ? ((cancelledOrders.length / allOrders) * 100).toFixed(1) : '0',
+                byReason: Object.entries(cancellationsByReason).map(([reason, data]) => ({
+                    reason,
+                    count: data.count,
+                    value: data.value,
+                    percentage: cancelledOrders.length > 0
+                        ? Math.round((data.count / cancelledOrders.length) * 100)
+                        : 0,
+                })),
+                recent: cancelledOrders.slice(0, 5).map(o => ({
+                    id: o.id,
+                    code: o.displayId,
+                    date: o.createdAt,
+                    brand: o.brand?.tradeName || 'N/A',
+                    reason: o.rejectionReason || 'Sem motivo',
+                    value: Number(o.totalValue) || 0,
+                })),
+            },
+            quality: {
+                avgRating: avgRating._avg.score || company.avgRating || 0,
+                completionRate: acceptedOrders > 0 ? Math.round((completedOrders / acceptedOrders) * 100) : 0,
+            },
+        };
+    }
+
     // Get dashboard data for supplier
     async getDashboard(userId: string) {
         const company = await this.getMyProfile(userId);

@@ -20,7 +20,12 @@ const RegisterPage: React.FC = () => {
 
         try {
             await register(email, password, name, role);
-            navigate('/company/setup');
+            // Redirect based on role
+            if (role === 'SUPPLIER') {
+                navigate('/onboarding/phase2');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Erro ao criar conta');
         } finally {
@@ -58,8 +63,8 @@ const RegisterPage: React.FC = () => {
                                     type="button"
                                     onClick={() => setRole('SUPPLIER')}
                                     className={`p-4 rounded-xl border-2 transition-all ${role === 'SUPPLIER'
-                                            ? 'bg-brand-500/20 border-brand-500 text-white'
-                                            : 'bg-white/5 border-white/10 text-brand-300 hover:border-white/30'
+                                        ? 'bg-brand-500/20 border-brand-500 text-white'
+                                        : 'bg-white/5 border-white/10 text-brand-300 hover:border-white/30'
                                         }`}
                                 >
                                     <Factory className="w-6 h-6 mx-auto mb-2" />
@@ -69,8 +74,8 @@ const RegisterPage: React.FC = () => {
                                     type="button"
                                     onClick={() => setRole('BRAND')}
                                     className={`p-4 rounded-xl border-2 transition-all ${role === 'BRAND'
-                                            ? 'bg-brand-500/20 border-brand-500 text-white'
-                                            : 'bg-white/5 border-white/10 text-brand-300 hover:border-white/30'
+                                        ? 'bg-brand-500/20 border-brand-500 text-white'
+                                        : 'bg-white/5 border-white/10 text-brand-300 hover:border-white/30'
                                         }`}
                                 >
                                     <Building2 className="w-6 h-6 mx-auto mb-2" />

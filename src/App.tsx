@@ -38,6 +38,12 @@ const BankDetailsPage = React.lazy(() => import('./pages/portal/financial/BankDe
 const PayoutFrequencyPage = React.lazy(() => import('./pages/portal/financial/PayoutFrequencyPage'));
 const AdvancePage = React.lazy(() => import('./pages/portal/financial/AdvancePage'));
 
+// Onboarding pages
+const OnboardingLayout = React.lazy(() => import('./components/onboarding/OnboardingLayout'));
+const Phase2Page = React.lazy(() => import('./pages/onboarding/Phase2Page'));
+const Phase3Page = React.lazy(() => import('./pages/onboarding/Phase3Page'));
+
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -63,6 +69,12 @@ const App: React.FC = () => {
                             {/* Public routes */}
                             <Route path="/login" element={<LoginPage />} />
                             <Route path="/register" element={<RegisterPage />} />
+
+                            {/* Onboarding routes (protected, supplier only) */}
+                            <Route path="/onboarding" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><OnboardingLayout /></ProtectedRoute>}>
+                                <Route path="phase2" element={<Phase2Page />} />
+                                <Route path="phase3" element={<Phase3Page />} />
+                            </Route>
 
                             {/* Dashboard redirect */}
                             <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />

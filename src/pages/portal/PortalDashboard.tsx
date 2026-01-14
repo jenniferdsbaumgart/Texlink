@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { portalService, PortalSummary } from '../../services/portal.service';
+import { onboardingService, SupplierProfile } from '../../services/onboarding.service';
 import { MetricCard } from '../../components/shared/MetricCard';
 import { AlertBanner } from '../../components/shared/AlertBanner';
 import {
@@ -14,13 +15,16 @@ import {
     DollarSign,
     Wallet,
     Loader2,
-    CheckCircle
+    CheckCircle,
+    CheckCircle2,
+    Circle
 } from 'lucide-react';
 
 const PortalDashboard: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [summary, setSummary] = useState<PortalSummary | null>(null);
+    const [profile, setProfile] = useState<SupplierProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
@@ -31,10 +35,14 @@ const PortalDashboard: React.FC = () => {
     const loadSummary = async () => {
         try {
             setIsLoading(true);
-            const data = await portalService.getSummary();
-            setSummary(data);
+            const [summaryData, profileData] = await Promise.all([
+                portalService.getSummary(),
+                onboardingService.getProfile().catch(() => null),
+            ]);
+            setSummary(summaryData);
+            setProfile(profileData);
         } catch (error) {
-            console.error('Error loading portal summary:', error);
+            console.error('Error loading portal data:', error);
         } finally {
             setIsLoading(false);
         }
@@ -66,6 +74,70 @@ const PortalDashboard: React.FC = () => {
                     Aqui está o resumo da sua operação
                 </p>
             </div>
+
+            {/* Onboarding Progress Card */}
+            {profile && !profile.onboardingComplete && (
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 mb-8 text-white">
+                    <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                            <h3 className="text-lg font-semibold mb-2">Complete seu cadastro</h3>
+                            <p className="text-amber-100 text-sm mb-4">
+                                Finalize as etapas para receber pedidos na plataforma.
+                            </p>
+                            {/* Progress Steps */}
+                            <div className="flex items-center gap-3 mb-4">
+                                {[1, 2, 3].map((step) => (
+                                    <div key={step} className="flex items-center gap-2">
+                                        <div
+                                            className={`w-8 h-8 rounded-full flex items-center justify-center ${step < (profile.onboardingPhase || 1) + 1
+                                                ? 'bg-white text-amber-600'
+                                                : step === (profile.onboardingPhase || 1) + 1
+                                                    ? 'bg-white/30 text-white ring-2 ring-white'
+                                                    : 'bg-white/20 text-white/60'
+                                                }`}
+                                        >
+                                            {step < (profile.onboardingPhase || 1) + 1 ? (
+                                                <CheckCircle2 className="w-5 h-5" />
+                                            ) : (
+                                                <span className="text-sm font-bold">{step}</span>
+                                            )}
+                                        </div>
+                                        {step < 3 && (
+                                            <div className={`w-8 h-0.5 ${step < (profile.onboardingPhase || 1) + 1 ? 'bg-white' : 'bg-white/30'}`} />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                <Link
+                                    to={`/onboarding/phase${Math.min((profile.onboardingPhase || 1) + 1, 3)}`}
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white text-amber-600 rounded-lg font-medium hover:bg-amber-50 transition-colors"
+                                >
+                                    Continuar cadastro
+                                    <ArrowRight className="h-4 w-4" />
+                                </Link>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await onboardingService.completeOnboarding();
+                                            setProfile(prev => prev ? { ...prev, onboardingComplete: true } : null);
+                                        } catch (e) {
+                                            console.error('Error completing onboarding:', e);
+                                        }
+                                    }}
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg font-medium hover:bg-white/30 transition-colors"
+                                >
+                                    <CheckCircle className="h-4 w-4" />
+                                    Já completei
+                                </button>
+                            </div>
+                        </div>
+                        <div className="text-amber-200 text-5xl font-bold opacity-30">
+                            {profile.onboardingPhase || 1}/3
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Alerts */}
             {visibleAlerts.length > 0 && (

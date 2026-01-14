@@ -21,6 +21,16 @@ export class AuthService {
             throw new ConflictException('Email already registered');
         }
 
+        // Check if document already exists (for SUPPLIER)
+        if (dto.role === 'SUPPLIER' && dto.document) {
+            const existingCompany = await this.prisma.company.findUnique({
+                where: { document: dto.document },
+            });
+            if (existingCompany) {
+                throw new ConflictException('CNPJ/CPF já cadastrado');
+            }
+        }
+
         // Hash password
         const passwordHash = await bcrypt.hash(dto.password, 10);
 
@@ -41,14 +51,53 @@ export class AuthService {
             },
         });
 
+        // For SUPPLIER: Create Company and SupplierProfile
+        let company: { id: string } | null = null;
+        if (dto.role === 'SUPPLIER') {
+            company = await this.prisma.company.create({
+                data: {
+                    legalName: dto.companyName || dto.name,
+                    tradeName: dto.companyName || dto.name,
+                    document: dto.document || `PENDING_${user.id}`,
+                    type: 'SUPPLIER',
+                    city: dto.city || '',
+                    state: dto.state || '',
+                    phone: dto.phone,
+                    email: dto.email,
+                    status: 'PENDING', // PENDENTE_QUALIFICACAO
+                },
+            });
+
+            // Link user to company
+            await this.prisma.companyUser.create({
+                data: {
+                    userId: user.id,
+                    companyId: company.id,
+                    role: 'OWNER',
+                },
+            });
+
+            // Create supplier profile for onboarding
+            await this.prisma.supplierProfile.create({
+                data: {
+                    companyId: company.id,
+                    onboardingPhase: 1,
+                    onboardingComplete: false,
+                },
+            });
+        }
+
         // Generate token
         const token = this.generateToken(user.id, user.email, user.role);
 
         return {
             user,
+            company,
             accessToken: token,
+            needsOnboarding: dto.role === 'SUPPLIER',
         };
     }
+
 
     async login(dto: LoginDto) {
         // Find user
