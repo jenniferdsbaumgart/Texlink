@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ordersService, Order, OrderStatus } from '../../services';
 import {
     Package, Clock, CheckCircle, Plus,
-    ChevronRight, Filter, Search, ArrowLeft
+    ChevronRight, Filter, Search, ArrowLeft, Paperclip
 } from 'lucide-react';
 
 const OrdersListPage: React.FC = () => {
@@ -129,6 +129,14 @@ const OrdersListPage: React.FC = () => {
                                             {order.supplier?.tradeName || 'Aguardando facção'} • {order.quantity} peças
                                         </p>
                                     </div>
+
+                                    {order.attachments && order.attachments.length > 0 && (
+                                        <div className="flex items-center gap-1.5 bg-brand-800 text-brand-300 px-3 py-1.5 rounded-lg mx-4" title={`${order.attachments.length} anexo(s)`}>
+                                            <Paperclip className="w-4 h-4" />
+                                            <span className="text-sm font-medium">{order.attachments.length}</span>
+                                        </div>
+                                    )}
+
                                     <div className="text-right ml-4">
                                         <p className="text-lg font-bold text-white">
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(order.totalValue))}

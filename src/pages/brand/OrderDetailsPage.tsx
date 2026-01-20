@@ -6,7 +6,7 @@ import {
     ArrowLeft, Package, Calendar, DollarSign, Factory,
     CheckCircle, Send, MessageSquare, Clock,
     ChevronRight, Loader2, FileText, Upload,
-    Truck, Box, Scissors, Star
+    Truck, Box, Scissors, Star, Image as ImageIcon
 } from 'lucide-react';
 
 const OrderDetailsPage: React.FC = () => {
@@ -174,15 +174,15 @@ const OrderDetailsPage: React.FC = () => {
                                         return (
                                             <div key={item.step} className="relative flex items-center gap-4 pl-10">
                                                 <div className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center ${isCompleted
-                                                        ? 'bg-brand-500 text-white'
-                                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
+                                                    ? 'bg-brand-500 text-white'
+                                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
                                                     } ${isCurrent ? 'ring-4 ring-brand-200 dark:ring-brand-900' : ''}`}>
                                                     <Icon className="w-4 h-4" />
                                                 </div>
                                                 <div className="flex-1">
                                                     <p className={`font-medium ${isCompleted
-                                                            ? 'text-gray-900 dark:text-white'
-                                                            : 'text-gray-400 dark:text-gray-500'
+                                                        ? 'text-gray-900 dark:text-white'
+                                                        : 'text-gray-400 dark:text-gray-500'
                                                         }`}>
                                                         {item.step}
                                                     </p>
@@ -273,10 +273,17 @@ const OrderDetailsPage: React.FC = () => {
                                             href={att.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                            className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
                                         >
-                                            <FileText className="w-5 h-5 text-brand-500" />
-                                            <span className="text-sm text-gray-900 dark:text-white truncate">{att.name}</span>
+                                            {att.mimeType?.startsWith('image/') ? (
+                                                <ImageIcon className="w-5 h-5 text-brand-500 group-hover:text-brand-400" />
+                                            ) : (
+                                                <FileText className="w-5 h-5 text-brand-500 group-hover:text-brand-400" />
+                                            )}
+                                            <div className="flex-1 overflow-hidden">
+                                                <p className="text-sm text-gray-900 dark:text-white truncate" title={att.name}>{att.name}</p>
+                                                <p className="text-xs text-brand-500 group-hover:underline">Clique para baixar</p>
+                                            </div>
                                         </a>
                                     ))}
                                 </div>
