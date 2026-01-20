@@ -17,10 +17,19 @@ const SupplierFinancial = React.lazy(() => import('./pages/supplier/FinancialDas
 const SupplierCapacity = React.lazy(() => import('./pages/supplier/CapacityDashboardPage'));
 
 // Brand pages
+const BrandPortalLayout = React.lazy(() => import('./components/brand/BrandPortalLayout'));
+const BrandDashboard = React.lazy(() => import('./pages/brand/BrandDashboard'));
 const BrandKanbanDashboard = React.lazy(() => import('./pages/brand/KanbanDashboard'));
 const BrandOrdersList = React.lazy(() => import('./pages/brand/OrdersListPage'));
 const BrandCreateOrder = React.lazy(() => import('./pages/brand/CreateOrderPage'));
+const BrandOrderDetails = React.lazy(() => import('./pages/brand/OrderDetailsPage'));
 const BrandSuppliers = React.lazy(() => import('./pages/brand/SuppliersPage'));
+const BrandSupplierProfile = React.lazy(() => import('./pages/brand/SupplierProfilePage'));
+const BrandPartners = React.lazy(() => import('./pages/brand/PartnersPage'));
+const BrandMessages = React.lazy(() => import('./pages/brand/MessagesPage'));
+const BrandPayments = React.lazy(() => import('./pages/brand/PaymentsPage'));
+const BrandPaymentHistory = React.lazy(() => import('./pages/brand/PaymentHistoryPage'));
+const BrandReports = React.lazy(() => import('./pages/brand/ReportsPage'));
 
 // Admin pages
 const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'));
@@ -107,11 +116,32 @@ const App: React.FC = () => {
                             <Route path="/supplier/financial" element={<Navigate to="/portal/financeiro/depositos" replace />} />
                             <Route path="/supplier/capacity" element={<Navigate to="/portal/capacidade" replace />} />
 
-                            {/* Brand routes */}
-                            <Route path="/brand" element={<ProtectedRoute allowedRoles={['BRAND']}><BrandKanbanDashboard /></ProtectedRoute>} />
-                            <Route path="/brand/orders" element={<ProtectedRoute allowedRoles={['BRAND']}><BrandOrdersList /></ProtectedRoute>} />
-                            <Route path="/brand/orders/new" element={<ProtectedRoute allowedRoles={['BRAND']}><BrandCreateOrder /></ProtectedRoute>} />
-                            <Route path="/brand/suppliers" element={<ProtectedRoute allowedRoles={['BRAND']}><BrandSuppliers /></ProtectedRoute>} />
+                            {/* Brand Portal routes - includes all brand pages with sidebar */}
+                            <Route path="/brand" element={<ProtectedRoute allowedRoles={['BRAND']}><BrandPortalLayout /></ProtectedRoute>}>
+                                <Route index element={<Navigate to="/brand/inicio" replace />} />
+                                <Route path="inicio" element={<BrandDashboard />} />
+                                {/* Pedidos */}
+                                <Route path="pedidos" element={<BrandKanbanDashboard />} />
+                                <Route path="pedidos/lista" element={<BrandOrdersList />} />
+                                <Route path="pedidos/novo" element={<BrandCreateOrder />} />
+                                <Route path="pedidos/:id" element={<BrandOrderDetails />} />
+                                {/* Facções */}
+                                <Route path="faccoes" element={<BrandSuppliers />} />
+                                <Route path="faccoes/parceiros" element={<BrandPartners />} />
+                                <Route path="faccoes/:id" element={<BrandSupplierProfile />} />
+                                {/* Mensagens */}
+                                <Route path="mensagens" element={<BrandMessages />} />
+                                {/* Financeiro */}
+                                <Route path="financeiro/pagamentos" element={<BrandPayments />} />
+                                <Route path="financeiro/historico" element={<BrandPaymentHistory />} />
+                                {/* Relatórios */}
+                                <Route path="relatorios" element={<BrandReports />} />
+                            </Route>
+
+                            {/* Legacy brand routes - redirect to new portal */}
+                            <Route path="/brand/orders" element={<Navigate to="/brand/pedidos/lista" replace />} />
+                            <Route path="/brand/orders/new" element={<Navigate to="/brand/pedidos/novo" replace />} />
+                            <Route path="/brand/suppliers" element={<Navigate to="/brand/faccoes" replace />} />
 
                             {/* Admin routes */}
                             <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
