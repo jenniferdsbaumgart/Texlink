@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ordersService, suppliersService } from '../../services';
 import {
     ArrowLeft, Package, DollarSign, Calendar,
-    Users, Send, Loader2, Factory
+    Send, Loader2, Factory, FileText, Upload, X, Image
 } from 'lucide-react';
 
 interface SupplierOption {
@@ -18,9 +18,14 @@ interface SupplierOption {
 
 const CreateOrderPage: React.FC = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const preselectedSupplierId = searchParams.get('supplierId');
     const [isLoading, setIsLoading] = useState(false);
     const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
     const [loadingSuppliers, setLoadingSuppliers] = useState(true);
+    const [techSheetFiles, setTechSheetFiles] = useState<File[]>([]);
+    const [dragActive, setDragActive] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         productType: '',
@@ -34,7 +39,7 @@ const CreateOrderPage: React.FC = () => {
         materialsProvided: false,
         observations: '',
         assignmentType: 'DIRECT' as 'DIRECT' | 'BIDDING',
-        supplierId: '',
+        supplierId: preselectedSupplierId || '',
         targetSupplierIds: [] as string[],
     });
 
@@ -82,12 +87,53 @@ const CreateOrderPage: React.FC = () => {
                 supplierId: formData.assignmentType === 'DIRECT' ? formData.supplierId : undefined,
                 targetSupplierIds: formData.assignmentType === 'BIDDING' ? formData.targetSupplierIds : undefined,
             });
-            navigate('/brand/orders');
+            // TODO: Upload tech sheet files after order creation
+            // if (techSheetFiles.length > 0) {
+            //     await uploadService.uploadFiles(orderId, techSheetFiles);
+            // }
+            navigate('/brand/pedidos');
         } catch (error) {
             console.error('Error creating order:', error);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleDrag = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setDragActive(true);
+        } else if (e.type === 'dragleave') {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFiles(Array.from(e.dataTransfer.files));
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleFiles(Array.from(e.target.files));
+        }
+    };
+
+    const handleFiles = (files: File[]) => {
+        const validFiles = files.filter(file => {
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+            return validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024; // 10MB max
+        });
+        setTechSheetFiles(prev => [...prev, ...validFiles].slice(0, 5)); // Max 5 files
+    };
+
+    const removeFile = (index: number) => {
+        setTechSheetFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     const totalValue = (Number(formData.quantity) || 0) * (Number(formData.pricePerUnit) || 0);
@@ -147,6 +193,68 @@ const CreateOrderPage: React.FC = () => {
                             className="w-full px-4 py-3 bg-brand-800/50 border border-brand-700 rounded-xl text-white placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                             placeholder="Descreva detalhes do produto, medidas, cores..."
                         />
+                    </div>
+
+                    {/* Tech Sheet Upload */}
+                    <div>
+                        <label className="block text-sm font-medium text-brand-200 mb-2">
+                            Ficha Técnica / Anexos
+                        </label>
+                        <div
+                            onDragEnter={handleDrag}
+                            onDragLeave={handleDrag}
+                            onDragOver={handleDrag}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${dragActive
+                                    ? 'border-brand-500 bg-brand-500/10'
+                                    : 'border-brand-700 hover:border-brand-600 hover:bg-brand-800/30'
+                                }`}
+                        >
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                onChange={handleFileChange}
+                                className="hidden"
+                            />
+                            <Upload className={`w-8 h-8 mx-auto mb-2 ${dragActive ? 'text-brand-400' : 'text-brand-500'}`} />
+                            <p className="text-brand-200 font-medium">Arraste arquivos ou clique para selecionar</p>
+                            <p className="text-brand-400 text-sm mt-1">PDF, JPG, PNG (máx. 10MB cada, até 5 arquivos)</p>
+                        </div>
+
+                        {/* File Previews */}
+                        {techSheetFiles.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                                {techSheetFiles.map((file, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center gap-3 p-3 bg-brand-800/50 rounded-xl"
+                                    >
+                                        {file.type.startsWith('image/') ? (
+                                            <Image className="w-5 h-5 text-brand-400" />
+                                        ) : (
+                                            <FileText className="w-5 h-5 text-brand-400" />
+                                        )}
+                                        <span className="flex-1 text-brand-200 text-sm truncate">{file.name}</span>
+                                        <span className="text-brand-400 text-xs">
+                                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeFile(index);
+                                            }}
+                                            className="p-1 hover:bg-brand-700 rounded-lg transition-colors"
+                                        >
+                                            <X className="w-4 h-4 text-brand-400" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </Section>
 
@@ -220,8 +328,8 @@ const CreateOrderPage: React.FC = () => {
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, assignmentType: 'DIRECT', targetSupplierIds: [] }))}
                             className={`flex-1 py-3 rounded-xl font-medium transition-all ${formData.assignmentType === 'DIRECT'
-                                    ? 'bg-brand-600 text-white'
-                                    : 'bg-brand-800 text-brand-300 hover:bg-brand-700'
+                                ? 'bg-brand-600 text-white'
+                                : 'bg-brand-800 text-brand-300 hover:bg-brand-700'
                                 }`}
                         >
                             Direto (1 facção)
@@ -230,8 +338,8 @@ const CreateOrderPage: React.FC = () => {
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, assignmentType: 'BIDDING', supplierId: '' }))}
                             className={`flex-1 py-3 rounded-xl font-medium transition-all ${formData.assignmentType === 'BIDDING'
-                                    ? 'bg-brand-600 text-white'
-                                    : 'bg-brand-800 text-brand-300 hover:bg-brand-700'
+                                ? 'bg-brand-600 text-white'
+                                : 'bg-brand-800 text-brand-300 hover:bg-brand-700'
                                 }`}
                         >
                             Licitação (múltiplas)
@@ -257,9 +365,9 @@ const CreateOrderPage: React.FC = () => {
                                         }
                                     }}
                                     className={`p-4 rounded-xl border cursor-pointer transition-all ${(formData.assignmentType === 'DIRECT' && formData.supplierId === supplier.id) ||
-                                            (formData.assignmentType === 'BIDDING' && formData.targetSupplierIds.includes(supplier.id))
-                                            ? 'bg-brand-600/20 border-brand-500'
-                                            : 'bg-brand-800/50 border-brand-700 hover:border-brand-600'
+                                        (formData.assignmentType === 'BIDDING' && formData.targetSupplierIds.includes(supplier.id))
+                                        ? 'bg-brand-600/20 border-brand-500'
+                                        : 'bg-brand-800/50 border-brand-700 hover:border-brand-600'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -271,9 +379,9 @@ const CreateOrderPage: React.FC = () => {
                                             </p>
                                         </div>
                                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${(formData.assignmentType === 'DIRECT' && formData.supplierId === supplier.id) ||
-                                                (formData.assignmentType === 'BIDDING' && formData.targetSupplierIds.includes(supplier.id))
-                                                ? 'bg-brand-500 border-brand-500'
-                                                : 'border-brand-600'
+                                            (formData.assignmentType === 'BIDDING' && formData.targetSupplierIds.includes(supplier.id))
+                                            ? 'bg-brand-500 border-brand-500'
+                                            : 'border-brand-600'
                                             }`}>
                                             {((formData.assignmentType === 'DIRECT' && formData.supplierId === supplier.id) ||
                                                 (formData.assignmentType === 'BIDDING' && formData.targetSupplierIds.includes(supplier.id))) && (
