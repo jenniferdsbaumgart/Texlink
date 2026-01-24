@@ -11,6 +11,7 @@ const OrdersListPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<OrderStatus | ''>('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<'my_orders' | 'marketplace'>('my_orders');
 
     useEffect(() => {
         loadOrders();
@@ -34,10 +35,25 @@ const OrdersListPage: React.FC = () => {
         order.brand?.tradeName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Segregate orders based on Tab
+    const tabOrders = filteredOrders.filter(order => {
+        const isInvited = order.targetSuppliers && order.targetSuppliers.length > 0;
+        const isAssigned = ['ACEITO_PELA_FACCAO', 'EM_PRODUCAO', 'PRONTO', 'FINALIZADO', 'RECUSADO_PELA_FACCAO'].includes(order.status);
+
+        if (activeTab === 'my_orders') {
+            // Show if I accepted/worked on it OR if I was explicitly invited
+            return isAssigned || isInvited;
+        } else {
+            // Marketplace: Hybrid/Bidding orders where I am NOT invited and NOT assigned
+            // Typically Open Hybrid orders
+            return order.assignmentType === 'HYBRID' && !isInvited && !isAssigned && order.status === 'LANCADO_PELA_MARCA';
+        }
+    });
+
     const statusGroups = {
-        pending: filteredOrders.filter(o => o.status === 'LANCADO_PELA_MARCA'),
-        active: filteredOrders.filter(o => ['ACEITO_PELA_FACCAO', 'EM_PRODUCAO', 'PRONTO'].includes(o.status)),
-        completed: filteredOrders.filter(o => o.status === 'FINALIZADO'),
+        pending: tabOrders.filter(o => o.status === 'LANCADO_PELA_MARCA'),
+        active: tabOrders.filter(o => ['ACEITO_PELA_FACCAO', 'EM_PREPARACAO_SAIDA_MARCA', 'EM_TRANSITO_PARA_FACCAO', 'EM_PREPARACAO_ENTRADA_FACCAO', 'EM_PRODUCAO', 'PRONTO', 'EM_TRANSITO_PARA_MARCA', 'EM_REVISAO', 'PARCIALMENTE_APROVADO', 'AGUARDANDO_RETRABALHO'].includes(o.status)),
+        completed: tabOrders.filter(o => o.status === 'FINALIZADO'),
     };
 
     return (
@@ -45,16 +61,51 @@ const OrdersListPage: React.FC = () => {
             {/* Header */}
             <header className="bg-brand-900/50 border-b border-brand-800 sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-4">
                             <Link to="/supplier" className="text-brand-400 hover:text-white transition-colors">
                                 <ArrowLeft className="w-5 h-5" />
                             </Link>
                             <div>
-                                <h1 className="text-xl font-bold text-white">Meus Pedidos</h1>
-                                <p className="text-sm text-brand-400">{orders.length} pedidos</p>
+                                <h1 className="text-xl font-bold text-white">Pedidos</h1>
+                                <p className="text-sm text-brand-400">Gerencie sua produção e novas oportunidades</p>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="flex gap-1 bg-brand-900/50 p-1 rounded-xl w-fit border border-brand-800">
+                        <button
+                            onClick={() => setActiveTab('my_orders')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'my_orders'
+                                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+                                : 'text-brand-400 hover:text-white hover:bg-brand-800/50'
+                                }`}
+                        >
+                            Meus Pedidos ({
+                                orders.filter(o => {
+                                    const isInvited = o.targetSuppliers && o.targetSuppliers.length > 0;
+                                    const isAssigned = ['ACEITO_PELA_FACCAO', 'EM_PRODUCAO', 'PRONTO', 'FINALIZADO', 'RECUSADO_PELA_FACCAO'].includes(o.status);
+                                    return isAssigned || isInvited;
+                                }).length
+                            })
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('marketplace')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'marketplace'
+                                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+                                : 'text-brand-400 hover:text-white hover:bg-brand-800/50'
+                                }`}
+                        >
+                            <Search className="w-4 h-4" />
+                            Bolsa de Pedidos ({
+                                orders.filter(o => {
+                                    const isInvited = o.targetSuppliers && o.targetSuppliers.length > 0;
+                                    const isAssigned = ['ACEITO_PELA_FACCAO', 'EM_PRODUCAO', 'PRONTO', 'FINALIZADO', 'RECUSADO_PELA_FACCAO'].includes(o.status);
+                                    return o.assignmentType === 'HYBRID' && !isInvited && !isAssigned && o.status === 'LANCADO_PELA_MARCA';
+                                }).length
+                            })
+                        </button>
                     </div>
                 </div>
             </header>
@@ -98,17 +149,21 @@ const OrdersListPage: React.FC = () => {
                     <div className="flex justify-center py-12">
                         <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
                     </div>
-                ) : filteredOrders.length === 0 ? (
+                ) : tabOrders.length === 0 ? (
                     <div className="text-center py-12">
                         <Package className="w-12 h-12 text-brand-400 mx-auto mb-4" />
-                        <p className="text-brand-300">Nenhum pedido encontrado</p>
+                        <p className="text-brand-300">
+                            {activeTab === 'marketplace'
+                                ? 'Nenhuma oportunidade disponível no momento'
+                                : 'Nenhum pedido encontrado'}
+                        </p>
                     </div>
                 ) : (
                     <div className="space-y-8">
                         {/* Pending Orders */}
                         {statusGroups.pending.length > 0 && (
                             <OrderSection
-                                title="Aguardando Aceite"
+                                title={activeTab === 'marketplace' ? "Oportunidades em Aberto" : "Aguardando Aceite"}
                                 icon={<Clock className="w-5 h-5 text-amber-400" />}
                                 orders={statusGroups.pending}
                                 accentColor="amber"

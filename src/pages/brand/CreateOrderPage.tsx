@@ -60,7 +60,7 @@ const CreateOrderPage: React.FC = () => {
         paymentTerms: '',
         materialsProvided: false,
         observations: '',
-        assignmentType: 'DIRECT' as 'DIRECT' | 'BIDDING',
+        assignmentType: 'DIRECT' as 'DIRECT' | 'BIDDING' | 'HYBRID',
         supplierId: preselectedSupplierId || '',
         targetSupplierIds: [] as string[],
     });
@@ -139,7 +139,7 @@ const CreateOrderPage: React.FC = () => {
                 quantity: Number(formData.quantity),
                 pricePerUnit: Number(formData.pricePerUnit),
                 supplierId: formData.assignmentType === 'DIRECT' ? formData.supplierId : undefined,
-                targetSupplierIds: formData.assignmentType === 'BIDDING' ? formData.targetSupplierIds : undefined,
+                targetSupplierIds: (formData.assignmentType === 'BIDDING' || formData.assignmentType === 'HYBRID') ? formData.targetSupplierIds : undefined,
             });
 
             // 2. Upload files if any
@@ -447,7 +447,7 @@ const CreateOrderPage: React.FC = () => {
 
                 {/* Supplier Selection */}
                 <Section title="Definição de Facção" description="Escolha quem irá produzir este pedido" icon={<Factory className="w-5 h-5 text-purple-600 dark:text-purple-500" />}>
-                    <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="grid grid-cols-3 gap-4 mb-6">
                         <button
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, assignmentType: 'DIRECT', targetSupplierIds: [] }))}
@@ -460,7 +460,7 @@ const CreateOrderPage: React.FC = () => {
                                 <span className={`font-semibold ${formData.assignmentType === 'DIRECT' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>Direto</span>
                                 {formData.assignmentType === 'DIRECT' && <CheckCircle className="w-5 h-5 text-brand-600 dark:text-brand-500" />}
                             </div>
-                            <p className="text-sm text-gray-500">Escolha uma facção específica para o trabalho</p>
+                            <p className="text-sm text-gray-500">Uma facção específica</p>
                         </button>
                         <button
                             type="button"
@@ -471,10 +471,24 @@ const CreateOrderPage: React.FC = () => {
                                 }`}
                         >
                             <div className="flex items-center justify-between mb-2">
-                                <span className={`font-semibold ${formData.assignmentType === 'BIDDING' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>Licitação / Cotação</span>
+                                <span className={`font-semibold ${formData.assignmentType === 'BIDDING' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>Fechado</span>
                                 {formData.assignmentType === 'BIDDING' && <CheckCircle className="w-5 h-5 text-brand-600 dark:text-brand-500" />}
                             </div>
-                            <p className="text-sm text-gray-500">Solicite orçamentos de múltiplas facções</p>
+                            <p className="text-sm text-gray-500">Apenas facções convidadas</p>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, assignmentType: 'HYBRID', supplierId: '' }))}
+                            className={`p-4 rounded-xl border text-left transition-all ${formData.assignmentType === 'HYBRID'
+                                ? 'bg-brand-50 dark:bg-brand-500/10 border-brand-500/50 ring-1 ring-brand-500/50'
+                                : 'bg-white dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                }`}
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <span className={`font-semibold ${formData.assignmentType === 'HYBRID' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>Híbrido</span>
+                                {formData.assignmentType === 'HYBRID' && <CheckCircle className="w-5 h-5 text-brand-600 dark:text-brand-500" />}
+                            </div>
+                            <p className="text-sm text-gray-500">Convidados + Aberto a todos</p>
                         </button>
                     </div>
 
@@ -482,78 +496,92 @@ const CreateOrderPage: React.FC = () => {
                         <div className="flex justify-center py-12">
                             <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
                         </div>
-                    ) : suppliers.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-800 border-dashed">
-                            Nenhuma facção encontrada
-                        </div>
                     ) : (
-                        <div className="max-h-96 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-                            {sortedSuppliers.map((supplier, index) => {
-                                const isSelected = (formData.assignmentType === 'DIRECT' && formData.supplierId === supplier.id) ||
-                                    (formData.assignmentType === 'BIDDING' && formData.targetSupplierIds.includes(supplier.id));
-                                const isFavorite = favoriteSupplierIds.includes(supplier.id);
+                        <div>
+                            {formData.assignmentType === 'HYBRID' && (
+                                <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-xl flex gap-3 text-sm text-blue-800 dark:text-blue-300">
+                                    <Info className="w-5 h-5 flex-shrink-0" />
+                                    <p>
+                                        No modo Híbrido, o pedido ficará visível na <strong>Bolsa de Pedidos</strong> para todas as facções qualificadas.
+                                        Você também pode convidar facções específicas abaixo para notificá-las diretamente.
+                                    </p>
+                                </div>
+                            )}
 
-                                return (
-                                    <React.Fragment key={supplier.id}>
-                                        {/* Separator between favorites and others */}
-                                        {index > 0 && isFavorite === false && favoriteSupplierIds.includes(sortedSuppliers[index - 1].id) && (
-                                            <div className="flex items-center gap-2 py-2">
-                                                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-                                                <span className="text-xs text-gray-400 dark:text-gray-500 px-2">Outros fornecedores</span>
-                                                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-                                            </div>
-                                        )}
-                                        <div
-                                            onClick={() => {
-                                                if (formData.assignmentType === 'DIRECT') {
-                                                    setFormData(prev => ({ ...prev, supplierId: supplier.id }));
-                                                } else {
-                                                    handleSupplierToggle(supplier.id);
-                                                }
-                                            }}
-                                            className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all group ${isSelected
-                                                ? 'bg-brand-50 dark:bg-brand-500/10 border-brand-500/50'
-                                                : 'bg-white dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                                                }`}
-                                        >
-                                            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mr-4 border border-gray-200 dark:border-gray-700 relative">
-                                                <Factory className={`w-5 h-5 ${isSelected ? 'text-brand-600 dark:text-brand-400' : 'text-gray-500'}`} />
-                                                {isFavorite && (
-                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                                                        <Star className="w-2.5 h-2.5 text-white fill-current" />
+                            {suppliers.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-800 border-dashed">
+                                    Nenhuma facção encontrada
+                                </div>
+                            ) : (
+                                <div className="max-h-96 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                                    {sortedSuppliers.map((supplier, index) => {
+                                        const isSelected = (formData.assignmentType === 'DIRECT' && formData.supplierId === supplier.id) ||
+                                            ((formData.assignmentType === 'BIDDING' || formData.assignmentType === 'HYBRID') && formData.targetSupplierIds.includes(supplier.id));
+                                        const isFavorite = favoriteSupplierIds.includes(supplier.id);
+
+                                        return (
+                                            <React.Fragment key={supplier.id}>
+                                                {/* Separator between favorites and others */}
+                                                {index > 0 && isFavorite === false && favoriteSupplierIds.includes(sortedSuppliers[index - 1].id) && (
+                                                    <div className="flex items-center gap-2 py-2">
+                                                        <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                                                        <span className="text-xs text-gray-400 dark:text-gray-500 px-2">Outros fornecedores</span>
+                                                        <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
                                                     </div>
                                                 )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <p className={`font-medium ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>{supplier.tradeName}</p>
-                                                    {isFavorite && (
-                                                        <span className="text-[10px] font-semibold text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-1.5 py-0.5 rounded">
-                                                            Favorito
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <div className="flex items-center text-xs text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                                                        <Star className="w-3 h-3 fill-current mr-1" />
-                                                        {supplier.avgRating ? Number(supplier.avgRating).toFixed(1) : 'N/A'}
+                                                <div
+                                                    onClick={() => {
+                                                        if (formData.assignmentType === 'DIRECT') {
+                                                            setFormData(prev => ({ ...prev, supplierId: supplier.id }));
+                                                        } else {
+                                                            handleSupplierToggle(supplier.id);
+                                                        }
+                                                    }}
+                                                    className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all group ${isSelected
+                                                        ? 'bg-brand-50 dark:bg-brand-500/10 border-brand-500/50'
+                                                        : 'bg-white dark:bg-gray-900/30 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                                        }`}
+                                                >
+                                                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mr-4 border border-gray-200 dark:border-gray-700 relative">
+                                                        <Factory className={`w-5 h-5 ${isSelected ? 'text-brand-600 dark:text-brand-400' : 'text-gray-500'}`} />
+                                                        {isFavorite && (
+                                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                                                                <Star className="w-2.5 h-2.5 text-white fill-current" />
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
-                                                    <p className="text-xs text-gray-500 truncate max-w-[200px]">
-                                                        {supplier.supplierProfile?.productTypes?.join(', ') || 'Diversos'}
-                                                    </p>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className={`font-medium ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>{supplier.tradeName}</p>
+                                                            {isFavorite && (
+                                                                <span className="text-[10px] font-semibold text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-1.5 py-0.5 rounded">
+                                                                    Favorito
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <div className="flex items-center text-xs text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                                                                <Star className="w-3 h-3 fill-current mr-1" />
+                                                                {supplier.avgRating ? Number(supplier.avgRating).toFixed(1) : 'N/A'}
+                                                            </div>
+                                                            <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
+                                                            <p className="text-xs text-gray-500 truncate max-w-[200px]">
+                                                                {supplier.supplierProfile?.productTypes?.join(', ') || 'Diversos'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
+                                                        ? 'bg-brand-600 dark:bg-brand-500 border-brand-600 dark:border-brand-500'
+                                                        : 'border-gray-300 dark:border-gray-600 group-hover:border-gray-400 dark:group-hover:border-gray-500'
+                                                        }`}>
+                                                        {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
-                                                ? 'bg-brand-600 dark:bg-brand-500 border-brand-600 dark:border-brand-500'
-                                                : 'border-gray-300 dark:border-gray-600 group-hover:border-gray-400 dark:group-hover:border-gray-500'
-                                                }`}>
-                                                {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
-                                            </div>
-                                        </div>
-                                    </React.Fragment>
-                                );
-                            })}
+                                            </React.Fragment>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
                 </Section>
@@ -571,7 +599,7 @@ const CreateOrderPage: React.FC = () => {
                         type="submit"
                         disabled={isLoading ||
                             (formData.assignmentType === 'DIRECT' && !formData.supplierId) ||
-                            (formData.assignmentType === 'BIDDING' && formData.targetSupplierIds.length === 0)}
+                            (formData.assignmentType === 'BIDDING' && formData.targetSupplierIds.length === 0)} // HYBRID allows 0 targets
                         className="px-8 py-3 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-semibold rounded-xl shadow-lg shadow-brand-500/20 transition-all disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-2"
                     >
                         {isLoading ? (
