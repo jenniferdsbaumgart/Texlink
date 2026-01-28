@@ -36,6 +36,9 @@ export class OrdersService {
         }
 
         const totalValue = dto.quantity * dto.pricePerUnit;
+        const platformFeePercentage = 0.10; // 10%
+        const platformFee = totalValue * platformFeePercentage;
+        const netValue = totalValue - platformFee;
 
         // Build order data
         const orderData: any = {
@@ -50,6 +53,8 @@ export class OrdersService {
             quantity: dto.quantity,
             pricePerUnit: dto.pricePerUnit,
             totalValue,
+            platformFee,
+            netValue,
             deliveryDeadline: new Date(dto.deliveryDeadline),
             paymentTerms: dto.paymentTerms,
             materialsProvided: dto.materialsProvided ?? false,
@@ -138,20 +143,28 @@ export class OrdersService {
             whereClause.status = status;
         }
 
-        return this.prisma.order.findMany({
+        const orders = await this.prisma.order.findMany({
             where: whereClause,
             include: {
-                brand: { select: { id: true, tradeName: true, avgRating: true } },
-                supplier: { select: { id: true, tradeName: true, avgRating: true } },
-                attachments: true,
-                targetSuppliers: {
-                    where: { supplierId: companyUser.companyId },
-                    select: { status: true }
-                },
-                _count: { select: { messages: true } },
+                brand: { select: { id: true, tradeName: true } },
+                supplier: { select: { id: true, tradeName: true } },
+                targetSuppliers: { include: { supplier: { select: { id: true, tradeName: true } } } },
+                _count: { select: { messages: true, attachments: true } },
             },
             orderBy: { createdAt: 'desc' },
         });
+
+        // Financial Privacy Masking
+        if (role === 'SUPPLIER') {
+            return orders.map(order => ({
+                ...order,
+                totalValue: order.netValue || order.totalValue,
+                pricePerUnit: order.netValue ? Number(order.netValue) / order.quantity : order.pricePerUnit,
+                platformFee: undefined
+            }));
+        }
+
+        return orders;
     }
 
     // Get order by ID
@@ -176,6 +189,23 @@ export class OrdersService {
 
         if (!order) {
             throw new NotFoundException('Order not found');
+        }
+
+        // Financial Privacy Masking for Supplier
+        const companyUser = await this.prisma.companyUser.findFirst({
+            where: { userId, companyId: order.supplierId || undefined },
+            include: { company: true }
+        });
+
+        const isSupplier = companyUser && companyUser.company.type === CompanyType.SUPPLIER;
+
+        if (isSupplier) {
+            return {
+                ...order,
+                totalValue: order.netValue || order.totalValue,
+                pricePerUnit: order.netValue ? Number(order.netValue) / order.quantity : order.pricePerUnit,
+                platformFee: undefined
+            };
         }
 
         return order;
@@ -652,9 +682,9 @@ export class OrdersService {
         }
 
         // If this is a child order, get the root parent
-        let rootOrder = order;
+        let rootOrder: any = order;
         if (order.parentOrder) {
-            rootOrder = await this.prisma.order.findUnique({
+            const parent = await this.prisma.order.findUnique({
                 where: { id: order.parentOrder.id },
                 include: {
                     childOrders: {
@@ -670,7 +700,10 @@ export class OrdersService {
                         orderBy: { revisionNumber: 'asc' },
                     },
                 },
-            }) || order;
+            });
+            if (parent) {
+                rootOrder = parent;
+            }
         }
 
         return {

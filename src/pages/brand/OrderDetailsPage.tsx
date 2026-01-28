@@ -230,7 +230,21 @@ const OrderDetailsPage: React.FC = () => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <InfoCard icon={Package} label="Quantidade" value={`${order.quantity} pçs`} />
                                 <InfoCard icon={DollarSign} label="Preço/Un" value={formatCurrency(Number(order.pricePerUnit))} />
-                                <InfoCard icon={DollarSign} label="Total" value={formatCurrency(Number(order.totalValue))} highlight />
+                                <div className="p-4 rounded-xl bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-800">
+                                    <DollarSign className="w-5 h-5 mb-2 text-brand-500" />
+                                    <p className="text-xs text-brand-600 dark:text-brand-400 font-medium">Financeiro</p>
+                                    <div className="mt-1 space-y-0.5">
+                                        <p className="font-semibold text-gray-900 dark:text-white">{formatCurrency(Number(order.totalValue))}</p>
+                                        {order.platformFee && (
+                                            <>
+                                                <p className="text-[10px] text-gray-500">Taxa: {formatCurrency(Number(order.platformFee))}</p>
+                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                                    Líquido Facção: {formatCurrency(Number(order.netValue || (order.totalValue as any) - (order.platformFee as any)))}
+                                                </p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                                 <InfoCard icon={Calendar} label="Entrega" value={formatDate(order.deliveryDeadline)} />
                             </div>
                         </div>

@@ -210,7 +210,7 @@ export const MOCK_ORDERS = [
         id: 'order-001',
         displayId: 'TX-20260120-0001',
         brandId: 'company-brand-001',
-        supplierId: 'supplier-001',
+        supplierId: 'company-supplier-001',
         status: 'EM_PRODUCAO',
         assignmentType: 'DIRECT',
         productType: 'Camisetas',
@@ -225,7 +225,7 @@ export const MOCK_ORDERS = [
         materialsProvided: true,
         createdAt: formatDate(-5),
         brand: { id: 'company-brand-001', tradeName: 'Fashion Style Ltda', avgRating: 4.5 },
-        supplier: { id: 'supplier-001', tradeName: 'Confecções Silva', avgRating: 4.8 },
+        supplier: { id: 'company-supplier-001', tradeName: 'Confecções Silva', avgRating: 4.8 },
         _count: { messages: 3 }
     },
     {

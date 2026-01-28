@@ -84,10 +84,13 @@ Texlink is a multi-tenant SaaS platform designed to revolutionise the relationsh
 
 - **Role-Based Access Control**: Granular permissions system with 6 predefined roles (Admin, Operations Manager, Financial Manager, Sales, Production Manager, Viewer)
 - **Team Collaboration**: Invite team members with specific roles and custom permission overrides
+- **Real-time Chat**: WebSocket-based instant messaging with typing indicators and proposal negotiation
+- **Supplier Credentialing**: Complete supplier onboarding workflow with CNPJ validation and compliance analysis
 - **Real-time Notifications**: Activity tracking and notifications
 - **Document Management**: Upload and manage alvarás, certifications, technical sheets, and photos
 - **Rating System**: Mutual rating between brands and suppliers
 - **Payment Tracking**: Multiple payment status tracking (Pending, Partial, Paid, Overdue)
+- **External Integrations**: CNPJ validation (Brasil API, ReceitaWS), Email (SendGrid), WhatsApp (Twilio)
 
 ## Tech Stack
 
@@ -95,10 +98,13 @@ Texlink is a multi-tenant SaaS platform designed to revolutionise the relationsh
 
 - **Framework**: NestJS (Node.js)
 - **Database**: PostgreSQL 16 with Prisma ORM
+- **Real-time**: Socket.IO (WebSocket Gateway)
 - **Authentication**: JWT with Passport
 - **Validation**: Class Validator & Class Transformer
 - **Password Hashing**: bcrypt
 - **File Upload**: Multer
+- **HTTP Client**: Axios (for external APIs)
+- **External APIs**: Brasil API, ReceitaWS (CNPJ), SendGrid (Email), Twilio (WhatsApp/SMS)
 
 ### Frontend
 
@@ -107,6 +113,7 @@ Texlink is a multi-tenant SaaS platform designed to revolutionise the relationsh
 - **Styling**: Vanilla CSS with modern design system
 - **State Management**: TanStack Query (React Query)
 - **HTTP Client**: Axios
+- **Real-time**: Socket.IO Client
 - **Charts**: Recharts
 - **Icons**: Lucide React
 
@@ -191,10 +198,12 @@ texlink-facção-manager/
 │       │   ├── auth/          # Authentication & authorisation
 │       │   ├── companies/     # Company management
 │       │   ├── suppliers/     # Supplier profiles and capabilities
+│       │   ├── credentials/   # Supplier credentialing system
+│       │   ├── integrations/  # External API integrations
 │       │   ├── orders/        # Order lifecycle management
 │       │   ├── payments/      # Payment tracking
 │       │   ├── ratings/       # Rating system
-│       │   ├── chat/          # Messaging system
+│       │   ├── chat/          # Real-time messaging (WebSocket)
 │       │   ├── team/          # Team and permissions
 │       │   └── ...
 │       ├── common/            # Shared utilities and guards
@@ -374,6 +383,13 @@ Ensure the following environment variables are configured for production:
 - `PORT`: API server port (default: 3000)
 - `NODE_ENV`: `production`
 
+**External Integrations:**
+- `SENDGRID_API_KEY`: SendGrid API key for email
+- `SENDGRID_FROM_EMAIL`: From email address
+- `TWILIO_ACCOUNT_SID`: Twilio account SID for WhatsApp/SMS
+- `TWILIO_AUTH_TOKEN`: Twilio auth token
+- `RECEITAWS_API_KEY`: ReceitaWS API key (optional)
+
 **Frontend:**
 - `VITE_API_URL`: Backend API URL
 
@@ -387,6 +403,46 @@ The application includes a `docker-compose.yml` for containerised deployment. Fo
 - Configuring SSL/TLS certificates
 - Implementing database backups
 - Setting up monitoring and logging
+
+## Technical Documentation
+
+Detailed technical documentation for specific modules:
+
+- **[Supplier Credentialing System](docs/modules/supplier-credentials.md)** - Complete guide to the supplier onboarding and credentialing workflow
+- **[External Integrations](docs/modules/integrations.md)** - Documentation for CNPJ validation, credit analysis, and notification providers
+- **[Real-time Chat](docs/modules/realtime-chat.md)** - WebSocket-based chat implementation with Socket.IO
+
+### Key Features Documentation
+
+#### Supplier Credentialing
+The supplier credentialing system manages the entire lifecycle from initial CNPJ registration through compliance analysis to supplier activation. Features include:
+- Automated CNPJ validation via Brasil API and ReceitaWS
+- Multi-stage status workflow (Draft → Validation → Invitation → Onboarding → Active)
+- Compliance analysis and risk scoring
+- Multi-channel invitations (Email, WhatsApp)
+- Complete audit trail and status history
+
+See [docs/modules/supplier-credentials.md](docs/modules/supplier-credentials.md) for details.
+
+#### Real-time Chat
+WebSocket-based instant messaging enables real-time communication between brands and suppliers within order contexts. Features include:
+- Instant message delivery via Socket.IO
+- Typing indicators
+- Proposal negotiation with accept/reject
+- Read receipts
+- Multi-device support
+
+See [docs/modules/realtime-chat.md](docs/modules/realtime-chat.md) for implementation details.
+
+#### External Integrations
+Centralized integration layer for external services provides:
+- CNPJ validation with automatic fallback between providers
+- Credit analysis and risk scoring (Mock implementation, ready for Serasa/Boa Vista)
+- Email notifications via SendGrid
+- WhatsApp messaging via Twilio
+- Circuit breaker and retry patterns for resilience
+
+See [docs/modules/integrations.md](docs/modules/integrations.md) for integration details.
 
 ## Licence
 

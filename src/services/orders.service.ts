@@ -43,6 +43,8 @@ export interface Order {
     quantity: number;
     pricePerUnit: number;
     totalValue: number;
+    platformFee?: number;
+    netValue?: number;
     deliveryDeadline: string;
     paymentTerms?: string;
     materialsProvided: boolean;
@@ -208,9 +210,9 @@ export const ordersService = {
     async getSupplierOrders(status?: OrderStatus): Promise<Order[]> {
         if (MOCK_MODE) {
             await simulateDelay(500);
-            // Filter orders assigned to supplier-001 (demo supplier)
+            // Filter orders assigned to demo supplier (company-supplier-001)
             let orders = mockOrdersState.filter(o =>
-                o.supplierId === 'supplier-001' || o.supplier?.tradeName === 'Confecções Silva'
+                o.supplierId === 'company-supplier-001' || o.supplier?.tradeName === 'Confecções Silva'
             );
             if (status) {
                 orders = orders.filter(o => o.status === status);

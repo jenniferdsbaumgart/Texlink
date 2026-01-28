@@ -208,6 +208,8 @@ const CreateOrderPage: React.FC = () => {
     };
 
     const totalValue = (Number(formData.quantity) || 0) * (Number(formData.pricePerUnit) || 0);
+    const platformFee = totalValue * 0.10; // 10% fee simulation
+    const netValue = totalValue - platformFee;
 
     // Sort suppliers: favorites first, then by rating
     const sortedSuppliers = useMemo(() => {
@@ -413,6 +415,16 @@ const CreateOrderPage: React.FC = () => {
                             <p className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
                             </p>
+                            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700/50 space-y-1">
+                                <div className="flex justify-between text-xs text-gray-500">
+                                    <span>Taxa de Serviço (10%)</span>
+                                    <span>- {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(platformFee)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                    <span>Líquido para Facção</span>
+                                    <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(netValue)}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

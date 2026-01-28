@@ -36,12 +36,12 @@ enum CompanyUserRole {
 
 // Roles pré-definidos para membros da empresa
 enum CompanyRole {
-  ADMIN               // Todas as permissões + gestão de equipe
-  OPERATIONS_MANAGER  // Pedidos, fornecedores, mensagens, relatórios
-  FINANCIAL_MANAGER   // Financeiro, relatórios
-  SALES               // Criar pedidos, ver fornecedores, mensagens
-  PRODUCTION_MANAGER  // (Facção) Pedidos, capacidade, mensagens
-  VIEWER              // Apenas visualização
+  ADMIN // Todas as permissões + gestão de equipe
+  OPERATIONS_MANAGER // Pedidos, fornecedores, mensagens, relatórios
+  FINANCIAL_MANAGER // Financeiro, relatórios
+  SALES // Criar pedidos, ver fornecedores, mensagens
+  PRODUCTION_MANAGER // (Facção) Pedidos, capacidade, mensagens
+  VIEWER // Apenas visualização
 }
 
 // Permissões granulares
@@ -51,7 +51,7 @@ enum Permission {
   ORDERS_CREATE
   ORDERS_EDIT
   ORDERS_DELETE
-  ORDERS_ACCEPT_REJECT      // Aceitar/rejeitar (facção)
+  ORDERS_ACCEPT_REJECT // Aceitar/rejeitar (facção)
   ORDERS_UPDATE_STATUS
 
   // Fornecedores/Parceiros
@@ -113,10 +113,10 @@ enum OrderStatus {
   EM_PRODUCAO
   PRONTO
   EM_TRANSITO_PARA_MARCA
-  EM_REVISAO                    // Em revisão de qualidade
-  PARCIALMENTE_APROVADO         // Parte aprovada, parte com problemas
-  REPROVADO                     // Totalmente reprovado
-  AGUARDANDO_RETRABALHO         // Aguardando pedido filho ser aceito
+  EM_REVISAO // Em revisão de qualidade
+  PARCIALMENTE_APROVADO // Parte aprovada, parte com problemas
+  REPROVADO // Totalmente reprovado
+  AGUARDANDO_RETRABALHO // Aguardando pedido filho ser aceito
   FINALIZADO
   RECUSADO_PELA_FACCAO
   DISPONIVEL_PARA_OUTRAS
@@ -124,21 +124,21 @@ enum OrderStatus {
 
 // Origem do pedido (original ou retrabalho)
 enum OrderOrigin {
-  ORIGINAL        // Pedido original
-  REWORK          // Retrabalho de pedido reprovado
+  ORIGINAL // Pedido original
+  REWORK // Retrabalho de pedido reprovado
 }
 
 // Tipo de revisão
 enum ReviewType {
-  QUALITY_CHECK   // Verificação de qualidade durante produção
-  FINAL_REVIEW    // Revisão final antes de finalizar
+  QUALITY_CHECK // Verificação de qualidade durante produção
+  FINAL_REVIEW // Revisão final antes de finalizar
 }
 
 // Resultado da revisão
 enum ReviewResult {
-  APPROVED        // 100% aprovado
-  PARTIAL         // Parcialmente aprovado
-  REJECTED        // 100% reprovado
+  APPROVED // 100% aprovado
+  PARTIAL // Parcialmente aprovado
+  REJECTED // 100% reprovado
 }
 
 enum OrderAssignmentType {
@@ -179,6 +179,67 @@ enum ProposalStatus {
   REJECTED
 }
 
+// ==================== CREDENTIAL SYSTEM ENUMS ====================
+
+enum SupplierCredentialStatus {
+  DRAFT // Rascunho inicial
+  PENDING_VALIDATION // Aguardando validação de CNPJ
+  VALIDATING // Validação em andamento
+  VALIDATION_FAILED // Validação falhou
+  PENDING_COMPLIANCE // Aguardando análise de compliance
+  COMPLIANCE_APPROVED // Compliance aprovado
+  COMPLIANCE_REJECTED // Compliance rejeitado
+  INVITATION_PENDING // Convite pronto para enviar
+  INVITATION_SENT // Convite enviado
+  INVITATION_OPENED // Convite aberto
+  INVITATION_EXPIRED // Convite expirado
+  ONBOARDING_STARTED // Onboarding iniciado
+  ONBOARDING_IN_PROGRESS // Onboarding em progresso
+  CONTRACT_PENDING // Aguardando assinatura de contrato
+  CONTRACT_SIGNED // Contrato assinado
+  ACTIVE // Facção ativa na plataforma
+  SUSPENDED // Temporariamente suspensa
+  BLOCKED // Bloqueada
+}
+
+enum ValidationSource {
+  RECEITA_FEDERAL
+  SINTEGRA
+  SERASA
+  SPC
+  MANUAL
+  OTHER
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ManualReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InvitationType {
+  EMAIL
+  WHATSAPP
+  SMS
+  LINK
+}
+
+enum ContractStatus {
+  DRAFT
+  PENDING_BRAND_SIGNATURE
+  PENDING_SUPPLIER_SIGNATURE
+  SIGNED
+  EXPIRED
+  CANCELLED
+}
+
 // ==================== MODELS ====================
 
 model User {
@@ -192,48 +253,64 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  companyUsers         CompanyUser[]
-  orderStatusChanges   OrderStatusHistory[]
-  messages             Message[]
-  ordersAccepted       Order[]              @relation("AcceptedBy")
-  invitationsSent      Invitation[]         @relation("InvitationsSent")
-  reviewsPerformed     OrderReview[]        @relation("ReviewedBy")
+  companyUsers       CompanyUser[]
+  orderStatusChanges OrderStatusHistory[]
+  messages           Message[]
+  ordersAccepted     Order[]              @relation("AcceptedBy")
+  invitationsSent    Invitation[]         @relation("InvitationsSent")
+  reviewsPerformed   OrderReview[]        @relation("ReviewedBy")
+
+  // Credential system relations
+  credentialsCreated      SupplierCredential[]      @relation("CredentialCreatedBy")
+  credentialStatusChanges CredentialStatusHistory[] @relation("CredentialStatusChangedBy")
+  complianceReviews       ComplianceAnalysis[]      @relation("ComplianceReviewedBy")
+  onboardings             SupplierOnboarding[]
+  documentsValidated      OnboardingDocument[]      @relation("DocumentValidatedBy")
+  contractsBrandSigned    SupplierContract[]        @relation("ContractBrandSignedBy")
+  contractsSupplierSigned SupplierContract[]        @relation("ContractSupplierSignedBy")
 
   @@map("users")
 }
 
 model Company {
-  id         String        @id @default(uuid())
-  legalName  String
-  tradeName  String?
-  document   String        @unique // CNPJ or CPF
-  type       CompanyType
-  city       String
-  state      String
-  phone      String?
-  email      String?
-  logoUrl    String?
-  avgRating  Decimal       @default(0) @db.Decimal(2, 1)
-  status     CompanyStatus @default(PENDING)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id        String        @id @default(uuid())
+  legalName String
+  tradeName String?
+  document  String        @unique // CNPJ or CPF
+  type      CompanyType
+  city      String
+  state     String
+  phone     String?
+  email     String?
+  logoUrl   String?
+  avgRating Decimal       @default(0) @db.Decimal(2, 1)
+  status    CompanyStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   // Relations
   companyUsers     CompanyUser[]
   supplierProfile  SupplierProfile?
   documents        Document[]
-  ordersAsBrand    Order[]              @relation("BrandOrders")
-  ordersAsSupplier Order[]              @relation("SupplierOrders")
+  ordersAsBrand    Order[]               @relation("BrandOrders")
+  ordersAsSupplier Order[]               @relation("SupplierOrders")
   targetedOrders   OrderTargetSupplier[]
-  ratingsGiven     Rating[]             @relation("RatingsGiven")
-  ratingsReceived  Rating[]             @relation("RatingsReceived")
+  ratingsGiven     Rating[]              @relation("RatingsGiven")
+  ratingsReceived  Rating[]              @relation("RatingsReceived")
   invitations      Invitation[]
 
   // Favorites & Templates (for BRAND)
   productTemplates    ProductTemplate[]
-  favoriteSuppliers   FavoriteSupplier[] @relation("BrandFavorites")
-  favoritedBy         FavoriteSupplier[] @relation("FavoritedBy")
+  favoriteSuppliers   FavoriteSupplier[]   @relation("BrandFavorites")
+  favoritedBy         FavoriteSupplier[]   @relation("FavoritedBy")
   paymentTermsPresets PaymentTermsPreset[]
+
+  // Credential system relations (for BRAND)
+  credentialsInitiated SupplierCredential[] @relation("CredentialBrand")
+  credentialsReceived  SupplierCredential[] @relation("CredentialSupplier")
+  credentialSettings   CredentialSettings?
+  invitationTemplates  InvitationTemplate[]
+  contractTemplates    ContractTemplate[]
 
   @@map("companies")
 }
@@ -242,15 +319,15 @@ model CompanyUser {
   id             String          @id @default(uuid())
   userId         String
   companyId      String
-  role           CompanyUserRole @default(MEMBER)    // Mantido para compatibilidade
-  companyRole    CompanyRole     @default(VIEWER)    // Role pré-definido
-  isCompanyAdmin Boolean         @default(false)     // Flag de admin
+  role           CompanyUserRole @default(MEMBER) // Mantido para compatibilidade
+  companyRole    CompanyRole     @default(VIEWER) // Role pré-definido
+  isCompanyAdmin Boolean         @default(false) // Flag de admin
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company     Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  permissions CompanyUserPermission[]   // Overrides individuais
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  permissions CompanyUserPermission[] // Overrides individuais
 
   @@unique([userId, companyId])
   @@map("company_users")
@@ -261,7 +338,7 @@ model CompanyUserPermission {
   id            String     @id @default(uuid())
   companyUserId String
   permission    Permission
-  granted       Boolean    @default(true)  // true = conceder, false = negar
+  granted       Boolean    @default(true) // true = conceder, false = negar
   createdAt     DateTime   @default(now())
 
   companyUser CompanyUser @relation(fields: [companyUserId], references: [id], onDelete: Cascade)
@@ -285,30 +362,30 @@ model Invitation {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   invitedBy User    @relation("InvitationsSent", fields: [invitedById], references: [id])
 
-  @@unique([companyId, email, status])  // Um convite pendente por email/empresa
+  @@unique([companyId, email, status]) // Um convite pendente por email/empresa
   @@map("invitations")
 }
 
 model SupplierProfile {
-  id                    String   @id @default(uuid())
-  companyId             String   @unique
-  onboardingPhase       Int      @default(1) // 1, 2, or 3
-  onboardingComplete    Boolean  @default(false)
-  
+  id                 String  @id @default(uuid())
+  companyId          String  @unique
+  onboardingPhase    Int     @default(1) // 1, 2, or 3
+  onboardingComplete Boolean @default(false)
+
   // Phase 2: Business Qualification
-  businessQualification Json?    // { interesse, faturamentoDesejado, maturidadeGestao, qtdColaboradores }
-  
+  businessQualification Json? // { interesse, faturamentoDesejado, maturidadeGestao, qtdColaboradores }
+
   // Phase 3: Production Capacity
-  productionCapacity    Json?    // { tiposProduto, subcategorias, especialidades }
-  productTypes          String[] // e.g., ["Infantil", "Adulto", "Fitness"]
-  specialties           String[] // e.g., ["Jeans", "Malha", "Tricô"]
-  
-  monthlyCapacity       Int?     // peças/mês
-  currentOccupancy      Int      @default(0) // % ocupação atual
-  desiredRevenue        Decimal? @db.Decimal(12, 2)
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  productionCapacity Json? // { tiposProduto, subcategorias, especialidades }
+  productTypes       String[] // e.g., ["Infantil", "Adulto", "Fitness"]
+  specialties        String[] // e.g., ["Jeans", "Malha", "Tricô"]
+
+  monthlyCapacity  Int? // peças/mês
+  currentOccupancy Int      @default(0) // % ocupação atual
+  desiredRevenue   Decimal? @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
@@ -322,7 +399,7 @@ model Document {
   name      String
   url       String
   mimeType  String
-  size      Int          // bytes
+  size      Int // bytes
   createdAt DateTime     @default(now())
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -331,63 +408,65 @@ model Document {
 }
 
 model Order {
-  id                String              @id @default(uuid())
-  displayId         String              @unique // TX-YYYYMMDD-XXXX ou TX-YYYYMMDD-XXXX-R1
-  brandId           String
-  supplierId        String?             // null until accepted in BIDDING mode
-  
-  status            OrderStatus         @default(LANCADO_PELA_MARCA)
-  assignmentType    OrderAssignmentType @default(DIRECT)
-  
+  id         String  @id @default(uuid())
+  displayId  String  @unique // TX-YYYYMMDD-XXXX ou TX-YYYYMMDD-XXXX-R1
+  brandId    String
+  supplierId String? // null until accepted in BIDDING mode
+
+  status         OrderStatus         @default(LANCADO_PELA_MARCA)
+  assignmentType OrderAssignmentType @default(DIRECT)
+
   // Hierarquia de pedidos (pai/filho para retrabalho)
-  parentOrderId     String?
-  parentOrder       Order?              @relation("OrderHierarchy", fields: [parentOrderId], references: [id])
-  childOrders       Order[]             @relation("OrderHierarchy")
-  revisionNumber    Int                 @default(0)  // 0 = original, 1+ = retrabalho
-  origin            OrderOrigin         @default(ORIGINAL)
-  
+  parentOrderId  String?
+  parentOrder    Order?      @relation("OrderHierarchy", fields: [parentOrderId], references: [id])
+  childOrders    Order[]     @relation("OrderHierarchy")
+  revisionNumber Int         @default(0) // 0 = original, 1+ = retrabalho
+  origin         OrderOrigin @default(ORIGINAL)
+
   // Product info
-  productType       String              // e.g., "Infantil"
-  productCategory   String?             // e.g., "Camiseta"
-  productName       String
-  description       String?
-  
-  quantity          Int
-  pricePerUnit      Decimal             @db.Decimal(10, 2)
-  totalValue        Decimal             @db.Decimal(12, 2)
-  
+  productType     String // e.g., "Infantil"
+  productCategory String? // e.g., "Camiseta"
+  productName     String
+  description     String?
+
+  quantity     Int
+  pricePerUnit Decimal  @db.Decimal(10, 2)
+  totalValue   Decimal  @db.Decimal(12, 2)
+  platformFee  Decimal? @db.Decimal(10, 2) // Taxa de serviço
+  netValue     Decimal? @db.Decimal(12, 2) // Valor líquido para a facção
+
   deliveryDeadline  DateTime
-  paymentTerms      String?             // e.g., "50% adiantado, 50% na entrega"
-  materialsProvided Boolean             @default(false)
-  
-  techSheetUrl      String?
-  observations      String?
-  rejectionReason   String?
-  
-  acceptedAt        DateTime?
-  acceptedById      String?
-  
+  paymentTerms      String? // e.g., "50% adiantado, 50% na entrega"
+  materialsProvided Boolean  @default(false)
+
+  techSheetUrl    String?
+  observations    String?
+  rejectionReason String?
+
+  acceptedAt   DateTime?
+  acceptedById String?
+
   // Métricas de revisão agregadas
-  totalReviewCount    Int               @default(0)
-  approvalCount       Int               @default(0)
-  rejectionCount      Int               @default(0)
-  secondQualityCount  Int               @default(0)
-  
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  totalReviewCount   Int @default(0)
+  approvalCount      Int @default(0)
+  rejectionCount     Int @default(0)
+  secondQualityCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  brand             Company             @relation("BrandOrders", fields: [brandId], references: [id])
-  supplier          Company?            @relation("SupplierOrders", fields: [supplierId], references: [id])
-  acceptedBy        User?               @relation("AcceptedBy", fields: [acceptedById], references: [id])
-  
-  statusHistory     OrderStatusHistory[]
-  attachments       OrderAttachment[]
-  targetSuppliers   OrderTargetSupplier[]
-  messages          Message[]
-  payments          Payment[]
-  ratings           Rating[]
-  reviews           OrderReview[]
+  brand      Company  @relation("BrandOrders", fields: [brandId], references: [id])
+  supplier   Company? @relation("SupplierOrders", fields: [supplierId], references: [id])
+  acceptedBy User?    @relation("AcceptedBy", fields: [acceptedById], references: [id])
+
+  statusHistory      OrderStatusHistory[]
+  attachments        OrderAttachment[]
+  targetSuppliers    OrderTargetSupplier[]
+  messages           Message[]
+  payments           Payment[]
+  ratings            Rating[]
+  reviews            OrderReview[]
   secondQualityItems SecondQualityItem[]
 
   @@map("orders")
@@ -409,13 +488,13 @@ model OrderTargetSupplier {
 }
 
 model OrderStatusHistory {
-  id             String      @id @default(uuid())
+  id             String       @id @default(uuid())
   orderId        String
   previousStatus OrderStatus?
   newStatus      OrderStatus
   changedById    String?
   notes          String?
-  createdAt      DateTime    @default(now())
+  createdAt      DateTime     @default(now())
 
   order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   changedBy User? @relation(fields: [changedById], references: [id])
@@ -430,7 +509,7 @@ model OrderAttachment {
   name          String
   url           String
   mimeType      String
-  size          Int            // bytes
+  size          Int // bytes
   downloadCount Int            @default(0)
   createdAt     DateTime       @default(now())
 
@@ -446,7 +525,7 @@ model Payment {
   dueDate   DateTime
   paidDate  DateTime?
   status    PaymentStatus @default(PENDENTE)
-  method    String?       // e.g., "PIX", "Boleto", "Transferência"
+  method    String? // e.g., "PIX", "Boleto", "Transferência"
   proofUrl  String?
   notes     String?
   createdAt DateTime      @default(now())
@@ -462,7 +541,7 @@ model Rating {
   orderId       String
   fromCompanyId String
   toCompanyId   String
-  score         Int      // 1 to 5
+  score         Int // 1 to 5
   comment       String?
   createdAt     DateTime @default(now())
 
@@ -475,17 +554,17 @@ model Rating {
 }
 
 model Message {
-  id           String       @id @default(uuid())
-  orderId      String
-  senderId     String
-  type         MessageType  @default(TEXT)
-  content      String?
+  id       String      @id @default(uuid())
+  orderId  String
+  senderId String
+  type     MessageType @default(TEXT)
+  content  String?
 
   // For proposals
-  proposalData Json?        // { originalValues, newValues, status }
+  proposalData Json? // { originalValues, newValues, status }
 
-  read         Boolean      @default(false)
-  createdAt    DateTime     @default(now())
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   sender User  @relation(fields: [senderId], references: [id])
@@ -499,7 +578,7 @@ model Message {
 model ProductTemplate {
   id                String   @id @default(uuid())
   companyId         String
-  name              String   // Template name (e.g., "Camiseta Básica Padrão")
+  name              String // Template name (e.g., "Camiseta Básica Padrão")
   productType       String
   productCategory   String?
   productName       String
@@ -519,9 +598,9 @@ model ProductTemplate {
 // Favorite supplier for brands
 model FavoriteSupplier {
   id         String   @id @default(uuid())
-  companyId  String   // Brand
-  supplierId String   // Supplier (Facção)
-  notes      String?  // Personal notes
+  companyId  String // Brand
+  supplierId String // Supplier (Facção)
+  notes      String? // Personal notes
   priority   Int      @default(0) // Preference order
   createdAt  DateTime @default(now())
 
@@ -534,12 +613,12 @@ model FavoriteSupplier {
 
 // Payment terms presets
 model PaymentTermsPreset {
-  id          String   @id @default(uuid())
-  companyId   String
-  name        String   // Preset name (e.g., "Parcelado 30/60/90")
-  terms       String   // Payment terms text
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  companyId String
+  name      String // Preset name (e.g., "Parcelado 30/60/90")
+  terms     String // Payment terms text
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
@@ -554,54 +633,425 @@ model OrderReview {
   orderId               String
   type                  ReviewType
   result                ReviewResult
-  totalQuantity         Int          // Quantidade total revisada
+  totalQuantity         Int // Quantidade total revisada
   approvedQuantity      Int          @default(0)
   rejectedQuantity      Int          @default(0)
   secondQualityQuantity Int          @default(0)
   notes                 String?
   reviewedAt            DateTime     @default(now())
   reviewedById          String
-  
+
   // Se gerou pedido filho de retrabalho
-  childOrderId          String?      // ID do pedido filho gerado (se houver)
-  
-  order                 Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  reviewedBy            User         @relation("ReviewedBy", fields: [reviewedById], references: [id])
-  rejectedItems         ReviewRejectedItem[]
-  createdAt             DateTime     @default(now())
+  childOrderId String? // ID do pedido filho gerado (se houver)
+
+  order         Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reviewedBy    User                 @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  rejectedItems ReviewRejectedItem[]
+  createdAt     DateTime             @default(now())
 
   @@map("order_reviews")
 }
 
 // Itens reprovados em uma revisão (detalhes)
 model ReviewRejectedItem {
-  id                String       @id @default(uuid())
+  id                String  @id @default(uuid())
   reviewId          String
-  reason            String       // Motivo da reprovação
+  reason            String // Motivo da reprovação
   quantity          Int
-  defectDescription String?      // Descrição detalhada do defeito
-  requiresRework    Boolean      @default(true) // Se precisa de retrabalho
-  
-  review            OrderReview  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  
+  defectDescription String? // Descrição detalhada do defeito
+  requiresRework    Boolean @default(true) // Se precisa de retrabalho
+
+  review OrderReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
   @@map("review_rejected_items")
 }
 
 // Itens de segunda qualidade gerados por revisões
 model SecondQualityItem {
-  id                  String   @id @default(uuid())
-  orderId             String
-  reviewId            String?  // Referência à revisão que gerou (opcional)
-  quantity            Int
-  defectType          String   // Tipo do defeito (ex: "Costura", "Manchado")
-  defectDescription   String?
-  originalUnitValue   Decimal  @db.Decimal(10, 2) // Valor original da peça
-  discountPercentage  Decimal  @default(0) @db.Decimal(5, 2) // % de desconto aplicado
-  finalUnitValue      Decimal? @db.Decimal(10, 2) // Valor final com desconto
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(uuid())
+  orderId            String
+  reviewId           String? // Referência à revisão que gerou (opcional)
+  quantity           Int
+  defectType         String // Tipo do defeito (ex: "Costura", "Manchado")
+  defectDescription  String?
+  originalUnitValue  Decimal  @db.Decimal(10, 2) // Valor original da peça
+  discountPercentage Decimal  @default(0) @db.Decimal(5, 2) // % de desconto aplicado
+  finalUnitValue     Decimal? @db.Decimal(10, 2) // Valor final com desconto
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("second_quality_items")
+}
+
+// ==================== SUPPLIER CREDENTIAL SYSTEM ====================
+
+// Registro principal de credenciamento de facção
+model SupplierCredential {
+  id          String  @id @default(uuid())
+  brandId     String
+  supplierId  String? // Null até facção ser criada
+  createdById String
+
+  // Dados da facção (informados pela marca)
+  cnpj            String
+  tradeName       String?
+  legalName       String?
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  contactWhatsapp String?
+
+  // Endereço
+  addressStreet       String?
+  addressNumber       String?
+  addressComplement   String?
+  addressNeighborhood String?
+  addressCity         String?
+  addressState        String?
+  addressZipCode      String?
+
+  // Controle interno da marca
+  internalCode String? // Código interno da marca
+  category     String? // Categoria/segmento
+  notes        String? // Observações internas
+  priority     Int     @default(0) // Ordem de prioridade
+
+  // Status e controle
+  status      SupplierCredentialStatus @default(DRAFT)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  expiresAt   DateTime? // Data de expiração do convite
+  completedAt DateTime? // Data de conclusão do credenciamento
+
+  // Relations
+  brand     Company  @relation("CredentialBrand", fields: [brandId], references: [id], onDelete: Cascade)
+  supplier  Company? @relation("CredentialSupplier", fields: [supplierId], references: [id])
+  createdBy User     @relation("CredentialCreatedBy", fields: [createdById], references: [id])
+
+  statusHistory CredentialStatusHistory[]
+  validations   CredentialValidation[]
+  compliance    ComplianceAnalysis?
+  invitations   CredentialInvitation[]
+  onboarding    SupplierOnboarding?
+  contract      SupplierContract?
+
+  @@unique([brandId, cnpj])
+  @@index([brandId])
+  @@index([cnpj])
+  @@index([status])
+  @@index([createdAt])
+  @@map("supplier_credentials")
+}
+
+// Histórico de mudanças de status do credenciamento
+model CredentialStatusHistory {
+  id            String                    @id @default(uuid())
+  credentialId  String
+  fromStatus    SupplierCredentialStatus?
+  toStatus      SupplierCredentialStatus
+  reason        String?
+  metadata      Json? // Dados adicionais do evento
+  performedById String?
+  createdAt     DateTime                  @default(now())
+
+  credential  SupplierCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  performedBy User?              @relation("CredentialStatusChangedBy", fields: [performedById], references: [id])
+
+  @@index([credentialId])
+  @@map("credential_status_history")
+}
+
+// Validações de CNPJ e consultas externas
+model CredentialValidation {
+  id           String           @id @default(uuid())
+  credentialId String
+  source       ValidationSource
+  type         String? // Tipo específico de validação (ex: "cnpj_status", "credit_check")
+
+  // Resultado
+  isValid     Boolean?
+  score       Int? // Score de 0-1000
+  rawResponse Json? // Resposta bruta da API
+  parsedData  Json? // Dados normalizados
+
+  // Dados extraídos da validação
+  companyStatus       String? // Situação cadastral
+  companyType         String? // Natureza jurídica
+  mainActivity        String? // CNAE principal
+  secondaryActivities String[] // CNAEs secundários
+  foundedAt           DateTime? // Data de abertura
+  capitalStock        Decimal?  @db.Decimal(15, 2) // Capital social
+  partnerNames        String[] // Nomes dos sócios
+
+  // Controle
+  errorMessage String?
+  retryCount   Int       @default(0)
+  validatedAt  DateTime?
+  expiresAt    DateTime? // Quando a validação expira
+  createdAt    DateTime  @default(now())
+
+  credential SupplierCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId])
+  @@map("credential_validations")
+}
+
+// Análise de compliance consolidada
+model ComplianceAnalysis {
+  id           String @id @default(uuid())
+  credentialId String @unique
+
+  // Scores (0-100)
+  overallScore Int?
+  creditScore  Int?
+  taxScore     Int?
+  legalScore   Int?
+
+  // Risco
+  riskLevel   RiskLevel @default(MEDIUM)
+  riskFactors Json? // Array de fatores de risco identificados
+
+  // Flags de verificação
+  hasActiveCNPJ          Boolean @default(false)
+  hasRegularTaxStatus    Boolean @default(false)
+  hasNegativeCredit      Boolean @default(false)
+  hasLegalIssues         Boolean @default(false)
+  hasRelatedRestrictions Boolean @default(false)
+
+  // Recomendação automática
+  recommendation       String? // APPROVE, REJECT, MANUAL_REVIEW
+  recommendationReason String?
+  requiresManualReview Boolean @default(false)
+
+  // Revisão manual
+  manualReviewStatus ManualReviewStatus?
+  manualReviewNotes  String?
+  reviewedById       String?
+  reviewedAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  credential SupplierCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  reviewedBy User?              @relation("ComplianceReviewedBy", fields: [reviewedById], references: [id])
+
+  @@map("compliance_analyses")
+}
+
+// Convites enviados para a facção
+model CredentialInvitation {
+  id           String         @id @default(uuid())
+  credentialId String
+  type         InvitationType
+  recipient    String // Email, telefone ou identificador
+  token        String         @unique @default(uuid())
+
+  // Mensagem
+  subject    String?
+  message    String?
+  templateId String? // ID do template usado
+
+  // Rastreamento
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+
+  // Controle
+  expiresAt   DateTime
+  isActive    Boolean   @default(true)
+  respondedAt DateTime?
+  response    String? // ACCEPTED, REJECTED, etc
+
+  // Tentativas
+  attemptCount  Int       @default(0)
+  lastAttemptAt DateTime?
+  errorMessage  String?
+
+  // Provider (SendGrid, Twilio, etc)
+  providerMessageId String?
+  providerResponse  Json?
+
+  createdAt DateTime @default(now())
+
+  credential SupplierCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId])
+  @@index([token])
+  @@map("credential_invitations")
+}
+
+// Onboarding da facção (após aceitar convite)
+model SupplierOnboarding {
+  id           String  @id @default(uuid())
+  credentialId String  @unique
+  userId       String? // Usuário criado para a facção
+
+  // Progresso geral
+  currentStep    Int   @default(1)
+  totalSteps     Int   @default(6)
+  completedSteps Json? // Array de steps completados
+
+  // Steps individuais com timestamps
+  emailVerifiedAt         DateTime?
+  passwordCreatedAt       DateTime?
+  companyDataCompletedAt  DateTime?
+  documentsUploadedAt     DateTime?
+  capabilitiesCompletedAt DateTime?
+  contractCompletedAt     DateTime?
+
+  // Controle
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
+  abandonedAt    DateTime?
+  lastActivityAt DateTime  @default(now())
+
+  // Analytics
+  timeSpentSeconds Int   @default(0)
+  deviceInfo       Json? // { browser, os, device, ip }
+
+  credential SupplierCredential   @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  user       User?                @relation(fields: [userId], references: [id])
+  documents  OnboardingDocument[]
+
+  @@map("supplier_onboardings")
+}
+
+// Documentos enviados durante onboarding
+model OnboardingDocument {
+  id           String @id @default(uuid())
+  onboardingId String
+  type         String // Tipo do documento (alvara, certificacao, etc)
+  name         String // Nome exibido
+  fileName     String // Nome do arquivo
+  fileUrl      String
+  fileSize     Int // bytes
+  mimeType     String
+
+  // Validação
+  isValid         Boolean?
+  validationNotes String?
+  validatedById   String?
+  validatedAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  onboarding  SupplierOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  validatedBy User?              @relation("DocumentValidatedBy", fields: [validatedById], references: [id])
+
+  @@map("onboarding_documents")
+}
+
+// Contrato entre marca e facção
+model SupplierContract {
+  id              String  @id @default(uuid())
+  credentialId    String  @unique
+  templateId      String?
+  templateVersion String?
+  documentUrl     String? // URL do documento gerado
+  documentHash    String? // Hash para verificação de integridade
+  terms           Json? // Termos específicos do contrato
+
+  // Assinatura da marca
+  brandSignedAt    DateTime?
+  brandSignedById  String?
+  brandSignatureIp String?
+
+  // Assinatura da facção
+  supplierSignedAt    DateTime?
+  supplierSignedById  String?
+  supplierSignatureIp String?
+
+  // Integração com plataforma de assinatura externa
+  externalSignatureId  String? // ID no DocuSign, Clicksign, etc
+  externalSignatureUrl String?
+  externalStatus       String?
+
+  // Status e vigência
+  status     ContractStatus @default(DRAFT)
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  credential       SupplierCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  brandSignedBy    User?              @relation("ContractBrandSignedBy", fields: [brandSignedById], references: [id])
+  supplierSignedBy User?              @relation("ContractSupplierSignedBy", fields: [supplierSignedById], references: [id])
+
+  @@map("supplier_contracts")
+}
+
+// Templates de convite por empresa
+model InvitationTemplate {
+  id        String         @id @default(uuid())
+  companyId String? // Null = template global
+  name      String
+  type      InvitationType
+  subject   String? // Para emails
+  content   String         @db.Text
+  isActive  Boolean        @default(true)
+  isDefault Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("invitation_templates")
+}
+
+// Templates de contrato por empresa
+model ContractTemplate {
+  id        String   @id @default(uuid())
+  companyId String? // Null = template global
+  name      String
+  version   String   @default("1.0")
+  content   String   @db.Text
+  variables Json? // Variáveis que podem ser substituídas
+  isActive  Boolean  @default(true)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("contract_templates")
+}
+
+// Configurações de credenciamento por marca
+model CredentialSettings {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  // Validações automáticas
+  autoValidateCNPJ    Boolean @default(true)
+  autoCheckCredit     Boolean @default(true)
+  autoCheckCompliance Boolean @default(true)
+
+  // Thresholds de aprovação
+  minCreditScore Int? // Score mínimo para aprovação automática
+  maxRiskLevel   RiskLevel @default(MEDIUM) // Risco máximo aceito
+
+  // Configurações de convite
+  defaultInvitationType InvitationType @default(EMAIL)
+  invitationExpiryDays  Int            @default(7)
+  maxInvitationAttempts Int            @default(3)
+
+  // Onboarding
+  requiredDocuments String[] // Tipos de documentos obrigatórios
+  requireContract   Boolean  @default(true)
+
+  // Notificações
+  notifyOnNewCredential Boolean  @default(true)
+  notifyOnStatusChange  Boolean  @default(true)
+  notificationEmails    String[] // Emails para notificar
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("credential_settings")
 }
