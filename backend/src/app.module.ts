@@ -18,7 +18,7 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
 import { TeamModule } from './modules/team/team.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { CredentialsModule } from './modules/credentials/credentials.module';
-// import { CredentialSettingsModule } from './modules/credential-settings/credential-settings.module'; // TODO: Corrigir erros de schema
+import { CredentialSettingsModule } from './modules/credential-settings/credential-settings.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WebhooksModule } from './modules/integrations/webhooks/webhooks.module';
@@ -58,7 +58,7 @@ import configuration from './config/configuration';
     TeamModule,
     FavoritesModule,
     CredentialsModule,
-    // CredentialSettingsModule, // TODO: Corrigir erros de schema
+    CredentialSettingsModule,
     OnboardingModule,
     NotificationsModule,
     WebhooksModule,
