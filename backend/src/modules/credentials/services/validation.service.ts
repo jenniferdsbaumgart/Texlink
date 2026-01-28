@@ -8,7 +8,6 @@ import {
     forwardRef,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IntegrationService } from '../../integrations/services/integration.service';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -55,7 +54,7 @@ export class ValidationService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly integrationService: IntegrationService,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
+        @Inject(CACHE_MANAGER) private cacheManager: any,
         @Inject(forwardRef(() => NotificationsService))
         private readonly notificationsService: NotificationsService,
     ) { }

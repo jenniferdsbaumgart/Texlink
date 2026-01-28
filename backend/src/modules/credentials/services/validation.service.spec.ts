@@ -17,6 +17,7 @@ describe('ValidationService', () => {
     const mockPrismaService = {
         supplierCredential: {
             findUnique: jest.fn(),
+            findFirst: jest.fn(),
             update: jest.fn(),
         },
         credentialValidation: {

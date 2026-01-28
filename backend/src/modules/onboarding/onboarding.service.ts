@@ -52,6 +52,7 @@ export class OnboardingService {
                                 state: true,
                             },
                         },
+                        onboarding: true,
                     },
                 },
             },

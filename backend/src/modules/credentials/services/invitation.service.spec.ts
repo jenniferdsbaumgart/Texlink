@@ -231,14 +231,20 @@ describe('InvitationService', () => {
             isActive: true,
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
             openedAt: null,
+            sentAt: new Date(),
             credential: {
                 id: 'cred-123',
                 cnpj: '12345678000190',
                 tradeName: 'Facção Teste',
+                legalName: 'Facção Teste Ltda',
+                contactName: 'João',
+                contactEmail: 'joao@example.com',
+                contactPhone: '11987654321',
                 status: SupplierCredentialStatus.INVITATION_SENT,
                 brand: {
                     id: 'brand-123',
                     tradeName: 'Marca Teste',
+                    legalName: 'Marca Teste Ltda',
                     logoUrl: 'https://...',
                     city: 'São Paulo',
                     state: 'SP',
@@ -258,8 +264,10 @@ describe('InvitationService', () => {
             const result = await service.validateInvitationToken('token-123');
 
             expect(result.valid).toBe(true);
-            expect(result.brand.name).toBe('Marca Teste');
-            expect(result.supplier.cnpj).toContain('12.345.678');
+            expect(result.brand).toBeDefined();
+            expect(result.brand.tradeName).toBe('Marca Teste');
+            expect(result.credential).toBeDefined();
+            expect(result.credential.cnpj).toBe('12345678000190');
         });
 
         it('should throw NotFoundException for invalid token', async () => {
