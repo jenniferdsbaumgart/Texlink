@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Order } from '../../types';
 import { useChatSocket, ChatMessage } from '../../hooks/useChatSocket';
 import {
@@ -23,17 +23,25 @@ interface ChatInterfaceProps {
   onClose: () => void;
 }
 
+const MAX_MESSAGE_LENGTH = 5000;
+
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) => {
   const {
     messages,
     isConnected,
+    isOnline,
     isLoading,
     typingUsers,
+    rateLimitInfo,
+    pendingCount,
+    hasMore,
+    isLoadingMore,
     sendMessage,
     sendTyping,
     markAsRead,
     acceptProposal,
     rejectProposal,
+    loadMore,
   } = useChatSocket(order.id);
 
   const [inputValue, setInputValue] = useState('');
@@ -46,6 +54,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
   const [isSending, setIsSending] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const currentUserId = JSON.parse(localStorage.getItem('user') || '{}')?.id;
 
   const scrollToBottom = () => {
@@ -63,8 +72,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
   }, [isConnected, messages.length, markAsRead]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-    sendTyping(true);
+    const newValue = e.target.value;
+    if (newValue.length <= MAX_MESSAGE_LENGTH) {
+      setInputValue(newValue);
+      sendTyping(true);
+    }
   };
 
   const handleSendText = async () => {
@@ -111,6 +123,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
     await acceptProposal(messageId);
   };
 
+  // Handle scroll to load more messages
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+
+    // Load more when scrolled to top (scrollTop is at or near 0)
+    if (target.scrollTop < 50 && hasMore && !isLoadingMore && !isLoading) {
+      // Save current scroll height to restore position after loading
+      const previousScrollHeight = target.scrollHeight;
+
+      loadMore().then(() => {
+        // Restore scroll position (keep user at same visual position)
+        requestAnimationFrame(() => {
+          const newScrollHeight = target.scrollHeight;
+          target.scrollTop = newScrollHeight - previousScrollHeight;
+        });
+      });
+    }
+  }, [hasMore, isLoadingMore, isLoading, loadMore]);
+
   const formatCurrency = (val: number) =>
     val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const formatDate = (date: string) => new Date(date).toLocaleDateString('pt-BR');
@@ -152,18 +183,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
                 {order.brand.name}
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                {isConnected ? (
+                {!isOnline ? (
+                  <>
+                    <WifiOff className="w-3 h-3 text-red-500" />
+                    Offline
+                  </>
+                ) : isConnected ? (
                   <>
                     <Wifi className="w-3 h-3 text-green-500" />
                     Conectado
                   </>
                 ) : (
                   <>
-                    <WifiOff className="w-3 h-3" />
+                    <WifiOff className="w-3 h-3 text-orange-500" />
                     Reconectando...
                   </>
                 )}
                 {' • '}Pedido {order.displayId}
+                {pendingCount > 0 && (
+                  <span className="text-orange-500 dark:text-orange-400 font-medium">
+                    {' • '}{pendingCount} pendente{pendingCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {rateLimitInfo.remaining <= 3 && !rateLimitInfo.blocked && pendingCount === 0 && (
+                  <span className="text-orange-500 dark:text-orange-400 font-medium">
+                    {' • '}{rateLimitInfo.remaining} msg{rateLimitInfo.remaining !== 1 ? 's' : ''} restante{rateLimitInfo.remaining !== 1 ? 's' : ''}
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -180,8 +226,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
           </div>
         </div>
 
+        {/* Offline Banner */}
+        {!isOnline && (
+          <div className="bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-800 px-4 py-2 flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
+            <WifiOff className="h-4 w-4" />
+            <span>Você está offline. Suas mensagens serão enviadas quando reconectar.</span>
+          </div>
+        )}
+
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900 space-y-4 relative">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900 space-y-4 relative"
+        >
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
@@ -193,6 +251,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
             </div>
           ) : (
             <>
+              {/* Loading indicator for older messages */}
+              {isLoadingMore && (
+                <div className="flex justify-center py-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-brand-500" />
+                </div>
+              )}
+
+              {/* No more messages indicator */}
+              {!hasMore && messages.length > 0 && (
+                <div className="text-center text-xs text-gray-400 dark:text-gray-500 py-2">
+                  — Início da conversa —
+                </div>
+              )}
+
               <div className="flex justify-center">
                 <span className="text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-2 py-1 rounded-full uppercase font-bold tracking-wider">
                   Hoje
@@ -343,7 +415,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
                     >
                       {formatTime(msg.createdAt)}
                       {isOwnMessage(msg) &&
-                        (msg.read ? (
+                        (msg.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin opacity-70" />
+                        ) : msg.read ? (
                           <CheckCheck className="h-3 w-3" />
                         ) : (
                           <Check className="h-3 w-3 opacity-70" />
@@ -461,6 +535,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
 
         {/* Input Area */}
         <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 z-10">
+          {rateLimitInfo.blocked && (
+            <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-700 dark:text-red-400 flex items-center gap-2">
+              <span className="font-semibold">Limite atingido</span>
+              <span>Aguarde {rateLimitInfo.retryAfter}s para enviar novamente</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1.5 rounded-full border border-gray-200 dark:border-gray-700 focus-within:border-brand-300 dark:focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900/30 transition-all">
             <button
               onClick={() => setShowProposalForm(!showProposalForm)}
@@ -477,13 +557,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyPress}
-              placeholder="Digite sua mensagem..."
+              placeholder={rateLimitInfo.blocked ? "Aguarde para enviar..." : "Digite sua mensagem..."}
               className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-500 outline-none"
-              disabled={showProposalForm || !isConnected}
+              disabled={showProposalForm || !isConnected || rateLimitInfo.blocked}
+              maxLength={MAX_MESSAGE_LENGTH}
             />
+            {inputValue.length > MAX_MESSAGE_LENGTH * 0.8 && (
+              <span className={`text-xs px-2 ${inputValue.length >= MAX_MESSAGE_LENGTH ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                {inputValue.length}/{MAX_MESSAGE_LENGTH}
+              </span>
+            )}
             <button
               onClick={handleSendText}
-              disabled={!inputValue.trim() || showProposalForm || isSending || !isConnected}
+              disabled={!inputValue.trim() || showProposalForm || isSending || !isConnected || rateLimitInfo.blocked}
               className="p-2 bg-brand-500 text-white rounded-full hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               {isSending ? (

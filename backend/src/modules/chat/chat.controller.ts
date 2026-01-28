@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards, Query } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -13,8 +13,15 @@ export class ChatController {
     async getMessages(
         @Param('orderId') orderId: string,
         @CurrentUser('id') userId: string,
+        @Query('limit') limit?: string,
+        @Query('cursor') cursor?: string,
+        @Query('direction') direction?: 'before' | 'after',
     ) {
-        return this.chatService.getMessages(orderId, userId);
+        return this.chatService.getMessages(orderId, userId, {
+            limit: limit ? parseInt(limit, 10) : undefined,
+            cursor,
+            direction,
+        });
     }
 
     @Post()

@@ -4,9 +4,14 @@ import {
     NotFoundException,
     ForbiddenException,
     BadRequestException,
+    Inject,
+    forwardRef,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IntegrationService } from '../../integrations/services/integration.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { SupplierCredentialStatus, ValidationSource } from '@prisma/client';
 
 interface AuthUser {
@@ -44,9 +49,15 @@ export class ValidationService {
         SupplierCredentialStatus.COMPLIANCE_REJECTED,
     ];
 
+    // Cache TTL: 30 dias para validações CNPJ
+    private readonly CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly integrationService: IntegrationService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
+        @Inject(forwardRef(() => NotificationsService))
+        private readonly notificationsService: NotificationsService,
     ) { }
 
     // ==================== START VALIDATION ====================
@@ -122,9 +133,26 @@ export class ValidationService {
         );
 
         try {
-            // Chama API de validação
-            this.logger.log(`Processando validação de CNPJ ${this.formatCNPJ(credential.cnpj)}`);
-            const validationResult = await this.integrationService.validateCNPJ(credential.cnpj);
+            // Verifica cache antes de chamar API
+            const cacheKey = `cnpj_validation:${credential.cnpj}`;
+            const cachedResult = await this.cacheManager.get(cacheKey);
+
+            let validationResult: any;
+
+            if (cachedResult) {
+                this.logger.log(`Validação de CNPJ ${this.formatCNPJ(credential.cnpj)} encontrada em cache`);
+                validationResult = cachedResult;
+            } else {
+                // Chama API de validação
+                this.logger.log(`Processando validação de CNPJ ${this.formatCNPJ(credential.cnpj)}`);
+                validationResult = await this.integrationService.validateCNPJ(credential.cnpj);
+
+                // Salva no cache se válido (30 dias)
+                if (validationResult.isValid) {
+                    await this.cacheManager.set(cacheKey, validationResult, this.CACHE_TTL);
+                    this.logger.log(`Validação de CNPJ ${this.formatCNPJ(credential.cnpj)} salva em cache`);
+                }
+            }
 
             // Salva resultado da validação no banco
             const validation = await this.saveValidationResult(
@@ -147,6 +175,13 @@ export class ValidationService {
 
                 this.logger.log(`Validação concluída com sucesso para ${credentialId}`);
 
+                // Envia notificação para marca
+                await this.notificationsService
+                    .notifyBrandValidationComplete(credentialId, true)
+                    .catch((error) => {
+                        this.logger.error(`Falha ao enviar notificação: ${error.message}`);
+                    });
+
                 return {
                     success: true,
                     validation,
@@ -166,6 +201,13 @@ export class ValidationService {
                 );
 
                 this.logger.warn(`Validação falhou para ${credentialId}: ${validationResult.error}`);
+
+                // Envia notificação para marca
+                await this.notificationsService
+                    .notifyBrandValidationComplete(credentialId, false)
+                    .catch((error) => {
+                        this.logger.error(`Falha ao enviar notificação: ${error.message}`);
+                    });
 
                 return {
                     success: false,

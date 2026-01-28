@@ -12,6 +12,7 @@ import { Logger, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RateLimiterService } from '../../common/services/rate-limiter.service';
 
 interface AuthenticatedSocket extends Socket {
     userId: string;
@@ -50,6 +51,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         private readonly chatService: ChatService,
         private readonly jwtService: JwtService,
         private readonly prisma: PrismaService,
+        private readonly rateLimiter: RateLimiterService,
     ) { }
 
     /**
@@ -58,6 +60,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
      */
     async handleConnection(client: AuthenticatedSocket) {
         try {
+            // Rate limit by IP address
+            const clientIp = client.handshake.address;
+            try {
+                await this.rateLimiter.checkConnectionLimit(clientIp);
+            } catch (error) {
+                this.logger.error(`Connection rate limited for IP ${clientIp}: ${error.message}`);
+                const retryAfterMatch = error.message.match(/(\d+)\s*seconds/);
+                const retryAfter = retryAfterMatch ? retryAfterMatch[1] : '300';
+                client.emit('error', {
+                    message: 'Too many connection attempts',
+                    code: 'RATE_LIMIT_EXCEEDED',
+                    retryAfter: retryAfter,
+                });
+                client.disconnect();
+                return;
+            }
+
             // Extract token from handshake auth or query
             const token =
                 client.handshake.auth?.token ||
@@ -241,6 +260,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @MessageBody() data: SendMessagePayload,
     ) {
         try {
+            // Rate limit by user ID
+            try {
+                await this.rateLimiter.checkMessageLimit(client.userId);
+            } catch (error) {
+                this.logger.error(`Message rate limited for user ${client.userId}: ${error.message}`);
+                return {
+                    success: false,
+                    error: error.message,
+                    code: 'RATE_LIMIT_EXCEEDED',
+                };
+            }
+
+            // Validate message length
+            if (data.content && data.content.length > 5000) {
+                this.logger.warn(`Message too long from user ${client.userId}: ${data.content.length} chars`);
+                return {
+                    success: false,
+                    error: 'Mensagem muito longa (máximo 5000 caracteres)',
+                    code: 'MESSAGE_TOO_LONG',
+                };
+            }
+
             // Create message via service
             const message = await this.chatService.sendMessage(
                 data.orderId,
@@ -259,9 +300,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             // Broadcast to all in room (including sender for confirmation)
             this.server.to(roomName).emit('new-message', message);
 
-            this.logger.log(`Message sent in ${roomName} by ${client.userName}`);
+            // Get remaining rate limit points
+            const rateLimitRemaining = await this.rateLimiter.getRemainingPoints(client.userId);
 
-            return { success: true, message };
+            this.logger.log(`Message sent in ${roomName} by ${client.userName} (${rateLimitRemaining} remaining)`);
+
+            return {
+                success: true,
+                message,
+                rateLimitRemaining,
+            };
         } catch (error) {
             this.logger.error(`Error sending message: ${error.message}`);
             return { success: false, error: error.message };
@@ -372,7 +420,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @SubscribeMessage('get-messages')
     async handleGetMessages(
         @ConnectedSocket() client: AuthenticatedSocket,
-        @MessageBody() data: { orderId: string },
+        @MessageBody() data: {
+            orderId: string;
+            limit?: number;
+            cursor?: string;
+            direction?: 'before' | 'after';
+        },
     ) {
         try {
             // Guard: Ensure user is authenticated
@@ -380,8 +433,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 return { success: false, error: 'Not authenticated', messages: [] };
             }
 
-            const messages = await this.chatService.getMessages(data.orderId, client.userId);
-            return { success: true, messages };
+            const result = await this.chatService.getMessages(
+                data.orderId,
+                client.userId,
+                {
+                    limit: data.limit,
+                    cursor: data.cursor,
+                    direction: data.direction,
+                }
+            );
+
+            return {
+                success: true,
+                ...result,
+            };
         } catch (error) {
             return { success: false, error: error.message, messages: [] };
         }

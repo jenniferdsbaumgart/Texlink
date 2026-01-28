@@ -569,6 +569,11 @@ model Message {
   order  Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   sender User  @relation(fields: [senderId], references: [id])
 
+  // Performance indexes
+  @@index([orderId, createdAt(sort: Desc)], name: "idx_messages_order_date")
+  @@index([orderId, read, senderId], name: "idx_messages_unread")
+  @@index([senderId, createdAt(sort: Desc)], name: "idx_messages_sender")
+
   @@map("messages")
 }
 

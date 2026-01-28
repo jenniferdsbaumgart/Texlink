@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useMessageQueue } from './useMessageQueue';
+import { useNetworkStatus } from './useNetworkStatus';
 
 export interface ChatMessage {
     id: string;
@@ -27,11 +29,18 @@ export interface ChatMessage {
         name: string;
         role: string;
     };
+    isPending?: boolean; // Flag for offline queued messages
 }
 
 interface TypingUser {
     userId: string;
     userName: string;
+}
+
+interface RateLimitInfo {
+    remaining: number;
+    blocked: boolean;
+    retryAfter: number;
 }
 
 interface UseChatSocketOptions {
@@ -43,15 +52,21 @@ interface UseChatSocketOptions {
 interface UseChatSocketReturn {
     messages: ChatMessage[];
     isConnected: boolean;
+    isOnline: boolean;
     isLoading: boolean;
     typingUsers: TypingUser[];
     unreadCount: number;
+    rateLimitInfo: RateLimitInfo;
+    pendingCount: number;
+    hasMore: boolean;
+    isLoadingMore: boolean;
     sendMessage: (data: SendMessageData) => Promise<boolean>;
     sendTyping: (isTyping: boolean) => void;
     markAsRead: () => void;
     acceptProposal: (messageId: string) => Promise<boolean>;
     rejectProposal: (messageId: string) => Promise<boolean>;
     loadMessages: () => Promise<void>;
+    loadMore: () => Promise<void>;
 }
 
 interface SendMessageData {
@@ -74,7 +89,44 @@ export function useChatSocket(
     const [isLoading, setIsLoading] = useState(true);
     const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo>({
+        remaining: 10,
+        blocked: false,
+        retryAfter: 0,
+    });
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastSyncTimestampRef = useRef<string | null>(null);
+    const oldestCursorRef = useRef<string | null>(null);
+
+    // Network status detection
+    const isOnline = useNetworkStatus();
+
+    // Message queue for offline support
+    const {
+        pendingCount,
+        isProcessing,
+        queueMessage,
+        processQueue,
+        cleanupOld,
+    } = useMessageQueue({
+        orderId: orderId || '',
+        onSendSuccess: (msg) => {
+            console.log('Queued message sent successfully:', msg.id);
+            // Remove mensagem temporária e adicionar a mensagem real do servidor
+            setMessages(prev => prev.filter(m => m.id !== msg.id));
+        },
+        onSendError: (error) => {
+            console.error('Failed to send queued message:', error);
+            options.onError?.(error);
+        },
+    });
+
+    // Cleanup old messages on mount
+    useEffect(() => {
+        cleanupOld();
+    }, [cleanupOld]);
 
     // Get auth token
     const getToken = useCallback(() => {
@@ -96,13 +148,16 @@ export function useChatSocket(
             return;
         }
 
-        // Create socket connection
+        // Create socket connection with exponential backoff
         const socket = io(`${SOCKET_URL}/chat`, {
             auth: { token },
             transports: ['websocket', 'polling'],
             reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
+            reconnectionAttempts: 10, // Increased from 5 to 10
+            reconnectionDelay: 1000, // Initial delay: 1s
+            reconnectionDelayMax: 30000, // Maximum delay: 30s
+            randomizationFactor: 0.5, // Add jitter to avoid thundering herd (±50%)
+            timeout: 20000, // Connection timeout: 20s
         });
 
         socketRef.current = socket;
@@ -128,10 +183,15 @@ export function useChatSocket(
                 }
             });
 
-            // Load initial messages
-            socket.emit('get-messages', { orderId }, (response: any) => {
+            // Load initial messages with pagination
+            socket.emit('get-messages', { orderId, limit: 50 }, (response: any) => {
                 if (response.success) {
                     setMessages(response.messages || []);
+                    setHasMore(response.hasMore || false);
+                    // Set oldest cursor to first message (messages are in ascending order)
+                    if (response.messages && response.messages.length > 0) {
+                        oldestCursorRef.current = response.messages[0].id;
+                    }
                 }
                 setIsLoading(false);
             });
@@ -149,9 +209,40 @@ export function useChatSocket(
             options.onError?.(error.message);
         });
 
-        socket.on('error', (error: { message: string }) => {
+        // Log reconnection attempts
+        socket.io.on('reconnect_attempt', (attempt) => {
+            console.log(`[Chat] Reconnection attempt ${attempt}`);
+        });
+
+        // Handle failed reconnection
+        socket.io.on('reconnect_failed', () => {
+            console.error('[Chat] All reconnection attempts failed');
+            options.onError?.('Não foi possível reconectar ao servidor. Por favor, recarregue a página.');
+        });
+
+        socket.on('error', (error: { message: string; code?: string; retryAfter?: string }) => {
             console.error('Chat socket error:', error.message);
             setIsLoading(false);
+
+            // Handle rate limit errors
+            if (error.code === 'RATE_LIMIT_EXCEEDED') {
+                const retryAfter = parseInt(error.retryAfter || '60');
+                setRateLimitInfo({
+                    remaining: 0,
+                    blocked: true,
+                    retryAfter: retryAfter,
+                });
+
+                // Auto-unblock after retry period
+                setTimeout(() => {
+                    setRateLimitInfo(prev => ({
+                        ...prev,
+                        blocked: false,
+                        remaining: 10,
+                    }));
+                }, retryAfter * 1000);
+            }
+
             options.onError?.(error.message);
         });
 
@@ -216,24 +307,124 @@ export function useChatSocket(
         };
     }, [orderId, getToken, options.onConnect, options.onDisconnect, options.onError]);
 
-    // Send message
+    // Process queue when reconnecting
+    useEffect(() => {
+        if (isConnected && isOnline && pendingCount > 0 && !isProcessing) {
+            console.log(`Processing ${pendingCount} queued messages...`);
+            // Use a simple send function that wraps the socket emit
+            const simpleSend = async (data: SendMessageData): Promise<boolean> => {
+                if (!socketRef.current || !orderId) return false;
+
+                return new Promise((resolve) => {
+                    socketRef.current!.emit(
+                        'send-message',
+                        { orderId, ...data },
+                        (response: any) => {
+                            resolve(response.success || false);
+                        }
+                    );
+                });
+            };
+
+            processQueue(simpleSend);
+        }
+    }, [isConnected, isOnline, pendingCount, isProcessing, processQueue, orderId]);
+
+    // Send message (with offline support)
     const sendMessage = useCallback(
         async (data: SendMessageData): Promise<boolean> => {
-            if (!socketRef.current || !orderId) {
-                return false;
+            if (!orderId) return false;
+
+            // Get current user info
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const currentUserId = currentUser?.id || 'unknown';
+            const currentUserName = currentUser?.name || 'Você';
+            const currentUserRole = currentUser?.role || 'BRAND';
+
+            // If offline or not connected, queue the message
+            if (!socketRef.current || !isConnected || !isOnline) {
+                console.log('Offline - queueing message');
+
+                const tempId = await queueMessage({
+                    orderId,
+                    ...data,
+                });
+
+                // Add temporary message to UI
+                const tempMessage: ChatMessage = {
+                    id: tempId,
+                    orderId,
+                    senderId: currentUserId,
+                    type: data.type,
+                    content: data.content,
+                    proposalData: data.type === 'PROPOSAL' && data.proposedPrice && data.proposedQuantity && data.proposedDeadline ? {
+                        originalValues: {
+                            pricePerUnit: 0, // Will be filled by server
+                            quantity: 0,
+                            deliveryDeadline: '',
+                        },
+                        newValues: {
+                            pricePerUnit: data.proposedPrice,
+                            quantity: data.proposedQuantity,
+                            deliveryDeadline: data.proposedDeadline,
+                        },
+                        status: 'PENDING',
+                    } : undefined,
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                    sender: {
+                        id: currentUserId,
+                        name: currentUserName,
+                        role: currentUserRole,
+                    },
+                    isPending: true, // Special flag for offline messages
+                };
+
+                setMessages(prev => [...prev, tempMessage]);
+
+                return true; // Return true because it was queued
             }
 
+            // If online, send normally
             return new Promise((resolve) => {
                 socketRef.current!.emit(
                     'send-message',
                     { orderId, ...data },
                     (response: any) => {
+                        // Update rate limit info if provided
+                        if (response.rateLimitRemaining !== undefined) {
+                            setRateLimitInfo(prev => ({
+                                ...prev,
+                                remaining: response.rateLimitRemaining,
+                            }));
+                        }
+
+                        // Handle rate limit errors
+                        if (!response.success && response.code === 'RATE_LIMIT_EXCEEDED') {
+                            const retryMatch = response.error?.match(/(\d+)\s*seconds/);
+                            const retryAfter = retryMatch ? parseInt(retryMatch[1]) : 60;
+                            setRateLimitInfo({
+                                remaining: 0,
+                                blocked: true,
+                                retryAfter: retryAfter,
+                            });
+
+                            // Auto-unblock after retry period
+                            setTimeout(() => {
+                                setRateLimitInfo(prev => ({
+                                    ...prev,
+                                    blocked: false,
+                                    remaining: 10,
+                                }));
+                            }, retryAfter * 1000);
+                        }
+
                         resolve(response.success);
                     }
                 );
             });
         },
-        [orderId]
+        [orderId, isConnected, isOnline, queueMessage]
     );
 
     // Send typing indicator
@@ -306,26 +497,66 @@ export function useChatSocket(
         if (!socketRef.current || !orderId) return;
 
         return new Promise<void>((resolve) => {
-            socketRef.current!.emit('get-messages', { orderId }, (response: any) => {
+            socketRef.current!.emit('get-messages', { orderId, limit: 50 }, (response: any) => {
                 if (response.success) {
                     setMessages(response.messages || []);
+                    setHasMore(response.hasMore || false);
+                    if (response.messages && response.messages.length > 0) {
+                        oldestCursorRef.current = response.messages[0].id;
+                    }
                 }
                 resolve();
             });
         });
     }, [orderId]);
 
+    // Load more (older) messages
+    const loadMore = useCallback(async () => {
+        if (!socketRef.current || !orderId || isLoadingMore || !hasMore || !oldestCursorRef.current) {
+            return;
+        }
+
+        setIsLoadingMore(true);
+
+        return new Promise<void>((resolve) => {
+            socketRef.current!.emit('get-messages', {
+                orderId,
+                limit: 50,
+                cursor: oldestCursorRef.current,
+                direction: 'before',
+            }, (response: any) => {
+                if (response.success) {
+                    // Add older messages at the beginning
+                    setMessages(prev => [...response.messages, ...prev]);
+                    setHasMore(response.hasMore || false);
+                    // Update cursor to the new oldest message
+                    if (response.messages && response.messages.length > 0) {
+                        oldestCursorRef.current = response.messages[0].id;
+                    }
+                }
+                setIsLoadingMore(false);
+                resolve();
+            });
+        });
+    }, [orderId, isLoadingMore, hasMore]);
+
     return {
         messages,
         isConnected,
+        isOnline,
         isLoading,
         typingUsers,
         unreadCount,
+        rateLimitInfo,
+        pendingCount,
+        hasMore,
+        isLoadingMore,
         sendMessage,
         sendTyping,
         markAsRead,
         acceptProposal,
         rejectProposal,
         loadMessages,
+        loadMore,
     };
 }

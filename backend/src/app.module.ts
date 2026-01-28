@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { join } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -16,6 +17,10 @@ import { UploadModule } from './modules/upload/upload.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { TeamModule } from './modules/team/team.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
+import { CredentialsModule } from './modules/credentials/credentials.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CommonModule } from './common/common.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -28,7 +33,15 @@ import configuration from './config/configuration';
       rootPath: join(__dirname, '..', '..', 'uploads'),
       serveRoot: '/uploads',
     }),
+    // Rate limiting global (60 req/min por IP)
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minuto
+        limit: 60, // 60 requests
+      },
+    ]),
     PrismaModule,
+    CommonModule,
     PermissionsModule,
     AuthModule,
     UsersModule,
@@ -42,6 +55,9 @@ import configuration from './config/configuration';
     UploadModule,
     TeamModule,
     FavoritesModule,
+    CredentialsModule,
+    OnboardingModule,
+    NotificationsModule,
   ],
 })
 export class AppModule { }

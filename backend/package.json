@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
+    "@nestjs/cache-manager": "^3.1.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -31,6 +32,7 @@
     "@nestjs/platform-socket.io": "^11.1.12",
     "@nestjs/serve-static": "^5.0.4",
     "@nestjs/swagger": "^11.2.5",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.12",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
@@ -39,12 +41,16 @@
     "@types/uuid": "^10.0.0",
     "axios": "^1.13.3",
     "bcrypt": "^6.0.0",
+    "cache-manager": "^7.2.8",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "dotenv": "^17.2.3",
+    "ioredis": "^5.9.2",
+    "isomorphic-dompurify": "^2.35.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.3",
+    "rate-limiter-flexible": "^9.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3",
@@ -59,7 +65,9 @@
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
     "@types/bcrypt": "^6.0.0",
+    "@types/dompurify": "^3.0.5",
     "@types/express": "^5.0.0",
+    "@types/ioredis": "^4.28.10",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
@@ -91,10 +99,16 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(isomorphic-dompurify|dompurify|@exodus|html-encoding-sniffer|jsdom|uuid)/)"
+    ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^isomorphic-dompurify$": "<rootDir>/__mocks__/isomorphic-dompurify.ts"
+    }
   }
 }

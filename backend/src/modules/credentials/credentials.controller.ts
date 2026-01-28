@@ -20,6 +20,7 @@ import {
     ApiParam,
     ApiQuery,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CredentialsService } from './credentials.service';
@@ -128,9 +129,11 @@ export class CredentialsController {
     // ==================== VALIDATION ====================
 
     @Post(':id/validate')
+    @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 req/min por IP
     @ApiOperation({ summary: 'Iniciar validação de CNPJ' })
     @ApiParam({ name: 'id', description: 'ID do credenciamento' })
     @ApiResponse({ status: 200, description: 'Validação realizada' })
+    @ApiResponse({ status: 429, description: 'Muitas requisições - limite: 10/min' })
     async validateCNPJ(
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: AuthUser,
@@ -171,9 +174,11 @@ export class CredentialsController {
     // ==================== INVITATIONS ====================
 
     @Post(':id/invite')
+    @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 req/min por marca
     @ApiOperation({ summary: 'Enviar convite para credenciamento' })
     @ApiParam({ name: 'id', description: 'ID do credenciamento' })
     @ApiResponse({ status: 200, description: 'Convite enviado' })
+    @ApiResponse({ status: 429, description: 'Muitas requisições - limite: 5/min' })
     async sendInvitation(
         @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: SendInvitationDto,

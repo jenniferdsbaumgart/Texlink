@@ -5,5 +5,11 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(isomorphic-dompurify|dompurify|@exodus|html-encoding-sniffer|jsdom|uuid)/)"
+  ],
+  "moduleNameMapper": {
+    "^isomorphic-dompurify$": "<rootDir>/../src/__mocks__/isomorphic-dompurify.ts"
   }
 }
