@@ -29,6 +29,7 @@ const BrandOrdersList = React.lazy(() => import('./pages/brand/OrdersListPage'))
 const BrandCreateOrder = React.lazy(() => import('./pages/brand/CreateOrderPage'));
 const BrandOrderDetails = React.lazy(() => import('./pages/brand/OrderDetailsPage'));
 const BrandSuppliers = React.lazy(() => import('./pages/brand/SuppliersPage'));
+const BrandSuppliersPage = React.lazy(() => import('./pages/brand/BrandSuppliersPage'));
 const BrandSupplierProfile = React.lazy(() => import('./pages/brand/SupplierProfilePage'));
 const BrandPartners = React.lazy(() => import('./pages/brand/PartnersPage'));
 const BrandMessages = React.lazy(() => import('./pages/brand/MessagesPage'));
@@ -142,6 +143,10 @@ const App: React.FC = () => {
                                 <Route path="faccoes" element={<BrandSuppliers />} />
                                 <Route path="faccoes/parceiros" element={<BrandPartners />} />
                                 <Route path="faccoes/:id" element={<BrandSupplierProfile />} />
+                                {/* Fornecedores (V3 N:M Relationships) */}
+                                <Route path="fornecedores" element={<BrandSuppliersPage />} />
+                                <Route path="fornecedores/adicionar" element={<div>Add Supplier - Coming Soon</div>} />
+                                <Route path="fornecedores/:id" element={<div>Relationship Details - Coming Soon</div>} />
                                 {/* Mensagens */}
                                 <Route path="mensagens" element={<BrandMessages />} />
                                 {/* Financeiro */}
