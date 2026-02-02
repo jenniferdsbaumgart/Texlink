@@ -1,11 +1,25 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTicketDto, SendMessageDto, UpdateTicketDto } from './dto';
 import { SupportTicketStatus, SupportTicketCategory, SupportTicketPriority, UserRole } from '@prisma/client';
+import {
+    TICKET_CREATED,
+    TICKET_MESSAGE_ADDED,
+    TICKET_STATUS_CHANGED,
+    TicketCreatedEvent,
+    TicketMessageAddedEvent,
+    TicketStatusChangedEvent,
+} from '../notifications/events/notification.events';
 
 @Injectable()
 export class SupportTicketsService {
-    constructor(private readonly prisma: PrismaService) {}
+    private readonly logger = new Logger(SupportTicketsService.name);
+
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly eventEmitter: EventEmitter2,
+    ) {}
 
     // ========== SUPPLIER/BRAND ENDPOINTS ==========
 
@@ -51,6 +65,20 @@ export class SupportTicketsService {
                 notes: 'Chamado criado',
             },
         });
+
+        // Emit ticket created event (for admin notifications)
+        const event: TicketCreatedEvent = {
+            ticketId: ticket.id,
+            displayId,
+            companyId,
+            createdById: userId,
+            createdByName: ticket.createdBy.name,
+            title: dto.title,
+            category: dto.category,
+            priority: dto.priority || SupportTicketPriority.MEDIA,
+        };
+        this.eventEmitter.emit(TICKET_CREATED, event);
+        this.logger.log(`Emitted ticket.created event for ticket ${displayId}`);
 
         return ticket;
     }
@@ -110,6 +138,13 @@ export class SupportTicketsService {
     ) {
         const ticket = await this.prisma.supportTicket.findUnique({
             where: { id: ticketId },
+            select: {
+                id: true,
+                displayId: true,
+                companyId: true,
+                status: true,
+                createdById: true,
+            },
         });
 
         if (!ticket) {
@@ -151,6 +186,21 @@ export class SupportTicketsService {
             await this.updateTicketStatus(ticketId, ticket.status, newStatus, userId);
         }
 
+        // Emit ticket message added event
+        // Notify the ticket creator if message is from support, or notify admins if from user
+        const recipientId = isFromSupport ? ticket.createdById : 'ADMIN'; // ADMIN is a placeholder for admin notification
+        const msgEvent: TicketMessageAddedEvent = {
+            ticketId,
+            displayId: ticket.displayId,
+            messageId: message.id,
+            senderId: userId,
+            senderName: message.sender.name,
+            isFromSupport,
+            recipientId,
+        };
+        this.eventEmitter.emit(TICKET_MESSAGE_ADDED, msgEvent);
+        this.logger.log(`Emitted ticket.message.added event for ticket ${ticket.displayId}`);
+
         return message;
     }
 
@@ -188,6 +238,13 @@ export class SupportTicketsService {
     async closeTicket(id: string, userId: string, companyId: string, userRole: UserRole) {
         const ticket = await this.prisma.supportTicket.findUnique({
             where: { id },
+            select: {
+                id: true,
+                displayId: true,
+                companyId: true,
+                status: true,
+                createdById: true,
+            },
         });
 
         if (!ticket) {
@@ -225,6 +282,18 @@ export class SupportTicketsService {
                 notes: 'Chamado fechado pelo usuário',
             },
         });
+
+        // Emit ticket status changed event
+        const statusEvent: TicketStatusChangedEvent = {
+            ticketId: id,
+            displayId: ticket.displayId,
+            previousStatus: ticket.status,
+            newStatus: SupportTicketStatus.FECHADO,
+            changedById: userId,
+            creatorId: ticket.createdById,
+        };
+        this.eventEmitter.emit(TICKET_STATUS_CHANGED, statusEvent);
+        this.logger.log(`Emitted ticket.status.changed event for ticket ${ticket.displayId}`);
 
         return updatedTicket;
     }
@@ -320,6 +389,12 @@ export class SupportTicketsService {
     async updateTicket(id: string, dto: UpdateTicketDto, adminId: string) {
         const ticket = await this.prisma.supportTicket.findUnique({
             where: { id },
+            select: {
+                id: true,
+                displayId: true,
+                status: true,
+                createdById: true,
+            },
         });
 
         if (!ticket) {
@@ -327,6 +402,7 @@ export class SupportTicketsService {
         }
 
         const updateData: Record<string, unknown> = {};
+        let statusChanged = false;
 
         if (dto.priority !== undefined) {
             updateData.priority = dto.priority;
@@ -337,6 +413,7 @@ export class SupportTicketsService {
         }
 
         if (dto.status !== undefined && dto.status !== ticket.status) {
+            statusChanged = true;
             updateData.status = dto.status;
 
             if (dto.status === SupportTicketStatus.RESOLVIDO) {
@@ -357,7 +434,7 @@ export class SupportTicketsService {
             });
         }
 
-        return this.prisma.supportTicket.update({
+        const updatedTicket = await this.prisma.supportTicket.update({
             where: { id },
             data: updateData,
             include: {
@@ -366,12 +443,34 @@ export class SupportTicketsService {
                 company: { select: { id: true, tradeName: true } },
             },
         });
+
+        // Emit status changed event if status was updated
+        if (statusChanged && dto.status) {
+            const statusEvent: TicketStatusChangedEvent = {
+                ticketId: id,
+                displayId: ticket.displayId,
+                previousStatus: ticket.status,
+                newStatus: dto.status,
+                changedById: adminId,
+                creatorId: ticket.createdById,
+            };
+            this.eventEmitter.emit(TICKET_STATUS_CHANGED, statusEvent);
+            this.logger.log(`Emitted ticket.status.changed event for ticket ${ticket.displayId}`);
+        }
+
+        return updatedTicket;
     }
 
     // Reply as support (admin)
     async replyAsSupport(ticketId: string, adminId: string, dto: SendMessageDto) {
         const ticket = await this.prisma.supportTicket.findUnique({
             where: { id: ticketId },
+            select: {
+                id: true,
+                displayId: true,
+                status: true,
+                createdById: true,
+            },
         });
 
         if (!ticket) {
@@ -404,6 +503,21 @@ export class SupportTicketsService {
                 SupportTicketStatus.AGUARDANDO_RESPOSTA,
                 adminId,
             );
+        }
+
+        // Emit ticket message added event (notify the ticket creator)
+        if (!dto.isInternal) {
+            const msgEvent: TicketMessageAddedEvent = {
+                ticketId,
+                displayId: ticket.displayId,
+                messageId: message.id,
+                senderId: adminId,
+                senderName: message.sender.name,
+                isFromSupport: true,
+                recipientId: ticket.createdById,
+            };
+            this.eventEmitter.emit(TICKET_MESSAGE_ADDED, msgEvent);
+            this.logger.log(`Emitted ticket.message.added event for ticket ${ticket.displayId}`);
         }
 
         return message;
