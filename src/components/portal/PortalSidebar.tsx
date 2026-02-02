@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { NotificationBell } from '../notifications';
 import {
     Home,
     BarChart3,
@@ -15,7 +16,6 @@ import {
     X,
     User,
     Users,
-    Bell,
     Gauge,
     PanelLeftClose,
     PanelLeft,
@@ -25,7 +25,8 @@ import {
     Building2,
     FolderOpen,
     Gift,
-    GraduationCap
+    GraduationCap,
+    HelpCircle
 } from 'lucide-react';
 
 interface NavItem {
@@ -89,6 +90,12 @@ const navItems: NavItem[] = [
         path: '/portal/educa',
     },
     {
+        id: 'suporte',
+        label: 'Central de Ajuda',
+        icon: <HelpCircle className="h-5 w-5" />,
+        path: '/portal/suporte',
+    },
+    {
         id: 'financeiro',
         label: 'Financeiro',
         icon: <DollarSign className="h-5 w-5" />,
@@ -110,6 +117,12 @@ const navItems: NavItem[] = [
         label: 'Equipe',
         icon: <Users className="h-5 w-5" />,
         path: '/portal/equipe',
+    },
+    {
+        id: 'configuracoes',
+        label: 'Configurações',
+        icon: <Settings className="h-5 w-5" />,
+        path: '/portal/configuracoes',
     },
 ];
 
@@ -203,10 +216,7 @@ export const PortalSidebar: React.FC = () => {
                                     {user?.email}
                                 </p>
                             </div>
-                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative flex-shrink-0">
-                                <Bell className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                            </button>
+                            <NotificationBell />
                         </>
                     )}
                 </div>
@@ -288,23 +298,29 @@ export const PortalSidebar: React.FC = () => {
                 </button>
 
                 {/* Notifications */}
-                <button
-                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative`}
-                    title={collapsed ? 'Notificações' : undefined}
-                >
-                    <Bell className="h-5 w-5" />
-                    {!collapsed && 'Notificações'}
-                    <span className="absolute top-2 left-7 w-2 h-2 bg-red-500 rounded-full" />
-                </button>
+                {collapsed ? (
+                    <div className="flex justify-center">
+                        <NotificationBell />
+                    </div>
+                ) : (
+                    <NotificationBell className="w-full" />
+                )}
 
                 {/* Settings */}
-                <button
-                    className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors`}
+                <NavLink
+                    to="/portal/configuracoes"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                        `w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
+                            ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        }`
+                    }
                     title={collapsed ? 'Configurações' : undefined}
                 >
                     <Settings className="h-5 w-5" />
                     {!collapsed && 'Configurações'}
-                </button>
+                </NavLink>
 
                 {/* Collapse Toggle (Desktop only) */}
                 <button

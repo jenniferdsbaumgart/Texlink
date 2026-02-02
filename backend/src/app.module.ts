@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -29,6 +31,8 @@ import { CommonModule } from './common/common.module';
 import { SupplierDocumentsModule } from './modules/supplier-documents/supplier-documents.module';
 import { PartnersModule } from './modules/partners/partners.module';
 import { EducationalContentModule } from './modules/educational-content/educational-content.module';
+import { SupportTicketsModule } from './modules/support-tickets/support-tickets.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -48,6 +52,18 @@ import configuration from './config/configuration';
         limit: 60, // 60 requests
       },
     ]),
+    // Event-driven architecture for notifications
+    EventEmitterModule.forRoot({
+      wildcard: false,
+      delimiter: '.',
+      newListener: false,
+      removeListener: false,
+      maxListeners: 10,
+      verboseMemoryLeak: false,
+      ignoreErrors: false,
+    }),
+    // Scheduled jobs for reminders
+    ScheduleModule.forRoot(),
     PrismaModule,
     HealthModule,
     CommonModule,
@@ -74,6 +90,8 @@ import configuration from './config/configuration';
     SupplierDocumentsModule,
     PartnersModule,
     EducationalContentModule,
+    SupportTicketsModule,
+    SettingsModule,
   ],
 })
 export class AppModule { }

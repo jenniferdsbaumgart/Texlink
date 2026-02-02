@@ -1,11 +1,28 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto, UpdateOrderStatusDto, CreateReviewDto, CreateChildOrderDto } from './dto';
 import { OrderStatus, OrderAssignmentType, CompanyType, OrderTargetStatus, ReviewResult, OrderOrigin } from '@prisma/client';
+import {
+    ORDER_CREATED,
+    ORDER_ACCEPTED,
+    ORDER_REJECTED,
+    ORDER_STATUS_CHANGED,
+    ORDER_FINALIZED,
+    OrderCreatedEvent,
+    OrderAcceptedEvent,
+    OrderRejectedEvent,
+    OrderStatusChangedEvent,
+} from '../notifications/events/notification.events';
 
 @Injectable()
 export class OrdersService {
-    constructor(private prisma: PrismaService) { }
+    private readonly logger = new Logger(OrdersService.name);
+
+    constructor(
+        private prisma: PrismaService,
+        private eventEmitter: EventEmitter2,
+    ) { }
 
     // Generate display ID: TX-YYYYMMDD-XXXX
     private generateDisplayId(): string {
@@ -102,7 +119,7 @@ export class OrdersService {
             }
         }
 
-        return this.prisma.order.create({
+        const order = await this.prisma.order.create({
             data: orderData,
             include: {
                 brand: { select: { id: true, tradeName: true } },
@@ -111,6 +128,25 @@ export class OrdersService {
                 statusHistory: true,
             },
         });
+
+        // Emit order created event
+        const event: OrderCreatedEvent = {
+            orderId: order.id,
+            displayId: order.displayId,
+            brandId: order.brandId,
+            brandName: order.brand?.tradeName || 'Marca',
+            supplierId: order.supplierId || undefined,
+            supplierName: order.supplier?.tradeName ?? undefined,
+            productName: order.productName,
+            quantity: order.quantity,
+            totalValue: Number(order.totalValue),
+            deadline: order.deliveryDeadline,
+            targetSupplierIds: dto.targetSupplierIds,
+        };
+        this.eventEmitter.emit(ORDER_CREATED, event);
+        this.logger.log(`Emitted order.created event for ${order.displayId}`);
+
+        return order;
     }
 
     // Get my orders (Brand or Supplier)
@@ -297,6 +333,18 @@ export class OrdersService {
             });
         }
 
+        // Emit order accepted event
+        const acceptedEvent: OrderAcceptedEvent = {
+            orderId: updated.id,
+            displayId: updated.displayId,
+            brandId: updated.brandId,
+            supplierId: companyUser.companyId,
+            supplierName: updated.supplier?.tradeName || 'Facção',
+            acceptedById: userId,
+        };
+        this.eventEmitter.emit(ORDER_ACCEPTED, acceptedEvent);
+        this.logger.log(`Emitted order.accepted event for ${updated.displayId}`);
+
         return updated;
     }
 
@@ -324,7 +372,7 @@ export class OrdersService {
 
         // For DIRECT orders, make available to others
         if (order.assignmentType === OrderAssignmentType.DIRECT) {
-            return this.prisma.order.update({
+            const rejected = await this.prisma.order.update({
                 where: { id: orderId },
                 data: {
                     status: OrderStatus.DISPONIVEL_PARA_OUTRAS,
@@ -340,6 +388,20 @@ export class OrdersService {
                     },
                 },
             });
+
+            // Emit order rejected event
+            const rejectedEvent: OrderRejectedEvent = {
+                orderId: rejected.id,
+                displayId: rejected.displayId,
+                brandId: rejected.brandId,
+                supplierId: companyUser.companyId,
+                reason,
+                rejectedById: userId,
+            };
+            this.eventEmitter.emit(ORDER_REJECTED, rejectedEvent);
+            this.logger.log(`Emitted order.rejected event for ${rejected.displayId}`);
+
+            return rejected;
         }
 
         // For BIDDING, just update target status
@@ -392,7 +454,12 @@ export class OrdersService {
             throw new NotFoundException('Order not found');
         }
 
-        return this.prisma.order.update({
+        const changedBy = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true },
+        });
+
+        const updated = await this.prisma.order.update({
             where: { id: orderId },
             data: {
                 status: dto.status,
@@ -412,6 +479,29 @@ export class OrdersService {
                 statusHistory: { orderBy: { createdAt: 'desc' }, take: 5 },
             },
         });
+
+        // Emit status changed event
+        const statusEvent: OrderStatusChangedEvent = {
+            orderId: updated.id,
+            displayId: updated.displayId,
+            brandId: updated.brandId,
+            supplierId: updated.supplierId || undefined,
+            previousStatus: order.status,
+            newStatus: dto.status,
+            changedById: userId,
+            changedByName: changedBy?.name || 'Unknown',
+        };
+
+        // Use specific event for finalized orders
+        if (dto.status === OrderStatus.FINALIZADO) {
+            this.eventEmitter.emit(ORDER_FINALIZED, statusEvent);
+            this.logger.log(`Emitted order.finalized event for ${updated.displayId}`);
+        } else {
+            this.eventEmitter.emit(ORDER_STATUS_CHANGED, statusEvent);
+            this.logger.log(`Emitted order.status.changed event for ${updated.displayId}`);
+        }
+
+        return updated;
     }
 
     // Get all orders (Admin)

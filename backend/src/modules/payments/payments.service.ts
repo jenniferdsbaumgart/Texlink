@@ -1,11 +1,23 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePaymentDto, UpdatePaymentDto } from './dto';
 import { PaymentStatus, CompanyType } from '@prisma/client';
+import {
+    PAYMENT_REGISTERED,
+    PAYMENT_RECEIVED,
+    PaymentRegisteredEvent,
+    PaymentReceivedEvent,
+} from '../notifications/events/notification.events';
 
 @Injectable()
 export class PaymentsService {
-    constructor(private prisma: PrismaService) { }
+    private readonly logger = new Logger(PaymentsService.name);
+
+    constructor(
+        private prisma: PrismaService,
+        private eventEmitter: EventEmitter2,
+    ) { }
 
     // Create payment for an order
     async create(orderId: string, userId: string, dto: CreatePaymentDto) {
@@ -26,7 +38,7 @@ export class PaymentsService {
             throw new ForbiddenException('Only brand can create payments');
         }
 
-        return this.prisma.payment.create({
+        const payment = await this.prisma.payment.create({
             data: {
                 orderId,
                 amount: dto.amount,
@@ -36,6 +48,23 @@ export class PaymentsService {
                 status: PaymentStatus.PENDENTE,
             },
         });
+
+        // Emit payment registered event
+        if (order.supplierId) {
+            const event: PaymentRegisteredEvent = {
+                paymentId: payment.id,
+                orderId,
+                orderDisplayId: order.displayId,
+                brandId: order.brandId,
+                supplierId: order.supplierId,
+                amount: dto.amount,
+                dueDate: new Date(dto.dueDate),
+            };
+            this.eventEmitter.emit(PAYMENT_REGISTERED, event);
+            this.logger.log(`Emitted payment.registered event for order ${order.displayId}`);
+        }
+
+        return payment;
     }
 
     // Update payment status
@@ -44,7 +73,11 @@ export class PaymentsService {
             where: { id: paymentId },
             include: {
                 order: {
-                    include: {
+                    select: {
+                        id: true,
+                        displayId: true,
+                        brandId: true,
+                        supplierId: true,
                         brand: { include: { companyUsers: true } },
                     },
                 },
@@ -55,7 +88,7 @@ export class PaymentsService {
             throw new NotFoundException('Payment not found');
         }
 
-        return this.prisma.payment.update({
+        const updatedPayment = await this.prisma.payment.update({
             where: { id: paymentId },
             data: {
                 ...(dto.status && { status: dto.status }),
@@ -63,6 +96,23 @@ export class PaymentsService {
                 ...(dto.proofUrl && { proofUrl: dto.proofUrl }),
             },
         });
+
+        // Emit payment received event when status changes to PAGO
+        if (dto.status === PaymentStatus.PAGO && payment.order.supplierId) {
+            const event: PaymentReceivedEvent = {
+                paymentId,
+                orderId: payment.orderId,
+                orderDisplayId: payment.order.displayId,
+                brandId: payment.order.brandId,
+                supplierId: payment.order.supplierId,
+                amount: Number(payment.amount),
+                paidDate: dto.paidDate ? new Date(dto.paidDate) : new Date(),
+            };
+            this.eventEmitter.emit(PAYMENT_RECEIVED, event);
+            this.logger.log(`Emitted payment.received event for order ${payment.order.displayId}`);
+        }
+
+        return updatedPayment;
     }
 
     // Get payments for an order

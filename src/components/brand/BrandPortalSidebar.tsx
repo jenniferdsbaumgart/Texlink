@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { NotificationBell } from '../notifications';
 import {
     Home,
     BarChart3,
@@ -15,7 +16,6 @@ import {
     X,
     User,
     Users,
-    Bell,
     PanelLeftClose,
     PanelLeft,
     Moon,
@@ -186,10 +186,7 @@ export const BrandPortalSidebar: React.FC = () => {
                                     {user?.email}
                                 </p>
                             </div>
-                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative flex-shrink-0">
-                                <Bell className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                            </button>
+                            <NotificationBell />
                         </>
                     )}
                 </div>

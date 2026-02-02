@@ -1,9 +1,18 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SendMessageDto } from './dto';
 import { MessageType, ProposalStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { SanitizerService } from '../../common/services/sanitizer.service';
+import {
+    MESSAGE_SENT,
+    PROPOSAL_SENT,
+    PROPOSAL_RESPONDED,
+    MessageSentEvent,
+    ProposalSentEvent,
+    ProposalRespondedEvent,
+} from '../notifications/events/notification.events';
 
 interface GetMessagesOptions {
     limit?: number;
@@ -13,9 +22,12 @@ interface GetMessagesOptions {
 
 @Injectable()
 export class ChatService {
+    private readonly logger = new Logger(ChatService.name);
+
     constructor(
         private prisma: PrismaService,
         private sanitizer: SanitizerService,
+        private eventEmitter: EventEmitter2,
     ) { }
 
     // Get messages for an order with pagination
@@ -155,19 +167,82 @@ export class ChatService {
             };
         }
 
-        return this.prisma.message.create({
+        const message = await this.prisma.message.create({
             data: messageData,
             include: {
                 sender: { select: { id: true, name: true, role: true } },
             },
         });
+
+        // Find recipient (the other party in the order)
+        const recipientId = await this.getRecipientId(orderId, userId);
+
+        if (recipientId) {
+            if (dto.type === MessageType.PROPOSAL) {
+                // Emit proposal sent event
+                const proposalData = message.proposalData as any;
+                const event: ProposalSentEvent = {
+                    messageId: message.id,
+                    orderId,
+                    senderId: userId,
+                    senderName: message.sender.name,
+                    recipientId,
+                    proposedPrice: proposalData?.newValues?.pricePerUnit,
+                    proposedQuantity: proposalData?.newValues?.quantity,
+                    proposedDeadline: proposalData?.newValues?.deliveryDeadline
+                        ? new Date(proposalData.newValues.deliveryDeadline)
+                        : undefined,
+                };
+                this.eventEmitter.emit(PROPOSAL_SENT, event);
+                this.logger.log(`Emitted proposal.sent event for order ${orderId}`);
+            } else {
+                // Emit message sent event
+                const event: MessageSentEvent = {
+                    messageId: message.id,
+                    orderId,
+                    senderId: userId,
+                    senderName: message.sender.name,
+                    recipientId,
+                    type: dto.type,
+                    content: dto.content,
+                };
+                this.eventEmitter.emit(MESSAGE_SENT, event);
+                this.logger.log(`Emitted message.sent event for order ${orderId}`);
+            }
+        }
+
+        return message;
+    }
+
+    // Helper to get the recipient ID for a message
+    private async getRecipientId(orderId: string, senderId: string): Promise<string | null> {
+        const order = await this.prisma.order.findUnique({
+            where: { id: orderId },
+            include: {
+                brand: { include: { companyUsers: { take: 1 } } },
+                supplier: { include: { companyUsers: { take: 1 } } },
+            },
+        });
+
+        if (!order) return null;
+
+        // If sender is from brand, recipient is supplier (and vice versa)
+        const senderIsBrand = order.brand.companyUsers.some((cu) => cu.userId === senderId);
+
+        if (senderIsBrand && order.supplier?.companyUsers[0]) {
+            return order.supplier.companyUsers[0].userId;
+        } else if (!senderIsBrand && order.brand.companyUsers[0]) {
+            return order.brand.companyUsers[0].userId;
+        }
+
+        return null;
     }
 
     // Accept a proposal
     async acceptProposal(messageId: string, userId: string) {
         const message = await this.prisma.message.findUnique({
             where: { id: messageId },
-            include: { order: true },
+            include: { order: true, sender: { select: { id: true, name: true } } },
         });
 
         if (!message || message.type !== MessageType.PROPOSAL) {
@@ -182,8 +257,13 @@ export class ChatService {
             throw new ForbiddenException('Proposal already processed');
         }
 
+        const responder = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true },
+        });
+
         // Use transaction to ensure data consistency
-        return this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (tx) => {
             // 1. Update message status
             await tx.message.update({
                 where: { id: messageId },
@@ -210,12 +290,27 @@ export class ChatService {
 
             return updatedOrder;
         });
+
+        // Emit proposal responded event
+        const event: ProposalRespondedEvent = {
+            messageId,
+            orderId: message.orderId,
+            responderId: userId,
+            responderName: responder?.name || 'Unknown',
+            proposerId: message.sender.id,
+            status: 'ACCEPTED',
+        };
+        this.eventEmitter.emit(PROPOSAL_RESPONDED, event);
+        this.logger.log(`Emitted proposal.responded (ACCEPTED) event for order ${message.orderId}`);
+
+        return result;
     }
 
     // Reject a proposal
     async rejectProposal(messageId: string, userId: string) {
         const message = await this.prisma.message.findUnique({
             where: { id: messageId },
+            include: { sender: { select: { id: true, name: true } } },
         });
 
         if (!message || message.type !== MessageType.PROPOSAL) {
@@ -226,15 +321,40 @@ export class ChatService {
 
         const proposalData = message.proposalData as any;
 
-        return this.prisma.message.update({
+        if (proposalData.status !== ProposalStatus.PENDING) {
+            throw new ForbiddenException('Proposal already processed');
+        }
+
+        const responder = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true },
+        });
+
+        const result = await this.prisma.message.update({
             where: { id: messageId },
             data: {
                 proposalData: {
                     ...proposalData,
                     status: ProposalStatus.REJECTED,
+                    rejectedAt: new Date().toISOString(),
+                    rejectedBy: userId,
                 },
             },
         });
+
+        // Emit proposal responded event
+        const event: ProposalRespondedEvent = {
+            messageId,
+            orderId: message.orderId,
+            responderId: userId,
+            responderName: responder?.name || 'Unknown',
+            proposerId: message.sender.id,
+            status: 'REJECTED',
+        };
+        this.eventEmitter.emit(PROPOSAL_RESPONDED, event);
+        this.logger.log(`Emitted proposal.responded (REJECTED) event for order ${message.orderId}`);
+
+        return result;
     }
 
     // Get unread count
