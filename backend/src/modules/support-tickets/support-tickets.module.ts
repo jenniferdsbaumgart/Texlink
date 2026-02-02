@@ -3,8 +3,8 @@ import { SupportTicketsController } from './support-tickets.controller';
 import { SupportTicketsService } from './support-tickets.service';
 
 @Module({
-    controllers: [SupportTicketsController],
-    providers: [SupportTicketsService],
-    exports: [SupportTicketsService],
+  controllers: [SupportTicketsController],
+  providers: [SupportTicketsService],
+  exports: [SupportTicketsService],
 })
 export class SupportTicketsModule {}

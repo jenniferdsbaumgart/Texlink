@@ -7,24 +7,24 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @Controller('ratings')
 @UseGuards(JwtAuthGuard)
 export class RatingsController {
-    constructor(private readonly ratingsService: RatingsService) { }
+  constructor(private readonly ratingsService: RatingsService) {}
 
-    @Post('orders/:orderId')
-    async create(
-        @Param('orderId') orderId: string,
-        @CurrentUser('id') userId: string,
-        @Body() dto: CreateRatingDto,
-    ) {
-        return this.ratingsService.create(orderId, userId, dto);
-    }
+  @Post('orders/:orderId')
+  async create(
+    @Param('orderId') orderId: string,
+    @CurrentUser('id') userId: string,
+    @Body() dto: CreateRatingDto,
+  ) {
+    return this.ratingsService.create(orderId, userId, dto);
+  }
 
-    @Get('company/:companyId')
-    async getCompanyRatings(@Param('companyId') companyId: string) {
-        return this.ratingsService.getCompanyRatings(companyId);
-    }
+  @Get('company/:companyId')
+  async getCompanyRatings(@Param('companyId') companyId: string) {
+    return this.ratingsService.getCompanyRatings(companyId);
+  }
 
-    @Get('pending')
-    async getPendingRatings(@CurrentUser('id') userId: string) {
-        return this.ratingsService.getPendingRatings(userId);
-    }
+  @Get('pending')
+  async getPendingRatings(@CurrentUser('id') userId: string) {
+    return this.ratingsService.getPendingRatings(userId);
+  }
 }

@@ -1,5 +1,5 @@
 import api from './api';
-import { Notification, NotificationListResponse, NotificationType } from '../types/notification.types';
+import { AppNotification, NotificationListResponse, NotificationType } from '../types/notification.types';
 
 export interface GetNotificationsParams {
     limit?: number;
@@ -41,8 +41,8 @@ class NotificationsService {
     /**
      * Get a single notification
      */
-    async getNotification(id: string): Promise<Notification> {
-        const response = await api.get<Notification>(`${this.basePath}/${id}`);
+    async getNotification(id: string): Promise<AppNotification> {
+        const response = await api.get<AppNotification>(`${this.basePath}/${id}`);
         return response.data;
     }
 

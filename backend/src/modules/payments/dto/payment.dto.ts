@@ -1,32 +1,38 @@
-import { IsNumber, IsString, IsOptional, IsEnum, IsDateString } from 'class-validator';
+import {
+  IsNumber,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+} from 'class-validator';
 import { PaymentStatus } from '@prisma/client';
 
 export class CreatePaymentDto {
-    @IsNumber()
-    amount: number;
+  @IsNumber()
+  amount: number;
 
-    @IsDateString()
-    dueDate: string;
+  @IsDateString()
+  dueDate: string;
 
-    @IsString()
-    @IsOptional()
-    method?: string;
+  @IsString()
+  @IsOptional()
+  method?: string;
 
-    @IsString()
-    @IsOptional()
-    notes?: string;
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }
 
 export class UpdatePaymentDto {
-    @IsEnum(PaymentStatus)
-    @IsOptional()
-    status?: PaymentStatus;
+  @IsEnum(PaymentStatus)
+  @IsOptional()
+  status?: PaymentStatus;
 
-    @IsDateString()
-    @IsOptional()
-    paidDate?: string;
+  @IsDateString()
+  @IsOptional()
+  paidDate?: string;
 
-    @IsString()
-    @IsOptional()
-    proofUrl?: string;
+  @IsString()
+  @IsOptional()
+  proofUrl?: string;
 }

@@ -4,9 +4,9 @@ import { CredentialSettingsService } from './credential-settings.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule],
-    controllers: [CredentialSettingsController],
-    providers: [CredentialSettingsService],
-    exports: [CredentialSettingsService],
+  imports: [PrismaModule],
+  controllers: [CredentialSettingsController],
+  providers: [CredentialSettingsService],
+  exports: [CredentialSettingsService],
 })
 export class CredentialSettingsModule {}

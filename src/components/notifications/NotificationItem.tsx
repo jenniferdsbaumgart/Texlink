@@ -27,10 +27,10 @@ import {
     Megaphone,
     LucideIcon,
 } from 'lucide-react';
-import { Notification, NotificationType, NotificationPriority, getTimeAgo } from '../../types/notification.types';
+import { AppNotification, NotificationType, NotificationPriority, getTimeAgo } from '../../types/notification.types';
 
 interface NotificationItemProps {
-    notification: Notification;
+    notification: AppNotification;
     onMarkAsRead: (id: string) => void;
     onClose?: () => void;
 }

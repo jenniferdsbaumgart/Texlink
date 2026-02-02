@@ -199,7 +199,9 @@ describe('RelationshipsService', () => {
       const result = await service.findByBrand('brand-id', mockBrandUser);
 
       expect(result).toHaveLength(1);
-      expect(mockPrisma.supplierBrandRelationship.findMany).toHaveBeenCalledWith(
+      expect(
+        mockPrisma.supplierBrandRelationship.findMany,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { brandId: 'brand-id' },
         }),
@@ -219,9 +221,7 @@ describe('RelationshipsService', () => {
 
       await service.findByBrand('brand-id', mockAdminUser);
 
-      expect(
-        mockPrisma.supplierBrandRelationship.findMany,
-      ).toHaveBeenCalled();
+      expect(mockPrisma.supplierBrandRelationship.findMany).toHaveBeenCalled();
     });
   });
 

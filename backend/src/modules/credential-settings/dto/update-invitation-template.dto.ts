@@ -6,5 +6,5 @@ import { CreateInvitationTemplateDto } from './create-invitation-template.dto';
  * Todos os campos são opcionais
  */
 export class UpdateInvitationTemplateDto extends PartialType(
-    CreateInvitationTemplateDto,
+  CreateInvitationTemplateDto,
 ) {}

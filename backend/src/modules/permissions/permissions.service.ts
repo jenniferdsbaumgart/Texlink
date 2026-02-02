@@ -1,7 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, CompanyRole, CompanyUser, CompanyUserPermission } from '@prisma/client';
+import {
+  Permission,
+  CompanyRole,
+  CompanyUser,
+  CompanyUserPermission,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ROLE_PERMISSIONS, ROLE_NAMES, ROLE_DESCRIPTIONS, PERMISSION_NAMES, PERMISSION_CATEGORIES } from './role-permissions.config';
+import {
+  ROLE_PERMISSIONS,
+  ROLE_NAMES,
+  ROLE_DESCRIPTIONS,
+  PERMISSION_NAMES,
+  PERMISSION_CATEGORIES,
+} from './role-permissions.config';
 
 type CompanyUserWithPermissions = CompanyUser & {
   permissions: CompanyUserPermission[];
@@ -19,7 +30,10 @@ export class PermissionsService {
    * 3. Override de concessão (granted = true) → adiciona permissão
    * 4. Permissões do CompanyRole
    */
-  async getUserPermissions(userId: string, companyId: string): Promise<Permission[]> {
+  async getUserPermissions(
+    userId: string,
+    companyId: string,
+  ): Promise<Permission[]> {
     const companyUser = await this.prisma.companyUser.findUnique({
       where: {
         userId_companyId: { userId, companyId },
@@ -39,14 +53,18 @@ export class PermissionsService {
   /**
    * Calcula as permissões efetivas de um CompanyUser
    */
-  calculateEffectivePermissions(companyUser: CompanyUserWithPermissions): Permission[] {
+  calculateEffectivePermissions(
+    companyUser: CompanyUserWithPermissions,
+  ): Permission[] {
     // Admin tem todas as permissões
     if (companyUser.isCompanyAdmin) {
       return Object.values(Permission);
     }
 
     // Começa com as permissões do role
-    const rolePermissions = new Set(ROLE_PERMISSIONS[companyUser.companyRole] || []);
+    const rolePermissions = new Set(
+      ROLE_PERMISSIONS[companyUser.companyRole] || [],
+    );
 
     // Aplica os overrides
     for (const override of companyUser.permissions) {
@@ -65,7 +83,11 @@ export class PermissionsService {
   /**
    * Verifica se o usuário tem uma permissão específica
    */
-  async hasPermission(userId: string, companyId: string, permission: Permission): Promise<boolean> {
+  async hasPermission(
+    userId: string,
+    companyId: string,
+    permission: Permission,
+  ): Promise<boolean> {
     const permissions = await this.getUserPermissions(userId, companyId);
     return permissions.includes(permission);
   }
@@ -73,17 +95,25 @@ export class PermissionsService {
   /**
    * Verifica se o usuário tem todas as permissões especificadas
    */
-  async hasAllPermissions(userId: string, companyId: string, requiredPermissions: Permission[]): Promise<boolean> {
+  async hasAllPermissions(
+    userId: string,
+    companyId: string,
+    requiredPermissions: Permission[],
+  ): Promise<boolean> {
     const permissions = await this.getUserPermissions(userId, companyId);
-    return requiredPermissions.every(p => permissions.includes(p));
+    return requiredPermissions.every((p) => permissions.includes(p));
   }
 
   /**
    * Verifica se o usuário tem pelo menos uma das permissões especificadas
    */
-  async hasAnyPermission(userId: string, companyId: string, requiredPermissions: Permission[]): Promise<boolean> {
+  async hasAnyPermission(
+    userId: string,
+    companyId: string,
+    requiredPermissions: Permission[],
+  ): Promise<boolean> {
     const permissions = await this.getUserPermissions(userId, companyId);
-    return requiredPermissions.some(p => permissions.includes(p));
+    return requiredPermissions.some((p) => permissions.includes(p));
   }
 
   /**
@@ -131,7 +161,8 @@ export class PermissionsService {
       return null;
     }
 
-    const effectivePermissions = this.calculateEffectivePermissions(companyUser);
+    const effectivePermissions =
+      this.calculateEffectivePermissions(companyUser);
 
     return {
       ...companyUser,
@@ -142,7 +173,11 @@ export class PermissionsService {
   /**
    * Adiciona ou atualiza um override de permissão
    */
-  async setPermissionOverride(companyUserId: string, permission: Permission, granted: boolean) {
+  async setPermissionOverride(
+    companyUserId: string,
+    permission: Permission,
+    granted: boolean,
+  ) {
     return this.prisma.companyUserPermission.upsert({
       where: {
         companyUserId_permission: { companyUserId, permission },
@@ -159,12 +194,17 @@ export class PermissionsService {
   /**
    * Remove um override de permissão
    */
-  async removePermissionOverride(companyUserId: string, permission: Permission) {
-    return this.prisma.companyUserPermission.delete({
-      where: {
-        companyUserId_permission: { companyUserId, permission },
-      },
-    }).catch(() => null); // Ignora se não existir
+  async removePermissionOverride(
+    companyUserId: string,
+    permission: Permission,
+  ) {
+    return this.prisma.companyUserPermission
+      .delete({
+        where: {
+          companyUserId_permission: { companyUserId, permission },
+        },
+      })
+      .catch(() => null); // Ignora se não existir
   }
 
   /**
@@ -180,7 +220,7 @@ export class PermissionsService {
    * Obtém lista de todos os roles disponíveis com suas permissões
    */
   getRoles() {
-    return Object.values(CompanyRole).map(role => ({
+    return Object.values(CompanyRole).map((role) => ({
       role,
       name: ROLE_NAMES[role],
       description: ROLE_DESCRIPTIONS[role],
@@ -196,7 +236,7 @@ export class PermissionsService {
       role,
       name: ROLE_NAMES[role],
       description: ROLE_DESCRIPTIONS[role],
-      permissions: ROLE_PERMISSIONS[role].map(p => ({
+      permissions: ROLE_PERMISSIONS[role].map((p) => ({
         permission: p,
         name: PERMISSION_NAMES[p],
       })),
@@ -210,7 +250,7 @@ export class PermissionsService {
     return Object.entries(PERMISSION_CATEGORIES).map(([key, category]) => ({
       key,
       name: category.name,
-      permissions: category.permissions.map(p => ({
+      permissions: category.permissions.map((p) => ({
         permission: p,
         name: PERMISSION_NAMES[p],
       })),
@@ -231,7 +271,10 @@ export class PermissionsService {
     });
 
     if (!currentUserMembership?.isCompanyAdmin) {
-      return { allowed: false, reason: 'Apenas administradores podem modificar membros' };
+      return {
+        allowed: false,
+        reason: 'Apenas administradores podem modificar membros',
+      };
     }
 
     const targetMembership = await this.prisma.companyUser.findUnique({
@@ -249,7 +292,10 @@ export class PermissionsService {
       });
 
       if (adminCount <= 1) {
-        return { allowed: false, reason: 'Não é possível modificar o último administrador' };
+        return {
+          allowed: false,
+          reason: 'Não é possível modificar o último administrador',
+        };
       }
     }
 

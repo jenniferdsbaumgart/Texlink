@@ -1,64 +1,73 @@
-import { IsString, IsNumber, IsOptional, IsBoolean, IsArray, IsEnum, IsDateString, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsEnum,
+  IsDateString,
+  IsUUID,
+} from 'class-validator';
 import { OrderAssignmentType } from '@prisma/client';
 
 export class CreateOrderDto {
-    @IsString()
-    productType: string;
+  @IsString()
+  productType: string;
 
-    @IsString()
-    @IsOptional()
-    productCategory?: string;
+  @IsString()
+  @IsOptional()
+  productCategory?: string;
 
-    @IsString()
-    productName: string;
+  @IsString()
+  productName: string;
 
-    @IsOptional()
-    @IsString()
-    op?: string;
+  @IsOptional()
+  @IsString()
+  op?: string;
 
-    @IsOptional()
-    @IsString()
-    artigo?: string;
+  @IsOptional()
+  @IsString()
+  artigo?: string;
 
-    @IsString()
-    @IsOptional()
-    description?: string;
+  @IsString()
+  @IsOptional()
+  description?: string;
 
-    @IsNumber()
-    quantity: number;
+  @IsNumber()
+  quantity: number;
 
-    @IsNumber()
-    pricePerUnit: number;
+  @IsNumber()
+  pricePerUnit: number;
 
-    @IsDateString()
-    deliveryDeadline: string;
+  @IsDateString()
+  deliveryDeadline: string;
 
-    @IsString()
-    @IsOptional()
-    paymentTerms?: string;
+  @IsString()
+  @IsOptional()
+  paymentTerms?: string;
 
-    @IsBoolean()
-    @IsOptional()
-    materialsProvided?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  materialsProvided?: boolean;
 
-    @IsString()
-    @IsOptional()
-    observations?: string;
+  @IsString()
+  @IsOptional()
+  observations?: string;
 
-    // Assignment type: DIRECT, BIDDING or HYBRID
+  // Assignment type: DIRECT, BIDDING or HYBRID
 
-    @IsEnum(OrderAssignmentType)
-    assignmentType: OrderAssignmentType;
+  @IsEnum(OrderAssignmentType)
+  assignmentType: OrderAssignmentType;
 
-    // For DIRECT: single supplier ID
-    @IsUUID()
-    @IsOptional()
-    supplierId?: string;
+  // For DIRECT: single supplier ID
+  @IsUUID()
+  @IsOptional()
+  supplierId?: string;
 
-    // For BIDDING/HYBRID: multiple supplier IDs (optional for HYBRID)
+  // For BIDDING/HYBRID: multiple supplier IDs (optional for HYBRID)
 
-    @IsArray()
-    @IsUUID('4', { each: true })
-    @IsOptional()
-    targetSupplierIds?: string[];
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @IsOptional()
+  targetSupplierIds?: string[];
 }

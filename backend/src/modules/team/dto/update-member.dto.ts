@@ -1,4 +1,10 @@
-import { IsEnum, IsOptional, IsBoolean, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { CompanyRole, Permission } from '@prisma/client';
 

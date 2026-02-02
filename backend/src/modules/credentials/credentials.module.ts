@@ -25,32 +25,30 @@ import { InvitationService } from './services/invitation.service';
  * - Notificações automáticas
  */
 @Module({
-    imports: [
-        PrismaModule,
-        IntegrationsModule,
-        forwardRef(() => NotificationsModule),
-        CacheModule.register({
-            ttl: 30 * 24 * 60 * 60 * 1000, // 30 dias em ms
-            max: 1000, // Máximo 1000 itens em cache
-        }),
-    ],
-    controllers: [
-        CredentialsController,
-    ],
-    providers: [
-        // Main service
-        CredentialsService,
+  imports: [
+    PrismaModule,
+    IntegrationsModule,
+    forwardRef(() => NotificationsModule),
+    CacheModule.register({
+      ttl: 30 * 24 * 60 * 60 * 1000, // 30 dias em ms
+      max: 1000, // Máximo 1000 itens em cache
+    }),
+  ],
+  controllers: [CredentialsController],
+  providers: [
+    // Main service
+    CredentialsService,
 
-        // Sub-services
-        ValidationService,
-        ComplianceService,
-        InvitationService,
-    ],
-    exports: [
-        CredentialsService,
-        ValidationService,
-        ComplianceService,
-        InvitationService,
-    ],
+    // Sub-services
+    ValidationService,
+    ComplianceService,
+    InvitationService,
+  ],
+  exports: [
+    CredentialsService,
+    ValidationService,
+    ComplianceService,
+    InvitationService,
+  ],
 })
-export class CredentialsModule { }
+export class CredentialsModule {}

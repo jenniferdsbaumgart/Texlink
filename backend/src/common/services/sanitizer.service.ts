@@ -43,7 +43,7 @@ export class SanitizerService {
   /**
    * Valida e normaliza número
    */
-  sanitizeNumber(value: any): number | null {
+  sanitizeNumber(value: unknown): number | null {
     const num = Number(value);
 
     if (isNaN(num) || !isFinite(num)) {
@@ -56,7 +56,10 @@ export class SanitizerService {
   /**
    * Valida e sanitiza data
    */
-  sanitizeDate(value: any): Date | null {
+  sanitizeDate(value: string | number | Date | undefined | null): Date | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
     try {
       const date = new Date(value);
 

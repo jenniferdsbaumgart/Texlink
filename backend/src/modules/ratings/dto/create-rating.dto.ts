@@ -1,12 +1,12 @@
 import { IsNumber, IsString, IsOptional, Min, Max } from 'class-validator';
 
 export class CreateRatingDto {
-    @IsNumber()
-    @Min(1)
-    @Max(5)
-    score: number;
+  @IsNumber()
+  @Min(1)
+  @Max(5)
+  score: number;
 
-    @IsString()
-    @IsOptional()
-    comment?: string;
+  @IsString()
+  @IsOptional()
+  comment?: string;
 }

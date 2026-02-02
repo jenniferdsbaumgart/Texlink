@@ -187,7 +187,7 @@ export class RelationshipsController {
 
     return this.contractsService.signContractForRelationship(
       id,
-      user.supplierId!,
+      user.supplierId,
       ipAddress,
     );
   }

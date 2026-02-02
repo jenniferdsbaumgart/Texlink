@@ -1,36 +1,47 @@
-import { IsString, IsOptional, IsEnum, IsBoolean, IsInt, IsUrl, Min } from 'class-validator';
-import { EducationalContentType, EducationalContentCategory } from '@prisma/client';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsBoolean,
+  IsInt,
+  IsUrl,
+  Min,
+} from 'class-validator';
+import {
+  EducationalContentType,
+  EducationalContentCategory,
+} from '@prisma/client';
 
 export class CreateEducationalContentDto {
-    @IsString()
-    title: string;
+  @IsString()
+  title: string;
 
-    @IsString()
-    description: string;
+  @IsString()
+  description: string;
 
-    @IsEnum(EducationalContentType)
-    contentType: EducationalContentType;
+  @IsEnum(EducationalContentType)
+  contentType: EducationalContentType;
 
-    @IsUrl()
-    contentUrl: string;
+  @IsUrl()
+  contentUrl: string;
 
-    @IsOptional()
-    @IsUrl()
-    thumbnailUrl?: string;
+  @IsOptional()
+  @IsUrl()
+  thumbnailUrl?: string;
 
-    @IsEnum(EducationalContentCategory)
-    category: EducationalContentCategory;
+  @IsEnum(EducationalContentCategory)
+  category: EducationalContentCategory;
 
-    @IsOptional()
-    @IsString()
-    duration?: string;
+  @IsOptional()
+  @IsString()
+  duration?: string;
 
-    @IsOptional()
-    @IsBoolean()
-    isActive?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 
-    @IsOptional()
-    @IsInt()
-    @Min(0)
-    displayOrder?: number;
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  displayOrder?: number;
 }

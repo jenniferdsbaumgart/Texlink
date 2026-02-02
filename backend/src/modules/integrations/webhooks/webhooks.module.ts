@@ -7,8 +7,8 @@ import { TwilioSignatureService } from './twilio-signature.service';
 import { PrismaModule } from '../../../prisma/prisma.module';
 
 @Module({
-    imports: [PrismaModule, ConfigModule],
-    controllers: [SendGridWebhookController, TwilioWebhookController],
-    providers: [SendGridSignatureService, TwilioSignatureService],
+  imports: [PrismaModule, ConfigModule],
+  controllers: [SendGridWebhookController, TwilioWebhookController],
+  providers: [SendGridSignatureService, TwilioSignatureService],
 })
 export class WebhooksModule {}

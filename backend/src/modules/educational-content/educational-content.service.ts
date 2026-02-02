@@ -1,157 +1,160 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateEducationalContentDto, UpdateEducationalContentDto } from './dto';
-import { EducationalContentType, EducationalContentCategory } from '@prisma/client';
+import {
+  CreateEducationalContentDto,
+  UpdateEducationalContentDto,
+} from './dto';
+import {
+  EducationalContentType,
+  EducationalContentCategory,
+} from '@prisma/client';
 
 @Injectable()
 export class EducationalContentService {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    // ========== PUBLIC ENDPOINTS ==========
+  // ========== PUBLIC ENDPOINTS ==========
 
-    // List active educational contents (for suppliers)
-    async findAllActive(category?: EducationalContentCategory, contentType?: EducationalContentType) {
-        return this.prisma.educationalContent.findMany({
-            where: {
-                isActive: true,
-                ...(category && { category }),
-                ...(contentType && { contentType }),
-            },
-            orderBy: [
-                { displayOrder: 'asc' },
-                { createdAt: 'desc' },
-            ],
-        });
+  // List active educational contents (for suppliers)
+  async findAllActive(
+    category?: EducationalContentCategory,
+    contentType?: EducationalContentType,
+  ) {
+    return this.prisma.educationalContent.findMany({
+      where: {
+        isActive: true,
+        ...(category && { category }),
+        ...(contentType && { contentType }),
+      },
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  // Get content by ID (public)
+  async findOnePublic(id: string) {
+    const content = await this.prisma.educationalContent.findFirst({
+      where: { id, isActive: true },
+    });
+
+    if (!content) {
+      throw new NotFoundException('Educational content not found');
     }
 
-    // Get content by ID (public)
-    async findOnePublic(id: string) {
-        const content = await this.prisma.educationalContent.findFirst({
-            where: { id, isActive: true },
-        });
+    return content;
+  }
 
-        if (!content) {
-            throw new NotFoundException('Educational content not found');
-        }
+  // Get all categories with content count
+  async getCategories() {
+    const categories = await this.prisma.educationalContent.groupBy({
+      by: ['category'],
+      where: { isActive: true },
+      _count: { id: true },
+    });
 
-        return content;
+    return categories.map((c) => ({
+      category: c.category,
+      count: c._count.id,
+    }));
+  }
+
+  // ========== ADMIN ENDPOINTS ==========
+
+  // List all educational contents (admin)
+  async findAll(
+    category?: EducationalContentCategory,
+    contentType?: EducationalContentType,
+    isActive?: boolean,
+  ) {
+    return this.prisma.educationalContent.findMany({
+      where: {
+        ...(category && { category }),
+        ...(contentType && { contentType }),
+        ...(isActive !== undefined && { isActive }),
+      },
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  // Get content by ID (admin)
+  async findOne(id: string) {
+    const content = await this.prisma.educationalContent.findUnique({
+      where: { id },
+    });
+
+    if (!content) {
+      throw new NotFoundException('Educational content not found');
     }
 
-    // Get all categories with content count
-    async getCategories() {
-        const categories = await this.prisma.educationalContent.groupBy({
-            by: ['category'],
-            where: { isActive: true },
-            _count: { id: true },
-        });
+    return content;
+  }
 
-        return categories.map(c => ({
-            category: c.category,
-            count: c._count.id,
-        }));
+  // Create educational content
+  async create(dto: CreateEducationalContentDto) {
+    return this.prisma.educationalContent.create({
+      data: dto,
+    });
+  }
+
+  // Update educational content
+  async update(id: string, dto: UpdateEducationalContentDto) {
+    const content = await this.prisma.educationalContent.findUnique({
+      where: { id },
+    });
+
+    if (!content) {
+      throw new NotFoundException('Educational content not found');
     }
 
-    // ========== ADMIN ENDPOINTS ==========
+    return this.prisma.educationalContent.update({
+      where: { id },
+      data: dto,
+    });
+  }
 
-    // List all educational contents (admin)
-    async findAll(
-        category?: EducationalContentCategory,
-        contentType?: EducationalContentType,
-        isActive?: boolean,
-    ) {
-        return this.prisma.educationalContent.findMany({
-            where: {
-                ...(category && { category }),
-                ...(contentType && { contentType }),
-                ...(isActive !== undefined && { isActive }),
-            },
-            orderBy: [
-                { displayOrder: 'asc' },
-                { createdAt: 'desc' },
-            ],
-        });
+  // Delete educational content
+  async remove(id: string) {
+    const content = await this.prisma.educationalContent.findUnique({
+      where: { id },
+    });
+
+    if (!content) {
+      throw new NotFoundException('Educational content not found');
     }
 
-    // Get content by ID (admin)
-    async findOne(id: string) {
-        const content = await this.prisma.educationalContent.findUnique({
-            where: { id },
-        });
+    await this.prisma.educationalContent.delete({
+      where: { id },
+    });
 
-        if (!content) {
-            throw new NotFoundException('Educational content not found');
-        }
+    return { success: true };
+  }
 
-        return content;
+  // Toggle active status
+  async toggleActive(id: string) {
+    const content = await this.prisma.educationalContent.findUnique({
+      where: { id },
+    });
+
+    if (!content) {
+      throw new NotFoundException('Educational content not found');
     }
 
-    // Create educational content
-    async create(dto: CreateEducationalContentDto) {
-        return this.prisma.educationalContent.create({
-            data: dto,
-        });
-    }
+    return this.prisma.educationalContent.update({
+      where: { id },
+      data: { isActive: !content.isActive },
+    });
+  }
 
-    // Update educational content
-    async update(id: string, dto: UpdateEducationalContentDto) {
-        const content = await this.prisma.educationalContent.findUnique({
-            where: { id },
-        });
+  // Update display order for multiple contents
+  async updateOrder(items: { id: string; displayOrder: number }[]) {
+    const updates = items.map((item) =>
+      this.prisma.educationalContent.update({
+        where: { id: item.id },
+        data: { displayOrder: item.displayOrder },
+      }),
+    );
 
-        if (!content) {
-            throw new NotFoundException('Educational content not found');
-        }
+    await this.prisma.$transaction(updates);
 
-        return this.prisma.educationalContent.update({
-            where: { id },
-            data: dto,
-        });
-    }
-
-    // Delete educational content
-    async remove(id: string) {
-        const content = await this.prisma.educationalContent.findUnique({
-            where: { id },
-        });
-
-        if (!content) {
-            throw new NotFoundException('Educational content not found');
-        }
-
-        await this.prisma.educationalContent.delete({
-            where: { id },
-        });
-
-        return { success: true };
-    }
-
-    // Toggle active status
-    async toggleActive(id: string) {
-        const content = await this.prisma.educationalContent.findUnique({
-            where: { id },
-        });
-
-        if (!content) {
-            throw new NotFoundException('Educational content not found');
-        }
-
-        return this.prisma.educationalContent.update({
-            where: { id },
-            data: { isActive: !content.isActive },
-        });
-    }
-
-    // Update display order for multiple contents
-    async updateOrder(items: { id: string; displayOrder: number }[]) {
-        const updates = items.map(item =>
-            this.prisma.educationalContent.update({
-                where: { id: item.id },
-                data: { displayOrder: item.displayOrder },
-            })
-        );
-
-        await this.prisma.$transaction(updates);
-
-        return { success: true };
-    }
+    return { success: true };
+  }
 }

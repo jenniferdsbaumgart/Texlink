@@ -31,7 +31,7 @@ export type NotificationType =
 
 export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 
-export interface Notification {
+export interface AppNotification {
     id: string;
     type: NotificationType;
     priority: NotificationPriority;
@@ -49,14 +49,14 @@ export interface Notification {
 }
 
 export interface NotificationListResponse {
-    notifications: Notification[];
+    notifications: AppNotification[];
     hasMore: boolean;
     nextCursor?: string;
     unreadCount: number;
 }
 
 export interface NotificationContextData {
-    notifications: Notification[];
+    notifications: AppNotification[];
     unreadCount: number;
     isConnected: boolean;
     isLoading: boolean;

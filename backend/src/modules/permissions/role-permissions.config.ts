@@ -82,11 +82,15 @@ export const ROLE_NAMES: Record<CompanyRole, string> = {
  * Descrições dos roles
  */
 export const ROLE_DESCRIPTIONS: Record<CompanyRole, string> = {
-  [CompanyRole.ADMIN]: 'Acesso total a todas as funcionalidades e gestão de equipe',
-  [CompanyRole.OPERATIONS_MANAGER]: 'Gerencia pedidos, fornecedores e operações do dia a dia',
-  [CompanyRole.FINANCIAL_MANAGER]: 'Gerencia pagamentos, relatórios financeiros e exportações',
+  [CompanyRole.ADMIN]:
+    'Acesso total a todas as funcionalidades e gestão de equipe',
+  [CompanyRole.OPERATIONS_MANAGER]:
+    'Gerencia pedidos, fornecedores e operações do dia a dia',
+  [CompanyRole.FINANCIAL_MANAGER]:
+    'Gerencia pagamentos, relatórios financeiros e exportações',
   [CompanyRole.SALES]: 'Cria pedidos, gerencia fornecedores e comunicação',
-  [CompanyRole.PRODUCTION_MANAGER]: 'Gerencia produção, capacidade e aceita pedidos (facção)',
+  [CompanyRole.PRODUCTION_MANAGER]:
+    'Gerencia produção, capacidade e aceita pedidos (facção)',
   [CompanyRole.VIEWER]: 'Apenas visualização, sem permissões de edição',
 };
 

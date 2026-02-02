@@ -1,39 +1,53 @@
 export default () => {
-    // Validate required environment variables in production
-    if (process.env.NODE_ENV === 'production') {
-        const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
-        const missing = requiredEnvVars.filter(v => !process.env[v]);
-        if (missing.length > 0) {
-            throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-        }
-
-        // Validate JWT_SECRET is not using default/weak values
-        const weakSecrets = ['default-secret', 'texlink-dev-secret-change-in-production', 'secret', 'changeme'];
-        if (weakSecrets.includes(process.env.JWT_SECRET || '')) {
-            throw new Error('JWT_SECRET must be changed from default value in production');
-        }
+  // Validate required environment variables in production
+  if (process.env.NODE_ENV === 'production') {
+    const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
+    const missing = requiredEnvVars.filter((v) => !process.env[v]);
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required environment variables: ${missing.join(', ')}`,
+      );
     }
 
-    return {
-        port: parseInt(process.env.PORT || '3000', 10),
-        nodeEnv: process.env.NODE_ENV || 'development',
-        database: {
-            url: process.env.DATABASE_URL,
-        },
-        jwt: {
-            secret: process.env.JWT_SECRET,
-            expiresIn: process.env.JWT_EXPIRATION || '7d',
-            refreshExpiresIn: process.env.JWT_REFRESH_EXPIRATION || '30d',
-        },
-        cors: {
-            origins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3001'],
-        },
-        redis: {
-            url: process.env.REDIS_URL,
-        },
-        webhooks: {
-            sendgridValidation: process.env.SENDGRID_WEBHOOK_SIGNATURE_VALIDATION === 'true',
-            twilioValidation: process.env.TWILIO_WEBHOOK_SIGNATURE_VALIDATION === 'true',
-        },
-    };
+    // Validate JWT_SECRET is not using default/weak values
+    const weakSecrets = [
+      'default-secret',
+      'texlink-dev-secret-change-in-production',
+      'secret',
+      'changeme',
+    ];
+    if (weakSecrets.includes(process.env.JWT_SECRET || '')) {
+      throw new Error(
+        'JWT_SECRET must be changed from default value in production',
+      );
+    }
+  }
+
+  return {
+    port: parseInt(process.env.PORT || '3000', 10),
+    nodeEnv: process.env.NODE_ENV || 'development',
+    database: {
+      url: process.env.DATABASE_URL,
+    },
+    jwt: {
+      secret: process.env.JWT_SECRET,
+      expiresIn: process.env.JWT_EXPIRATION || '7d',
+      refreshExpiresIn: process.env.JWT_REFRESH_EXPIRATION || '30d',
+    },
+    cors: {
+      origins: process.env.CORS_ORIGINS?.split(',') || [
+        'http://localhost:5173',
+        'http://localhost:3001',
+      ],
+    },
+    redis: {
+      url: process.env.REDIS_URL,
+    },
+    webhooks: {
+      sendgridValidation:
+        process.env.SENDGRID_WEBHOOK_SIGNATURE_VALIDATION === 'true',
+      twilioValidation:
+        process.env.TWILIO_WEBHOOK_SIGNATURE_VALIDATION === 'true',
+    },
+  };
 };

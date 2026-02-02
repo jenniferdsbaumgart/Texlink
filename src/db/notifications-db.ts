@@ -1,12 +1,12 @@
 import Dexie, { Table } from 'dexie';
-import { Notification } from '../types/notification.types';
+import { AppNotification } from '../types/notification.types';
 
 /**
  * IndexedDB for offline notification storage
  * Uses Dexie for a cleaner API
  */
 class NotificationsDatabase extends Dexie {
-    notifications!: Table<Notification, string>;
+    notifications!: Table<AppNotification, string>;
 
     constructor() {
         super('texlink-notifications');
@@ -19,14 +19,14 @@ class NotificationsDatabase extends Dexie {
     /**
      * Store notifications for a user
      */
-    async storeNotifications(notifications: Notification[]): Promise<void> {
+    async storeNotifications(notifications: AppNotification[]): Promise<void> {
         await this.notifications.bulkPut(notifications);
     }
 
     /**
      * Store a single notification
      */
-    async storeNotification(notification: Notification): Promise<void> {
+    async storeNotification(notification: AppNotification): Promise<void> {
         await this.notifications.put(notification);
     }
 
@@ -36,7 +36,7 @@ class NotificationsDatabase extends Dexie {
     async getNotifications(
         recipientId: string,
         options?: { limit?: number; unreadOnly?: boolean }
-    ): Promise<Notification[]> {
+    ): Promise<AppNotification[]> {
         let query = this.notifications
             .where('recipientId')
             .equals(recipientId);

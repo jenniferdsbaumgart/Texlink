@@ -7,22 +7,28 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: process.env.NODE_ENV === 'production'
-      ? ['error', 'warn', 'log']
-      : ['error', 'warn', 'log', 'debug', 'verbose'],
+    logger:
+      process.env.NODE_ENV === 'production'
+        ? ['error', 'warn', 'log']
+        : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
   // Security headers
-  app.use(helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
-    crossOriginEmbedderPolicy: false,
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy:
+        process.env.NODE_ENV === 'production' ? undefined : false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
 
   // Enable CORS with configurable origins
-  const corsOrigins = configService.get<string[]>('cors.origins') || ['http://localhost:5173'];
+  const corsOrigins = configService.get<string[]>('cors.origins') || [
+    'http://localhost:5173',
+  ];
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
@@ -50,6 +56,9 @@ async function bootstrap() {
 
   const port = configService.get<number>('port') || 3000;
   await app.listen(port);
-  logger.log(`TEXLINK API running on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
+  logger.log(
+    `TEXLINK API running on port ${port} in ${process.env.NODE_ENV || 'development'} mode`,
+  );
 }
-bootstrap();
+
+void bootstrap();

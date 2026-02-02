@@ -53,10 +53,11 @@ export class RateLimiterService {
   async checkMessageLimit(userId: string): Promise<void> {
     try {
       await this.messageLimiter.consume(userId);
-    } catch (rejRes: any) {
-      const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000);
+    } catch (rejRes: unknown) {
+      const rateLimitRes = rejRes as { msBeforeNext?: number };
+      const retryAfter = Math.ceil((rateLimitRes.msBeforeNext ?? 60000) / 1000);
       throw new Error(
-        `Rate limit exceeded. Try again in ${retryAfter} seconds.`
+        `Rate limit exceeded. Try again in ${retryAfter} seconds.`,
       );
     }
   }
@@ -64,10 +65,11 @@ export class RateLimiterService {
   async checkConnectionLimit(ip: string): Promise<void> {
     try {
       await this.connectionLimiter.consume(ip);
-    } catch (rejRes: any) {
-      const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000);
+    } catch (rejRes: unknown) {
+      const rateLimitRes = rejRes as { msBeforeNext?: number };
+      const retryAfter = Math.ceil((rateLimitRes.msBeforeNext ?? 60000) / 1000);
       throw new Error(
-        `Too many connection attempts. Try again in ${retryAfter} seconds.`
+        `Too many connection attempts. Try again in ${retryAfter} seconds.`,
       );
     }
   }

@@ -94,5 +94,4 @@ import configuration from './config/configuration';
     SettingsModule,
   ],
 })
-export class AppModule { }
-
+export class AppModule {}

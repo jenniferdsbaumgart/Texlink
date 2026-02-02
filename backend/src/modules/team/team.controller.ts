@@ -16,7 +16,12 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permission } from '@prisma/client';
 import { TeamService } from './team.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { InviteUserDto, CreateUserDto, UpdateMemberDto, UpdateMemberPermissionsDto } from './dto';
+import {
+  InviteUserDto,
+  CreateUserDto,
+  UpdateMemberDto,
+  UpdateMemberPermissionsDto,
+} from './dto';
 
 @Controller()
 export class TeamController {
@@ -89,7 +94,12 @@ export class TeamController {
     @Body() dto: UpdateMemberDto,
     @CurrentUser('id') currentUserId: string,
   ) {
-    return this.teamService.updateMember(companyId, memberId, currentUserId, dto);
+    return this.teamService.updateMember(
+      companyId,
+      memberId,
+      currentUserId,
+      dto,
+    );
   }
 
   /**
@@ -104,7 +114,12 @@ export class TeamController {
     @Body() dto: UpdateMemberPermissionsDto,
     @CurrentUser('id') currentUserId: string,
   ) {
-    return this.teamService.updateMemberPermissions(companyId, memberId, currentUserId, dto);
+    return this.teamService.updateMemberPermissions(
+      companyId,
+      memberId,
+      currentUserId,
+      dto,
+    );
   }
 
   /**
@@ -179,7 +194,10 @@ export class TeamController {
     @Body() body: { name?: string; password?: string },
     @CurrentUser('id') userId?: string,
   ) {
-    const newUserData = body.name && body.password ? { name: body.name, password: body.password } : undefined;
+    const newUserData =
+      body.name && body.password
+        ? { name: body.name, password: body.password }
+        : undefined;
     return this.teamService.acceptInvitation(token, userId, newUserData);
   }
 
@@ -240,6 +258,9 @@ export class TeamController {
     @Param('companyId') companyId: string,
     @CurrentUser('id') userId: string,
   ) {
-    return this.permissionsService.getCompanyUserWithPermissions(userId, companyId);
+    return this.permissionsService.getCompanyUserWithPermissions(
+      userId,
+      companyId,
+    );
   }
 }

@@ -27,7 +27,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const correlationId = request.headers['x-correlation-id'] as string ||
+    const correlationId =
+      (request.headers['x-correlation-id'] as string) ||
       `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     let status: number;
@@ -42,16 +43,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
         const responseObj = exceptionResponse as Record<string, unknown>;
-        message = (responseObj.message as string | string[]) || exception.message;
+        message =
+          (responseObj.message as string | string[]) || exception.message;
         error = responseObj.error as string;
       } else {
         message = exception.message;
       }
     } else if (exception instanceof Error) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = process.env.NODE_ENV === 'production'
-        ? 'Internal server error'
-        : exception.message;
+      message =
+        process.env.NODE_ENV === 'production'
+          ? 'Internal server error'
+          : exception.message;
       error = 'Internal Server Error';
 
       // Log the full error in production (but don't expose to client)

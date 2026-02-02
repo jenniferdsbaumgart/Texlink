@@ -3,8 +3,8 @@ import { RatingsController } from './ratings.controller';
 import { RatingsService } from './ratings.service';
 
 @Module({
-    controllers: [RatingsController],
-    providers: [RatingsService],
-    exports: [RatingsService],
+  controllers: [RatingsController],
+  providers: [RatingsService],
+  exports: [RatingsService],
 })
-export class RatingsModule { }
+export class RatingsModule {}

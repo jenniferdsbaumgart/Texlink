@@ -1,7 +1,15 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Permission } from '@prisma/client';
-import { PERMISSIONS_KEY, PERMISSIONS_ALL_KEY } from '../../common/decorators/permissions.decorator';
+import {
+  PERMISSIONS_KEY,
+  PERMISSIONS_ALL_KEY,
+} from '../../common/decorators/permissions.decorator';
 import { PermissionsService } from './permissions.service';
 
 @Injectable()
@@ -13,16 +21,15 @@ export class PermissionsGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Obtém permissões do decorator (OR - qualquer uma)
-    const requiredPermissions = this.reflector.getAllAndOverride<Permission[]>(PERMISSIONS_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredPermissions = this.reflector.getAllAndOverride<Permission[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // Obtém permissões do decorator (AND - todas)
-    const requiredAllPermissions = this.reflector.getAllAndOverride<Permission[]>(PERMISSIONS_ALL_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredAllPermissions = this.reflector.getAllAndOverride<
+      Permission[]
+    >(PERMISSIONS_ALL_KEY, [context.getHandler(), context.getClass()]);
 
     // Se nenhum decorator foi aplicado, permite acesso
     if (!requiredPermissions && !requiredAllPermissions) {

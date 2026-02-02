@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Notification, WebSocketNotificationPayload } from '../types/notification.types';
+import { AppNotification, WebSocketNotificationPayload } from '../types/notification.types';
 
 const SOCKET_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
 
 interface UseNotificationSocketOptions {
     token: string | null;
-    onNotification?: (notification: Notification) => void;
+    onNotification?: (notification: AppNotification) => void;
     onUnreadCountChange?: (count: number) => void;
     onConnectionChange?: (isConnected: boolean) => void;
 }
@@ -84,7 +84,7 @@ export function useNotificationSocket(options: UseNotificationSocketOptions): Us
         socket.on('notification:new', (notification: WebSocketNotificationPayload) => {
             console.log('[NotificationSocket] New notification:', notification);
 
-            const fullNotification: Notification = {
+            const fullNotification: AppNotification = {
                 ...notification,
                 read: false,
             };

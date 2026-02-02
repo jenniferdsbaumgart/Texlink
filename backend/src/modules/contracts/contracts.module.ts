@@ -13,9 +13,9 @@ import { ContractsController } from './contracts.controller';
  * - Transições de status
  */
 @Module({
-    imports: [PrismaModule],
-    controllers: [ContractsController],
-    providers: [ContractsService],
-    exports: [ContractsService],
+  imports: [PrismaModule],
+  controllers: [ContractsController],
+  providers: [ContractsService],
+  exports: [ContractsService],
 })
 export class ContractsModule {}

@@ -4,7 +4,7 @@ import { useToast } from './ToastContext';
 import { useNotificationSocket } from '../hooks/useNotificationSocket';
 import { notificationsService } from '../services/notifications.service';
 import { notificationsDb } from '../db/notifications-db';
-import { Notification, NotificationContextData } from '../types/notification.types';
+import { AppNotification, NotificationContextData } from '../types/notification.types';
 
 const NotificationContext = createContext<NotificationContextData | undefined>(undefined);
 
@@ -16,14 +16,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     const { token, user } = useAuth();
     const { success: toastSuccess, info: toastInfo } = useToast();
 
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [nextCursor, setNextCursor] = useState<string | undefined>();
 
     // Handle new notification from WebSocket
-    const handleNewNotification = useCallback((notification: Notification) => {
+    const handleNewNotification = useCallback((notification: AppNotification) => {
         // Add to state
         setNotifications((prev) => {
             // Check if already exists

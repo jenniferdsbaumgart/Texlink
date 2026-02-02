@@ -16,18 +16,18 @@ import { memoryStorage } from 'multer';
  * - Upload de documentos
  */
 @Module({
-    imports: [
-        PrismaModule,
-        NotificationsModule,
-        MulterModule.register({
-            storage: memoryStorage(),
-            limits: {
-                fileSize: 10 * 1024 * 1024, // 10MB
-            },
-        }),
-    ],
-    controllers: [OnboardingController],
-    providers: [OnboardingService],
-    exports: [OnboardingService],
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    MulterModule.register({
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+      },
+    }),
+  ],
+  controllers: [OnboardingController],
+  providers: [OnboardingService],
+  exports: [OnboardingService],
 })
-export class OnboardingModule { }
+export class OnboardingModule {}

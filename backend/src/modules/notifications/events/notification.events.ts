@@ -52,222 +52,222 @@ export const SYSTEM_ANNOUNCEMENT = 'system.announcement';
 
 // Event Payload Interfaces
 export interface OrderCreatedEvent {
-    orderId: string;
-    displayId: string;
-    brandId: string;
-    brandName: string;
-    supplierId?: string;
-    supplierName?: string;
-    productName: string;
-    quantity: number;
-    totalValue: number;
-    deadline: Date;
-    targetSupplierIds?: string[];
+  orderId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId?: string;
+  supplierName?: string;
+  productName: string;
+  quantity: number;
+  totalValue: number;
+  deadline: Date;
+  targetSupplierIds?: string[];
 }
 
 export interface OrderStatusChangedEvent {
-    orderId: string;
-    displayId: string;
-    brandId: string;
-    supplierId?: string;
-    previousStatus: string;
-    newStatus: string;
-    changedById: string;
-    changedByName: string;
+  orderId: string;
+  displayId: string;
+  brandId: string;
+  supplierId?: string;
+  previousStatus: string;
+  newStatus: string;
+  changedById: string;
+  changedByName: string;
 }
 
 export interface OrderAcceptedEvent {
-    orderId: string;
-    displayId: string;
-    brandId: string;
-    supplierId: string;
-    supplierName: string;
-    acceptedById: string;
+  orderId: string;
+  displayId: string;
+  brandId: string;
+  supplierId: string;
+  supplierName: string;
+  acceptedById: string;
 }
 
 export interface OrderRejectedEvent {
-    orderId: string;
-    displayId: string;
-    brandId: string;
-    supplierId?: string;
-    reason?: string;
-    rejectedById: string;
+  orderId: string;
+  displayId: string;
+  brandId: string;
+  supplierId?: string;
+  reason?: string;
+  rejectedById: string;
 }
 
 export interface OrderDeadlineApproachingEvent {
-    orderId: string;
-    displayId: string;
-    brandId: string;
-    supplierId?: string;
-    deadline: Date;
-    hoursRemaining: number;
+  orderId: string;
+  displayId: string;
+  brandId: string;
+  supplierId?: string;
+  deadline: Date;
+  hoursRemaining: number;
 }
 
 export interface MessageSentEvent {
-    messageId: string;
-    orderId: string;
-    senderId: string;
-    senderName: string;
-    recipientId: string;
-    type: 'TEXT' | 'PROPOSAL';
-    content?: string;
+  messageId: string;
+  orderId: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string;
+  type: 'TEXT' | 'PROPOSAL';
+  content?: string;
 }
 
 export interface ProposalSentEvent {
-    messageId: string;
-    orderId: string;
-    senderId: string;
-    senderName: string;
-    recipientId: string;
-    proposedPrice?: number;
-    proposedQuantity?: number;
-    proposedDeadline?: Date;
+  messageId: string;
+  orderId: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string;
+  proposedPrice?: number;
+  proposedQuantity?: number;
+  proposedDeadline?: Date;
 }
 
 export interface ProposalRespondedEvent {
-    messageId: string;
-    orderId: string;
-    responderId: string;
-    responderName: string;
-    proposerId: string;
-    status: 'ACCEPTED' | 'REJECTED';
+  messageId: string;
+  orderId: string;
+  responderId: string;
+  responderName: string;
+  proposerId: string;
+  status: 'ACCEPTED' | 'REJECTED';
 }
 
 export interface CredentialInviteSentEvent {
-    credentialId: string;
-    brandId: string;
-    brandName: string;
-    supplierEmail: string;
-    supplierName?: string;
+  credentialId: string;
+  brandId: string;
+  brandName: string;
+  supplierEmail: string;
+  supplierName?: string;
 }
 
 export interface CredentialStatusChangedEvent {
-    credentialId: string;
-    brandId: string;
-    supplierId?: string;
-    supplierName?: string;
-    previousStatus: string;
-    newStatus: string;
+  credentialId: string;
+  brandId: string;
+  supplierId?: string;
+  supplierName?: string;
+  previousStatus: string;
+  newStatus: string;
 }
 
 export interface CredentialCompletedEvent {
-    credentialId: string;
-    brandId: string;
-    supplierId: string;
-    supplierName: string;
+  credentialId: string;
+  brandId: string;
+  supplierId: string;
+  supplierName: string;
 }
 
 export interface DocumentExpiringEvent {
-    documentId: string;
-    companyId: string;
-    documentType: string;
-    documentName: string;
-    expiresAt: Date;
-    daysRemaining: number;
+  documentId: string;
+  companyId: string;
+  documentType: string;
+  documentName: string;
+  expiresAt: Date;
+  daysRemaining: number;
 }
 
 export interface DocumentExpiredEvent {
-    documentId: string;
-    companyId: string;
-    documentType: string;
-    documentName: string;
-    expiredAt: Date;
+  documentId: string;
+  companyId: string;
+  documentType: string;
+  documentName: string;
+  expiredAt: Date;
 }
 
 export interface PaymentRegisteredEvent {
-    paymentId: string;
-    orderId: string;
-    orderDisplayId: string;
-    brandId: string;
-    supplierId: string;
-    amount: number;
-    dueDate: Date;
+  paymentId: string;
+  orderId: string;
+  orderDisplayId: string;
+  brandId: string;
+  supplierId: string;
+  amount: number;
+  dueDate: Date;
 }
 
 export interface PaymentReceivedEvent {
-    paymentId: string;
-    orderId: string;
-    orderDisplayId: string;
-    brandId: string;
-    supplierId: string;
-    amount: number;
-    paidDate: Date;
+  paymentId: string;
+  orderId: string;
+  orderDisplayId: string;
+  brandId: string;
+  supplierId: string;
+  amount: number;
+  paidDate: Date;
 }
 
 export interface PaymentOverdueEvent {
-    paymentId: string;
-    orderId: string;
-    orderDisplayId: string;
-    brandId: string;
-    supplierId: string;
-    amount: number;
-    dueDate: Date;
-    daysOverdue: number;
+  paymentId: string;
+  orderId: string;
+  orderDisplayId: string;
+  brandId: string;
+  supplierId: string;
+  amount: number;
+  dueDate: Date;
+  daysOverdue: number;
 }
 
 export interface TicketCreatedEvent {
-    ticketId: string;
-    displayId: string;
-    companyId: string;
-    createdById: string;
-    createdByName: string;
-    title: string;
-    category: string;
-    priority: string;
+  ticketId: string;
+  displayId: string;
+  companyId: string;
+  createdById: string;
+  createdByName: string;
+  title: string;
+  category: string;
+  priority: string;
 }
 
 export interface TicketMessageAddedEvent {
-    ticketId: string;
-    displayId: string;
-    messageId: string;
-    senderId: string;
-    senderName: string;
-    isFromSupport: boolean;
-    recipientId: string;
+  ticketId: string;
+  displayId: string;
+  messageId: string;
+  senderId: string;
+  senderName: string;
+  isFromSupport: boolean;
+  recipientId: string;
 }
 
 export interface TicketStatusChangedEvent {
-    ticketId: string;
-    displayId: string;
-    previousStatus: string;
-    newStatus: string;
-    changedById: string;
-    creatorId: string;
+  ticketId: string;
+  displayId: string;
+  previousStatus: string;
+  newStatus: string;
+  changedById: string;
+  creatorId: string;
 }
 
 export interface RelationshipRequestedEvent {
-    relationshipId: string;
-    brandId: string;
-    brandName: string;
-    supplierId: string;
-    supplierName: string;
-    initiatedById: string;
+  relationshipId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  initiatedById: string;
 }
 
 export interface RelationshipStatusChangedEvent {
-    relationshipId: string;
-    brandId: string;
-    supplierId: string;
-    previousStatus: string;
-    newStatus: string;
-    changedById: string;
+  relationshipId: string;
+  brandId: string;
+  supplierId: string;
+  previousStatus: string;
+  newStatus: string;
+  changedById: string;
 }
 
 export interface RatingReceivedEvent {
-    ratingId: string;
-    orderId: string;
-    orderDisplayId: string;
-    fromCompanyId: string;
-    fromCompanyName: string;
-    toCompanyId: string;
-    score: number;
-    comment?: string;
+  ratingId: string;
+  orderId: string;
+  orderDisplayId: string;
+  fromCompanyId: string;
+  fromCompanyName: string;
+  toCompanyId: string;
+  score: number;
+  comment?: string;
 }
 
 export interface SystemAnnouncementEvent {
-    title: string;
-    body: string;
-    targetRole?: 'BRAND' | 'SUPPLIER' | 'ALL';
-    priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
-    actionUrl?: string;
+  title: string;
+  body: string;
+  targetRole?: 'BRAND' | 'SUPPLIER' | 'ALL';
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  actionUrl?: string;
 }

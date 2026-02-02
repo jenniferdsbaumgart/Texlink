@@ -6,18 +6,18 @@ import { UploadService } from './upload.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-    imports: [
-        PrismaModule,
-        MulterModule.register({
-            storage: memoryStorage(), // Store in memory for processing before saving
-            limits: {
-                fileSize: 50 * 1024 * 1024, // 50MB (para acomodar vídeos)
-                files: 5,
-            },
-        }),
-    ],
-    controllers: [UploadController],
-    providers: [UploadService],
-    exports: [UploadService],
+  imports: [
+    PrismaModule,
+    MulterModule.register({
+      storage: memoryStorage(), // Store in memory for processing before saving
+      limits: {
+        fileSize: 50 * 1024 * 1024, // 50MB (para acomodar vídeos)
+        files: 5,
+      },
+    }),
+  ],
+  controllers: [UploadController],
+  providers: [UploadService],
+  exports: [UploadService],
 })
-export class UploadModule { }
+export class UploadModule {}

@@ -153,10 +153,7 @@ export class RelationshipsService {
       );
     }
 
-    if (
-      user.role !== UserRole.ADMIN &&
-      user.role !== UserRole.BRAND
-    ) {
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.BRAND) {
       throw new ForbiddenException(
         'Apenas admin ou marca podem listar relacionamentos',
       );
@@ -199,10 +196,7 @@ export class RelationshipsService {
       );
     }
 
-    if (
-      user.role !== UserRole.ADMIN &&
-      user.role !== UserRole.SUPPLIER
-    ) {
+    if (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPPLIER) {
       throw new ForbiddenException(
         'Apenas admin ou fornecedor podem listar relacionamentos',
       );
@@ -245,9 +239,7 @@ export class RelationshipsService {
         select: { supplierId: true },
       });
 
-    const existingSupplierIds = existingRelationships.map(
-      (r) => r.supplierId,
-    );
+    const existingSupplierIds = existingRelationships.map((r) => r.supplierId);
 
     // Buscar suppliers com onboarding completo, excluindo os já credenciados
     return this.prisma.company.findMany({
@@ -279,8 +271,8 @@ export class RelationshipsService {
     relationshipId: string,
     user: AuthUser,
   ): Promise<SupplierBrandRelationship> {
-    const relationship =
-      await this.prisma.supplierBrandRelationship.findUnique({
+    const relationship = await this.prisma.supplierBrandRelationship.findUnique(
+      {
         where: { id: relationshipId },
         include: {
           supplier: {
@@ -316,7 +308,8 @@ export class RelationshipsService {
             },
           },
         },
-      });
+      },
+    );
 
     if (!relationship) {
       throw new NotFoundException('Relacionamento não encontrado');
@@ -325,8 +318,7 @@ export class RelationshipsService {
     // Verificar permissão
     const canView =
       user.role === UserRole.ADMIN ||
-      (user.role === UserRole.BRAND &&
-        user.brandId === relationship.brandId) ||
+      (user.role === UserRole.BRAND && user.brandId === relationship.brandId) ||
       (user.role === UserRole.SUPPLIER &&
         user.supplierId === relationship.supplierId);
 
@@ -352,8 +344,7 @@ export class RelationshipsService {
     // Apenas marca ou admin pode atualizar
     if (
       user.role !== UserRole.ADMIN &&
-      (user.role !== UserRole.BRAND ||
-        user.brandId !== relationship.brandId)
+      (user.role !== UserRole.BRAND || user.brandId !== relationship.brandId)
     ) {
       throw new ForbiddenException(
         'Apenas admin ou a marca pode atualizar o relacionamento',
@@ -386,18 +377,20 @@ export class RelationshipsService {
     user: AuthUser,
   ): Promise<SupplierBrandRelationship> {
     // Buscar com contract incluído
-    const relationship = await this.prisma.supplierBrandRelationship.findUnique({
-      where: { id: relationshipId },
-      include: {
-        contract: true,
-        supplier: {
-          include: {
-            supplierProfile: true,
+    const relationship = await this.prisma.supplierBrandRelationship.findUnique(
+      {
+        where: { id: relationshipId },
+        include: {
+          contract: true,
+          supplier: {
+            include: {
+              supplierProfile: true,
+            },
           },
+          brand: true,
         },
-        brand: true,
       },
-    });
+    );
 
     if (!relationship) {
       throw new NotFoundException('Relacionamento não encontrado');
@@ -406,8 +399,7 @@ export class RelationshipsService {
     // Verificar permissão
     if (
       user.role !== UserRole.ADMIN &&
-      (user.role !== UserRole.BRAND ||
-        user.brandId !== relationship.brandId)
+      (user.role !== UserRole.BRAND || user.brandId !== relationship.brandId)
     ) {
       throw new ForbiddenException();
     }
@@ -468,8 +460,7 @@ export class RelationshipsService {
     // Verificar permissão
     if (
       user.role !== UserRole.ADMIN &&
-      (user.role !== UserRole.BRAND ||
-        user.brandId !== relationship.brandId)
+      (user.role !== UserRole.BRAND || user.brandId !== relationship.brandId)
     ) {
       throw new ForbiddenException();
     }
@@ -524,8 +515,7 @@ export class RelationshipsService {
     // Verificar permissão
     if (
       user.role !== UserRole.ADMIN &&
-      (user.role !== UserRole.BRAND ||
-        user.brandId !== relationship.brandId)
+      (user.role !== UserRole.BRAND || user.brandId !== relationship.brandId)
     ) {
       throw new ForbiddenException();
     }
@@ -577,8 +567,7 @@ export class RelationshipsService {
     // Verificar permissão
     if (
       user.role !== UserRole.ADMIN &&
-      (user.role !== UserRole.BRAND ||
-        user.brandId !== relationship.brandId)
+      (user.role !== UserRole.BRAND || user.brandId !== relationship.brandId)
     ) {
       throw new ForbiddenException();
     }

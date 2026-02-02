@@ -32,38 +32,38 @@ import { NotificationCleanupJob } from './jobs/notification-cleanup.job';
  * - Scheduled jobs for reminders and cleanup
  */
 @Module({
-    imports: [
-        PrismaModule,
-        IntegrationsModule,
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET'),
-                signOptions: {
-                    expiresIn: configService.get<string>('JWT_EXPIRES_IN', '7d'),
-                },
-            }),
-        }),
-    ],
-    controllers: [NotificationsController],
-    providers: [
-        // Core services
-        NotificationsGateway,
-        NotificationDispatcherService,
-        NotificationsService,
-        // Event handlers
-        OrderEventsHandler,
-        MessageEventsHandler,
-        PaymentEventsHandler,
-        TicketEventsHandler,
-        DocumentEventsHandler,
-        // Scheduled jobs
-        DeadlineReminderJob,
-        DocumentExpirationJob,
-        PaymentOverdueJob,
-        NotificationCleanupJob,
-    ],
-    exports: [NotificationsService, NotificationsGateway],
+  imports: [
+    PrismaModule,
+    IntegrationsModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService): JwtModuleOptions => ({
+        secret: configService.get<string>('JWT_SECRET') || 'default-secret',
+        signOptions: {
+          expiresIn: 604800, // 7 days in seconds
+        },
+      }),
+    }),
+  ],
+  controllers: [NotificationsController],
+  providers: [
+    // Core services
+    NotificationsGateway,
+    NotificationDispatcherService,
+    NotificationsService,
+    // Event handlers
+    OrderEventsHandler,
+    MessageEventsHandler,
+    PaymentEventsHandler,
+    TicketEventsHandler,
+    DocumentEventsHandler,
+    // Scheduled jobs
+    DeadlineReminderJob,
+    DocumentExpirationJob,
+    PaymentOverdueJob,
+    NotificationCleanupJob,
+  ],
+  exports: [NotificationsService, NotificationsGateway],
 })
-export class NotificationsModule { }
+export class NotificationsModule {}

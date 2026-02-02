@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { InviteUserDto, CreateUserDto, UpdateMemberDto, UpdateMemberPermissionsDto } from './dto';
+import {
+  InviteUserDto,
+  CreateUserDto,
+  UpdateMemberDto,
+  UpdateMemberPermissionsDto,
+} from './dto';
 import { CompanyRole, InvitationStatus, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -37,13 +42,10 @@ export class TeamService {
         },
         permissions: true,
       },
-      orderBy: [
-        { isCompanyAdmin: 'desc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ isCompanyAdmin: 'desc' }, { createdAt: 'asc' }],
     });
 
-    return members.map(member => ({
+    return members.map((member) => ({
       id: member.id,
       userId: member.user.id,
       email: member.user.email,
@@ -53,7 +55,8 @@ export class TeamService {
       companyRole: member.companyRole,
       isCompanyAdmin: member.isCompanyAdmin,
       permissionOverrides: member.permissions,
-      effectivePermissions: this.permissionsService.calculateEffectivePermissions(member),
+      effectivePermissions:
+        this.permissionsService.calculateEffectivePermissions(member),
       joinedAt: member.createdAt,
     }));
   }
@@ -95,7 +98,8 @@ export class TeamService {
       companyRole: member.companyRole,
       isCompanyAdmin: member.isCompanyAdmin,
       permissionOverrides: member.permissions,
-      effectivePermissions: this.permissionsService.calculateEffectivePermissions(member),
+      effectivePermissions:
+        this.permissionsService.calculateEffectivePermissions(member),
       joinedAt: member.createdAt,
     };
   }
@@ -126,7 +130,9 @@ export class TeamService {
     });
 
     if (existingInvite) {
-      throw new ConflictException('Já existe um convite pendente para este email');
+      throw new ConflictException(
+        'Já existe um convite pendente para este email',
+      );
     }
 
     // Criar convite com expiração de 7 dias
@@ -214,7 +220,8 @@ export class TeamService {
       throw new NotFoundException('Empresa não encontrada');
     }
 
-    const userRole = company.type === 'BRAND' ? UserRole.BRAND : UserRole.SUPPLIER;
+    const userRole =
+      company.type === 'BRAND' ? UserRole.BRAND : UserRole.SUPPLIER;
 
     // Criar novo usuário
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -254,9 +261,18 @@ export class TeamService {
   /**
    * Atualiza o role/admin status de um membro
    */
-  async updateMember(companyId: string, memberId: string, currentUserId: string, dto: UpdateMemberDto) {
+  async updateMember(
+    companyId: string,
+    memberId: string,
+    currentUserId: string,
+    dto: UpdateMemberDto,
+  ) {
     // Verificar permissão de modificação
-    const canModify = await this.permissionsService.canModifyMember(currentUserId, memberId, companyId);
+    const canModify = await this.permissionsService.canModifyMember(
+      currentUserId,
+      memberId,
+      companyId,
+    );
     if (!canModify.allowed) {
       throw new ForbiddenException(canModify.reason);
     }
@@ -276,7 +292,9 @@ export class TeamService {
       });
 
       if (adminCount <= 1) {
-        throw new BadRequestException('Não é possível remover o último administrador');
+        throw new BadRequestException(
+          'Não é possível remover o último administrador',
+        );
       }
     }
 
@@ -299,7 +317,8 @@ export class TeamService {
       name: updated.user.name,
       companyRole: updated.companyRole,
       isCompanyAdmin: updated.isCompanyAdmin,
-      effectivePermissions: this.permissionsService.calculateEffectivePermissions(updated),
+      effectivePermissions:
+        this.permissionsService.calculateEffectivePermissions(updated),
     };
   }
 
@@ -313,7 +332,11 @@ export class TeamService {
     dto: UpdateMemberPermissionsDto,
   ) {
     // Verificar permissão de modificação
-    const canModify = await this.permissionsService.canModifyMember(currentUserId, memberId, companyId);
+    const canModify = await this.permissionsService.canModifyMember(
+      currentUserId,
+      memberId,
+      companyId,
+    );
     if (!canModify.allowed) {
       throw new ForbiddenException(canModify.reason);
     }
@@ -349,9 +372,17 @@ export class TeamService {
   /**
    * Remove um membro da empresa
    */
-  async removeMember(companyId: string, memberId: string, currentUserId: string) {
+  async removeMember(
+    companyId: string,
+    memberId: string,
+    currentUserId: string,
+  ) {
     // Verificar permissão de modificação
-    const canModify = await this.permissionsService.canModifyMember(currentUserId, memberId, companyId);
+    const canModify = await this.permissionsService.canModifyMember(
+      currentUserId,
+      memberId,
+      companyId,
+    );
     if (!canModify.allowed) {
       throw new ForbiddenException(canModify.reason);
     }
@@ -377,7 +408,9 @@ export class TeamService {
       });
 
       if (adminCount <= 1) {
-        throw new BadRequestException('Não é possível remover o último administrador');
+        throw new BadRequestException(
+          'Não é possível remover o último administrador',
+        );
       }
     }
 
@@ -403,7 +436,7 @@ export class TeamService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return invitations.map(inv => ({
+    return invitations.map((inv) => ({
       id: inv.id,
       email: inv.email,
       companyRole: inv.companyRole,
@@ -443,7 +476,11 @@ export class TeamService {
   /**
    * Reenvia um convite (cria um novo token)
    */
-  async resendInvitation(companyId: string, invitationId: string, invitedById: string) {
+  async resendInvitation(
+    companyId: string,
+    invitationId: string,
+    invitedById: string,
+  ) {
     const invitation = await this.prisma.invitation.findFirst({
       where: {
         id: invitationId,
@@ -485,7 +522,8 @@ export class TeamService {
     }
 
     const isExpired = new Date() > invitation.expiresAt;
-    const isValid = invitation.status === InvitationStatus.PENDING && !isExpired;
+    const isValid =
+      invitation.status === InvitationStatus.PENDING && !isExpired;
 
     return {
       id: invitation.id,
@@ -503,7 +541,11 @@ export class TeamService {
   /**
    * Aceita um convite
    */
-  async acceptInvitation(token: string, userId?: string, newUserData?: { name: string; password: string }) {
+  async acceptInvitation(
+    token: string,
+    userId?: string,
+    newUserData?: { name: string; password: string },
+  ) {
     const invitation = await this.prisma.invitation.findUnique({
       where: { token },
       include: {
@@ -516,7 +558,9 @@ export class TeamService {
     }
 
     if (invitation.status !== InvitationStatus.PENDING) {
-      throw new BadRequestException('Este convite já foi utilizado ou cancelado');
+      throw new BadRequestException(
+        'Este convite já foi utilizado ou cancelado',
+      );
     }
 
     if (new Date() > invitation.expiresAt) {
@@ -543,7 +587,10 @@ export class TeamService {
 
     if (!user && newUserData) {
       // Criar novo usuário
-      const userRole = invitation.company.type === 'BRAND' ? UserRole.BRAND : UserRole.SUPPLIER;
+      const userRole =
+        invitation.company.type === 'BRAND'
+          ? UserRole.BRAND
+          : UserRole.SUPPLIER;
       const hashedPassword = await bcrypt.hash(newUserData.password, 10);
 
       user = await this.prisma.user.create({
@@ -557,7 +604,9 @@ export class TeamService {
     }
 
     if (userId && user && user.id !== userId) {
-      throw new BadRequestException('Este convite foi enviado para outro email');
+      throw new BadRequestException(
+        'Este convite foi enviado para outro email',
+      );
     }
 
     // Verificar se usuário já está na empresa
@@ -643,7 +692,7 @@ export class TeamService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return invitations.map(inv => ({
+    return invitations.map((inv) => ({
       id: inv.id,
       token: inv.token,
       companyRole: inv.companyRole,

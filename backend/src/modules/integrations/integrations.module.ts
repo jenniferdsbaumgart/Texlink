@@ -18,12 +18,12 @@ import { IntegrationService } from './services/integration.service';
 
 /**
  * Módulo global de integrações externas
- * 
+ *
  * Gerencia todos os providers de:
  * - Validação de CNPJ (Brasil API, ReceitaWS)
  * - Análise de Crédito (Mock - futuro: Serasa, SPC, Boa Vista)
  * - Notificações (SendGrid para email, Twilio para WhatsApp)
- * 
+ *
  * Configurações via variáveis de ambiente:
  * - CNPJ: RECEITAWS_URL, RECEITAWS_API_KEY
  * - Email: SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME
@@ -32,38 +32,38 @@ import { IntegrationService } from './services/integration.service';
  */
 @Global()
 @Module({
-    imports: [
-        ConfigModule,
-        HttpModule.register({
-            timeout: 30000, // 30 segundos timeout padrão
-            maxRedirects: 3,
-        }),
-    ],
-    providers: [
-        // CNPJ Providers
-        BrasilApiProvider,
-        ReceitaWsProvider,
+  imports: [
+    ConfigModule,
+    HttpModule.register({
+      timeout: 30000, // 30 segundos timeout padrão
+      maxRedirects: 3,
+    }),
+  ],
+  providers: [
+    // CNPJ Providers
+    BrasilApiProvider,
+    ReceitaWsProvider,
 
-        // Credit Providers
-        MockCreditProvider,
+    // Credit Providers
+    MockCreditProvider,
 
-        // Notification Providers
-        SendGridProvider,
-        TwilioWhatsappProvider,
+    // Notification Providers
+    SendGridProvider,
+    TwilioWhatsappProvider,
 
-        // Main Service
-        IntegrationService,
-    ],
-    exports: [
-        // Export principal service
-        IntegrationService,
+    // Main Service
+    IntegrationService,
+  ],
+  exports: [
+    // Export principal service
+    IntegrationService,
 
-        // Export providers individuais para casos especiais
-        BrasilApiProvider,
-        ReceitaWsProvider,
-        MockCreditProvider,
-        SendGridProvider,
-        TwilioWhatsappProvider,
-    ],
+    // Export providers individuais para casos especiais
+    BrasilApiProvider,
+    ReceitaWsProvider,
+    MockCreditProvider,
+    SendGridProvider,
+    TwilioWhatsappProvider,
+  ],
 })
-export class IntegrationsModule { }
+export class IntegrationsModule {}
