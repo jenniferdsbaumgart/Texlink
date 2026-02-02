@@ -273,6 +273,82 @@ enum SupportTicketCategory {
   OUTROS
 }
 
+// ==================== SETTINGS ENUMS ====================
+
+enum AccountType {
+  CORRENTE
+  POUPANCA
+}
+
+enum PixKeyType {
+  CPF
+  CNPJ
+  EMAIL
+  TELEFONE
+  ALEATORIA
+}
+
+enum SuggestionCategory {
+  FUNCIONALIDADE
+  USABILIDADE
+  BUG
+  PERFORMANCE
+  OUTRO
+}
+
+enum SuggestionStatus {
+  ENVIADO
+  EM_ANALISE
+  IMPLEMENTADO
+  REJEITADO
+}
+
+// ==================== NOTIFICATION SYSTEM ENUMS ====================
+
+enum NotificationType {
+  ORDER_CREATED
+  ORDER_ACCEPTED
+  ORDER_REJECTED
+  ORDER_STATUS_CHANGED
+  ORDER_PROPOSAL_RECEIVED
+  ORDER_PROPOSAL_RESPONDED
+  ORDER_DEADLINE_APPROACHING
+  ORDER_FINALIZED
+  MESSAGE_RECEIVED
+  MESSAGE_UNREAD_REMINDER
+  CREDENTIAL_INVITE_SENT
+  CREDENTIAL_STATUS_CHANGED
+  CREDENTIAL_COMPLETED
+  DOCUMENT_EXPIRING
+  DOCUMENT_EXPIRED
+  PAYMENT_REGISTERED
+  PAYMENT_RECEIVED
+  PAYMENT_OVERDUE
+  TICKET_CREATED
+  TICKET_MESSAGE_ADDED
+  TICKET_STATUS_CHANGED
+  RELATIONSHIP_REQUESTED
+  RELATIONSHIP_STATUS_CHANGED
+  RATING_RECEIVED
+  SYSTEM_ANNOUNCEMENT
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+}
+
 // ==================== MODELS ====================
 
 model User {
@@ -316,6 +392,13 @@ model User {
   ticketMessagesSent         SupportTicketMessage[]      @relation("TicketMessagesSent")
   ticketStatusChanges        SupportTicketStatusHistory[] @relation("TicketStatusChanges")
 
+  // Settings relations
+  suggestions                Suggestion[]
+  passwordChangedAt          DateTime?
+
+  // Notification relations
+  notificationsReceived      Notification[]              @relation("NotificationsReceived")
+
   // Performance indexes
   @@index([email])
   @@index([role])
@@ -339,6 +422,13 @@ model Company {
   status    CompanyStatus @default(PENDING)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  // Address fields
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  zipCode      String?
 
   // Relations
   companyUsers     CompanyUser[]
@@ -376,6 +466,11 @@ model Company {
 
   // Support tickets
   supportTickets        SupportTicket[]             @relation("CompanyTickets")
+
+  // Settings
+  bankAccount          BankAccount?
+  notificationSettings NotificationSettings?
+  suggestions          Suggestion[]
 
   @@map("companies")
 }
@@ -1446,4 +1541,105 @@ model SupportTicketStatusHistory {
 
   @@index([ticketId])
   @@map("support_ticket_status_history")
+}
+
+// ==================== SETTINGS MODELS ====================
+
+model BankAccount {
+  id             String      @id @default(uuid())
+  companyId      String      @unique
+  bankCode       String
+  bankName       String
+  agency         String
+  accountNumber  String
+  accountType    AccountType @default(CORRENTE)
+  accountHolder  String
+  holderDocument String
+  pixKeyType     PixKeyType?
+  pixKey         String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("bank_accounts")
+}
+
+model NotificationSettings {
+  id                String   @id @default(uuid())
+  companyId         String   @unique
+  emailEnabled      Boolean  @default(true)
+  whatsappEnabled   Boolean  @default(false)
+  newOrdersEmail    Boolean  @default(true)
+  newOrdersWhatsapp Boolean  @default(true)
+  messagesEmail     Boolean  @default(true)
+  messagesWhatsapp  Boolean  @default(false)
+  paymentsEmail     Boolean  @default(true)
+  paymentsWhatsapp  Boolean  @default(true)
+  deadlineReminders Boolean  @default(true)
+  systemUpdates     Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+model Suggestion {
+  id          String             @id @default(uuid())
+  companyId   String
+  userId      String
+  category    SuggestionCategory
+  title       String
+  description String             @db.Text
+  status      SuggestionStatus   @default(ENVIADO)
+  adminNotes  String?            @db.Text
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([companyId])
+  @@map("suggestions")
+}
+
+// ==================== NOTIFICATION SYSTEM ====================
+
+model Notification {
+  id            String                     @id @default(uuid())
+  type          NotificationType
+  priority      NotificationPriority       @default(NORMAL)
+
+  recipientId   String
+  companyId     String?
+
+  title         String
+  body          String
+  data          Json?
+  actionUrl     String?
+
+  entityType    String?
+  entityId      String?
+
+  websocketStatus   NotificationDeliveryStatus @default(PENDING)
+  websocketSentAt   DateTime?
+  emailStatus       NotificationDeliveryStatus @default(PENDING)
+  emailSentAt       DateTime?
+  whatsappStatus    NotificationDeliveryStatus @default(PENDING)
+  whatsappSentAt    DateTime?
+
+  read          Boolean                    @default(false)
+  readAt        DateTime?
+
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  recipient     User                       @relation("NotificationsReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, read, createdAt(sort: Desc)])
+  @@index([type, createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+  @@map("notifications")
 }

@@ -262,6 +262,180 @@ export const EDUCATIONAL_CATEGORY_LABELS: Record<EducationalContentCategory, str
   NOVIDADES: 'Novidades',
 };
 
+// ==================== SUPPORT TICKETS ====================
+
+export type SupportTicketStatus = 'ABERTO' | 'EM_ANDAMENTO' | 'AGUARDANDO_RESPOSTA' | 'RESOLVIDO' | 'FECHADO';
+export type SupportTicketPriority = 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE';
+export type SupportTicketCategory = 'PEDIDOS' | 'PAGAMENTOS' | 'ACESSO' | 'TECNICO' | 'OUTROS';
+
+export interface SupportTicket {
+  id: string;
+  displayId: string;
+  companyId: string;
+  createdById: string;
+  assignedToId?: string;
+  title: string;
+  description: string;
+  category: SupportTicketCategory;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  closedAt?: string;
+  createdBy?: { id: string; name: string };
+  assignedTo?: { id: string; name: string };
+  company?: { id: string; tradeName: string };
+  _count?: { messages: number };
+}
+
+export interface SupportTicketMessage {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  content: string;
+  attachments: string[];
+  isFromSupport: boolean;
+  isInternal: boolean;
+  createdAt: string;
+  sender?: { id: string; name: string };
+}
+
+export interface SupportTicketStats {
+  total: number;
+  abertos: number;
+  emAndamento: number;
+  resolvidos: number;
+  urgentes: number;
+  tempoMedioResposta: number;
+}
+
+export const TICKET_STATUS_LABELS: Record<SupportTicketStatus, string> = {
+  ABERTO: 'Aberto',
+  EM_ANDAMENTO: 'Em Andamento',
+  AGUARDANDO_RESPOSTA: 'Aguardando Resposta',
+  RESOLVIDO: 'Resolvido',
+  FECHADO: 'Fechado',
+};
+
+export const TICKET_PRIORITY_LABELS: Record<SupportTicketPriority, string> = {
+  BAIXA: 'Baixa',
+  MEDIA: 'Média',
+  ALTA: 'Alta',
+  URGENTE: 'Urgente',
+};
+
+export const TICKET_CATEGORY_LABELS: Record<SupportTicketCategory, string> = {
+  PEDIDOS: 'Pedidos',
+  PAGAMENTOS: 'Pagamentos',
+  ACESSO: 'Acesso à Plataforma',
+  TECNICO: 'Problemas Técnicos',
+  OUTROS: 'Outros',
+};
+
+// ==================== SETTINGS ====================
+
+export type AccountType = 'CORRENTE' | 'POUPANCA';
+export type PixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'TELEFONE' | 'ALEATORIA';
+export type SuggestionCategory = 'FUNCIONALIDADE' | 'USABILIDADE' | 'BUG' | 'PERFORMANCE' | 'OUTRO';
+export type SuggestionStatus = 'ENVIADO' | 'EM_ANALISE' | 'IMPLEMENTADO' | 'REJEITADO';
+
+export interface CompanyData {
+  id: string;
+  legalName: string;
+  tradeName?: string;
+  document: string;
+  phone?: string;
+  email?: string;
+  city: string;
+  state: string;
+  logoUrl?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  zipCode?: string;
+}
+
+export interface BankAccount {
+  id: string;
+  companyId: string;
+  bankCode: string;
+  bankName: string;
+  agency: string;
+  accountNumber: string;
+  accountType: AccountType;
+  accountHolder: string;
+  holderDocument: string;
+  pixKeyType?: PixKeyType;
+  pixKey?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationSettings {
+  id: string;
+  companyId: string;
+  emailEnabled: boolean;
+  whatsappEnabled: boolean;
+  newOrdersEmail: boolean;
+  newOrdersWhatsapp: boolean;
+  messagesEmail: boolean;
+  messagesWhatsapp: boolean;
+  paymentsEmail: boolean;
+  paymentsWhatsapp: boolean;
+  deadlineReminders: boolean;
+  systemUpdates: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CapacitySettings {
+  monthlyCapacity: number | null;
+  currentOccupancy: number;
+  productTypes: string[];
+  specialties: string[];
+}
+
+export interface Suggestion {
+  id: string;
+  category: SuggestionCategory;
+  title: string;
+  description: string;
+  status: SuggestionStatus;
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const SUGGESTION_CATEGORY_LABELS: Record<SuggestionCategory, string> = {
+  FUNCIONALIDADE: 'Nova Funcionalidade',
+  USABILIDADE: 'Usabilidade',
+  BUG: 'Correção de Bug',
+  PERFORMANCE: 'Performance',
+  OUTRO: 'Outro',
+};
+
+export const SUGGESTION_STATUS_LABELS: Record<SuggestionStatus, string> = {
+  ENVIADO: 'Enviado',
+  EM_ANALISE: 'Em Análise',
+  IMPLEMENTADO: 'Implementado',
+  REJEITADO: 'Rejeitado',
+};
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  CORRENTE: 'Conta Corrente',
+  POUPANCA: 'Conta Poupança',
+};
+
+export const PIX_KEY_TYPE_LABELS: Record<PixKeyType, string> = {
+  CPF: 'CPF',
+  CNPJ: 'CNPJ',
+  EMAIL: 'E-mail',
+  TELEFONE: 'Telefone',
+  ALEATORIA: 'Chave Aleatória',
+};
+
 // Document type labels in Portuguese
 export const SUPPLIER_DOCUMENT_TYPE_LABELS: Record<SupplierDocumentType, string> = {
   ABVTEX_TERMO: 'Termo de Participação ABVTEX',
