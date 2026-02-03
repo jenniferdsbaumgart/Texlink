@@ -43,7 +43,7 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly integrationService: IntegrationService,
     private readonly dispatcher: NotificationDispatcherService,
-  ) {}
+  ) { }
 
   // ==================== CRUD OPERATIONS ====================
 
@@ -445,6 +445,7 @@ export class NotificationsService {
       type: 'created' | 'message' | 'status_changed';
       newStatus?: string;
       senderName?: string;
+      actionUrl?: string;
     },
   ) {
     let notificationType: NotificationType;
@@ -475,7 +476,7 @@ export class NotificationsService {
       title: notificationTitle,
       body,
       data,
-      actionUrl: `/suporte/${data.ticketId}`,
+      actionUrl: data.actionUrl || `/suporte/${data.ticketId}`,
       entityType: 'ticket',
       entityId: data.ticketId,
     });

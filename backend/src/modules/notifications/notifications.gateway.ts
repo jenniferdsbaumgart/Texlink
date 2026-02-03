@@ -33,8 +33,7 @@ interface MarkReadPayload {
   },
 })
 export class NotificationsGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -46,7 +45,7 @@ export class NotificationsGateway
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly rateLimiter: RateLimiterService,
-  ) {}
+  ) { }
 
   /**
    * Handle new WebSocket connection
@@ -439,6 +438,11 @@ export class NotificationsGateway
     entityId?: string | null;
     createdAt: Date;
   }) {
+    const isOnline = this.isUserOnline(notification.recipientId);
+    this.logger.log(
+      `Sending notification to user ${notification.recipientId}. Online: ${isOnline}`,
+    );
+
     // Emit to user
     this.emitToUser(notification.recipientId, 'notification:new', notification);
 
@@ -447,6 +451,10 @@ export class NotificationsGateway
     this.emitToUser(notification.recipientId, 'unread-count', {
       count: unreadCount,
     });
+
+    this.logger.log(
+      `Notification sent. Unread count: ${unreadCount}`,
+    );
 
     // Update websocket status
     if (this.isUserOnline(notification.recipientId)) {

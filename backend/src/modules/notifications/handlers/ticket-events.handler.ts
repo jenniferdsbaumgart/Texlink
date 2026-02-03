@@ -20,7 +20,7 @@ export class TicketEventsHandler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   /**
    * Handle ticket created event
@@ -53,7 +53,7 @@ export class TicketEventsHandler {
 
   /**
    * Handle ticket message added event
-   * Notify the recipient about the new message
+   * Notify all users of the company about the new message
    */
   @OnEvent(TICKET_MESSAGE_ADDED)
   async handleTicketMessageAdded(payload: Record<string, unknown>) {
@@ -63,21 +63,103 @@ export class TicketEventsHandler {
     );
 
     try {
-      // Get ticket details
+      // Get ticket details including company info
       const ticket = await this.prisma.supportTicket.findUnique({
         where: { id: event.ticketId },
-        select: { title: true },
+        include: {
+          company: {
+            select: {
+              type: true,
+              companyUsers: {
+                select: { userId: true },
+              },
+            },
+          },
+        },
       });
 
       if (!ticket) return;
 
-      await this.notificationsService.notifyTicketUpdate(event.recipientId, {
-        ticketId: event.ticketId,
-        displayId: event.displayId,
-        title: ticket.title,
-        type: 'message',
-        senderName: event.senderName,
-      });
+      // If message is from support, notify all users of the company
+      if (event.isFromSupport && ticket.company) {
+        const companyType = ticket.company.type;
+        // Set correct action URL based on company type
+        const actionUrl =
+          companyType === 'SUPPLIER'
+            ? `/supplier/chamados/${event.ticketId}`
+            : `/brand/suporte/${event.ticketId}`;
+
+        this.logger.log(
+          `Notifying ${ticket.company.companyUsers.length} company users. Company type: ${companyType}`,
+        );
+
+        for (const companyUser of ticket.company.companyUsers) {
+          // Skip if this is the sender
+          if (companyUser.userId === event.senderId) {
+            this.logger.log(`Skipping sender ${companyUser.userId}`);
+            continue;
+          }
+
+          this.logger.log(`Sending notification to user ${companyUser.userId}`);
+
+          try {
+            await this.notificationsService.notifyTicketUpdate(
+              companyUser.userId,
+              {
+                ticketId: event.ticketId,
+                displayId: event.displayId,
+                title: ticket.title,
+                type: 'message',
+                senderName: event.senderName,
+                actionUrl,
+              },
+            );
+            this.logger.log(
+              `Successfully notified user ${companyUser.userId}`,
+            );
+          } catch (err) {
+            this.logger.error(
+              `Failed to notify user ${companyUser.userId}: ${err.message}`,
+            );
+          }
+        }
+
+        this.logger.log(
+          `Finished notifying ${ticket.company.companyUsers.length} users from company ${ticket.companyId}`,
+        );
+      } else {
+        // Message from user, notify all admin users
+        const adminUsers = await this.prisma.user.findMany({
+          where: { role: 'ADMIN', isActive: true },
+          select: { id: true },
+        });
+
+        this.logger.log(`Notifying ${adminUsers.length} admin users`);
+
+        for (const admin of adminUsers) {
+          this.logger.log(`Sending notification to admin ${admin.id}`);
+
+          try {
+            await this.notificationsService.notifyTicketUpdate(admin.id, {
+              ticketId: event.ticketId,
+              displayId: event.displayId,
+              title: ticket.title,
+              type: 'message',
+              senderName: event.senderName,
+              actionUrl: `/admin/suporte/${event.ticketId}`,
+            });
+            this.logger.log(`Successfully notified admin ${admin.id}`);
+          } catch (err) {
+            this.logger.error(
+              `Failed to notify admin ${admin.id}: ${err.message}`,
+            );
+          }
+        }
+
+        this.logger.log(
+          `Finished notifying ${adminUsers.length} admin users about ticket message`,
+        );
+      }
     } catch (error) {
       this.logger.error(
         `Error handling ticket.message.added: ${error.message}`,
