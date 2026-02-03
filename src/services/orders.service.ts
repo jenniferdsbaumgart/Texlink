@@ -130,6 +130,20 @@ export interface ReviewStats {
     reworkRate: number;
 }
 
+export interface MonthlyStatsItem {
+    month: string;
+    fullMonth?: string;
+    revenue: number;
+    previousRevenue?: number;
+    orders: number;
+    growth?: number;
+}
+
+export interface MonthlyStats {
+    monthly: MonthlyStatsItem[];
+    byStatus?: { status: string; name: string; count: number; value: number }[];
+}
+
 export interface Attachment {
     id: string;
     type: string;
@@ -406,5 +420,55 @@ export const ordersService = {
         const params = companyId ? { companyId } : undefined;
         const response = await api.get<ReviewStats>('/orders/stats/reviews', { params });
         return response.data;
+    },
+
+    async getMonthlyStatsBrand(months = 6): Promise<MonthlyStats> {
+        if (MOCK_MODE) {
+            await simulateDelay(300);
+            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
+            return {
+                monthly: monthNames.slice(0, months).map((month, i) => ({
+                    month,
+                    revenue: 30000 + (i * 8000) + Math.floor(Math.random() * 10000),
+                    previousRevenue: 25000 + (i * 6000) + Math.floor(Math.random() * 8000),
+                    orders: 10 + i * 3,
+                    growth: 5 + Math.floor(Math.random() * 10),
+                })),
+            };
+        }
+
+        try {
+            const response = await api.get<MonthlyStats>('/orders/stats/monthly/brand', {
+                params: { months },
+            });
+            return response.data;
+        } catch {
+            return { monthly: [] };
+        }
+    },
+
+    async getMonthlyStatsSupplier(months = 6): Promise<MonthlyStats> {
+        if (MOCK_MODE) {
+            await simulateDelay(300);
+            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
+            return {
+                monthly: monthNames.slice(0, months).map((month, i) => ({
+                    month,
+                    revenue: 20000 + (i * 5000) + Math.floor(Math.random() * 8000),
+                    previousRevenue: 15000 + (i * 4000) + Math.floor(Math.random() * 6000),
+                    orders: 8 + i * 2,
+                    growth: 3 + Math.floor(Math.random() * 12),
+                })),
+            };
+        }
+
+        try {
+            const response = await api.get<MonthlyStats>('/orders/stats/monthly/supplier', {
+                params: { months },
+            });
+            return response.data;
+        } catch {
+            return { monthly: [] };
+        }
     },
 };
