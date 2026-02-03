@@ -36,6 +36,7 @@ import { PartnersModule } from './modules/partners/partners.module';
 import { EducationalContentModule } from './modules/educational-content/educational-content.module';
 import { SupportTicketsModule } from './modules/support-tickets/support-tickets.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { PortalModule } from './modules/portal/portal.module';
 import configuration from './config/configuration';
 import { BullConfigService, QUEUE_NAMES } from './config/bull.config';
 
@@ -122,6 +123,7 @@ if (process.env.STORAGE_TYPE !== 's3') {
     EducationalContentModule,
     SupportTicketsModule,
     SettingsModule,
+    PortalModule,
   ],
   providers: [
     // Global rate limiting guard

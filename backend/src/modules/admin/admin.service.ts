@@ -261,4 +261,147 @@ export class AdminService {
       return { ...doc, status: calculatedStatus };
     });
   }
+
+  /**
+   * Get monthly revenue history for dashboard charts
+   * Returns last N months of revenue data
+   */
+  async getRevenueHistory(months: number = 6) {
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+
+    const monthlyData = await this.prisma.$queryRaw<
+      { month: Date; revenue: number; orders: number; previousRevenue: number }[]
+    >`
+      WITH current_period AS (
+        SELECT
+          DATE_TRUNC('month', "updatedAt") as month,
+          COALESCE(SUM("totalValue"), 0)::float as revenue,
+          COUNT(*)::int as orders
+        FROM "Order"
+        WHERE "status" = 'FINALIZADO'
+          AND "updatedAt" >= ${startDate}
+        GROUP BY DATE_TRUNC('month', "updatedAt")
+      ),
+      previous_period AS (
+        SELECT
+          DATE_TRUNC('month', "updatedAt" + INTERVAL '${months} months') as month,
+          COALESCE(SUM("totalValue"), 0)::float as previous_revenue
+        FROM "Order"
+        WHERE "status" = 'FINALIZADO'
+          AND "updatedAt" >= ${startDate} - INTERVAL '${months} months'
+          AND "updatedAt" < ${startDate}
+        GROUP BY DATE_TRUNC('month', "updatedAt" + INTERVAL '${months} months')
+      )
+      SELECT
+        c.month,
+        c.revenue,
+        c.orders,
+        COALESCE(p.previous_revenue, 0)::float as "previousRevenue"
+      FROM current_period c
+      LEFT JOIN previous_period p ON c.month = p.month
+      ORDER BY c.month ASC
+    `;
+
+    const monthNames = [
+      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+    ];
+
+    return monthlyData.map((d) => ({
+      month: monthNames[d.month.getMonth()],
+      fullMonth: d.month.toISOString(),
+      revenue: Number(d.revenue) || 0,
+      previousRevenue: Number(d.previousRevenue) || 0,
+      orders: Number(d.orders) || 0,
+      growth: d.previousRevenue > 0
+        ? Math.round(((d.revenue - d.previousRevenue) / d.previousRevenue) * 100)
+        : 0,
+    }));
+  }
+
+  /**
+   * Get monthly order statistics
+   * Returns orders by status per month
+   */
+  async getOrdersMonthlyStats(months: number = 6) {
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+
+    const [monthlyOrders, byStatus, byBrand] = await Promise.all([
+      // Orders per month
+      this.prisma.$queryRaw<{ month: Date; total: number; value: number }[]>`
+        SELECT
+          DATE_TRUNC('month', "createdAt") as month,
+          COUNT(*)::int as total,
+          COALESCE(SUM("totalValue"), 0)::float as value
+        FROM "Order"
+        WHERE "createdAt" >= ${startDate}
+        GROUP BY DATE_TRUNC('month', "createdAt")
+        ORDER BY month ASC
+      `,
+      // Orders by status
+      this.prisma.order.groupBy({
+        by: ['status'],
+        where: { createdAt: { gte: startDate } },
+        _count: true,
+        _sum: { totalValue: true },
+      }),
+      // Orders by brand (top 5)
+      this.prisma.order.groupBy({
+        by: ['brandId'],
+        where: { createdAt: { gte: startDate } },
+        _count: true,
+        _sum: { totalValue: true },
+        orderBy: { _sum: { totalValue: 'desc' } },
+        take: 5,
+      }),
+    ]);
+
+    // Get brand names
+    const brandIds = byBrand.map((b) => b.brandId);
+    const brands = await this.prisma.company.findMany({
+      where: { id: { in: brandIds } },
+      select: { id: true, tradeName: true },
+    });
+    const brandMap = new Map(brands.map((b) => [b.id, b.tradeName]));
+
+    const monthNames = [
+      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+    ];
+
+    const statusNames: Record<string, string> = {
+      FINALIZADO: 'Concluído',
+      EM_PRODUCAO: 'Em Produção',
+      ACEITO_PELA_FACCAO: 'Aceito',
+      LANCADO_PELA_MARCA: 'Novo',
+      RECUSADO_PELA_FACCAO: 'Recusado',
+      PRONTO: 'Pronto',
+      EM_TRANSITO_PARA_MARCA: 'Em Trânsito',
+      DISPONIVEL_PARA_OUTRAS: 'Disponível',
+    };
+
+    return {
+      monthly: monthlyOrders.map((m) => ({
+        month: monthNames[m.month.getMonth()],
+        total: Number(m.total) || 0,
+        value: Number(m.value) || 0,
+      })),
+      byStatus: byStatus.map((s) => ({
+        status: statusNames[s.status] || s.status,
+        count: s._count,
+        value: Number(s._sum.totalValue) || 0,
+      })),
+      byBrand: byBrand.map((b) => ({
+        brand: brandMap.get(b.brandId) || 'Desconhecido',
+        count: b._count,
+        value: Number(b._sum.totalValue) || 0,
+      })),
+    };
+  }
 }

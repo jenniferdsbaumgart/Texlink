@@ -161,4 +161,34 @@ export class OrdersController {
   async getReviewStats(@Query('companyId') companyId?: string) {
     return this.ordersService.getReviewStats(companyId);
   }
+
+  // Get monthly statistics for brand dashboard
+  @Get('stats/monthly/brand')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND)
+  async getBrandMonthlyStats(
+    @CurrentUser('id') userId: string,
+    @Query('months') months?: string,
+  ) {
+    return this.ordersService.getMonthlyStats(
+      userId,
+      'BRAND',
+      months ? parseInt(months, 10) : 6,
+    );
+  }
+
+  // Get monthly statistics for supplier dashboard
+  @Get('stats/monthly/supplier')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPPLIER)
+  async getSupplierMonthlyStats(
+    @CurrentUser('id') userId: string,
+    @Query('months') months?: string,
+  ) {
+    return this.ordersService.getMonthlyStats(
+      userId,
+      'SUPPLIER',
+      months ? parseInt(months, 10) : 6,
+    );
+  }
 }

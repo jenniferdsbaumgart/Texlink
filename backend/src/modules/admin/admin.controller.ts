@@ -70,4 +70,18 @@ export class AdminController {
   async getSupplierDocuments(@Param('id') supplierId: string) {
     return this.adminService.getSupplierDocuments(supplierId);
   }
+
+  @Get('dashboard/revenue-history')
+  async getRevenueHistory(@Query('months') months?: string) {
+    return this.adminService.getRevenueHistory(
+      months ? parseInt(months, 10) : 6,
+    );
+  }
+
+  @Get('dashboard/orders-stats')
+  async getOrdersMonthlyStats(@Query('months') months?: string) {
+    return this.adminService.getOrdersMonthlyStats(
+      months ? parseInt(months, 10) : 6,
+    );
+  }
 }

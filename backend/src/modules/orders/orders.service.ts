@@ -988,4 +988,109 @@ export class OrdersService {
           : 0,
     };
   }
+
+  /**
+   * Get monthly statistics for orders
+   * Used by brand dashboard to show real chart data
+   */
+  async getMonthlyStats(userId: string, role: 'BRAND' | 'SUPPLIER', months = 6) {
+    // Get company for this user
+    const companyUser = await this.prisma.companyUser.findFirst({
+      where: {
+        userId,
+        company: {
+          type: role === 'BRAND' ? CompanyType.BRAND : CompanyType.SUPPLIER,
+        },
+      },
+      include: { company: true },
+    });
+
+    if (!companyUser) {
+      throw new NotFoundException('Company not found');
+    }
+
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+
+    const companyFilter =
+      role === 'BRAND'
+        ? { brandId: companyUser.companyId }
+        : { supplierId: companyUser.companyId };
+
+    // Get all orders in the period
+    const orders = await this.prisma.order.findMany({
+      where: {
+        ...companyFilter,
+        createdAt: { gte: startDate },
+      },
+      select: {
+        createdAt: true,
+        totalValue: true,
+        status: true,
+      },
+    });
+
+    // Group by month
+    const monthlyMap = new Map<string, { total: number; value: number; completed: number }>();
+    orders.forEach((order) => {
+      const monthKey = `${order.createdAt.getFullYear()}-${order.createdAt.getMonth()}`;
+      const existing = monthlyMap.get(monthKey) || { total: 0, value: 0, completed: 0 };
+      existing.total++;
+      existing.value += Number(order.totalValue) || 0;
+      if (order.status === OrderStatus.FINALIZADO) {
+        existing.completed++;
+      }
+      monthlyMap.set(monthKey, existing);
+    });
+
+    // Get status breakdown
+    const statusBreakdown = await this.prisma.order.groupBy({
+      by: ['status'],
+      where: {
+        ...companyFilter,
+        createdAt: { gte: startDate },
+      },
+      _count: true,
+      _sum: { totalValue: true },
+    });
+
+    const monthNames = [
+      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+    ];
+
+    const statusNames: Record<string, string> = {
+      FINALIZADO: 'Concluído',
+      EM_PRODUCAO: 'Em Produção',
+      ACEITO_PELA_FACCAO: 'Aceito',
+      LANCADO_PELA_MARCA: 'Aguardando',
+      RECUSADO_PELA_FACCAO: 'Recusado',
+      PRONTO: 'Pronto',
+      EM_TRANSITO_PARA_MARCA: 'Em Trânsito',
+    };
+
+    // Convert map to sorted array
+    const monthlyData = Array.from(monthlyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, data]) => {
+        const [year, month] = key.split('-').map(Number);
+        return {
+          month: monthNames[month],
+          name: monthNames[month],
+          ...data,
+        };
+      });
+
+    return {
+      monthly: monthlyData,
+      byStatus: statusBreakdown.map((s) => ({
+        status: statusNames[s.status] || s.status,
+        name: statusNames[s.status] || s.status,
+        count: s._count,
+        value: Number(s._sum.totalValue) || 0,
+      })),
+    };
+  }
 }
