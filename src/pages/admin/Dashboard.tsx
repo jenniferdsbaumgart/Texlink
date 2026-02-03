@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { adminService, AdminDashboard as DashboardData } from '../../services';
+import { NotificationBell } from '../../components/notifications';
 import {
     Package, DollarSign, Factory, Building2, Users,
     TrendingUp, Clock, CheckCircle, AlertCircle,
-    ChevronRight, Settings, Bell, LogOut, Shield, Gift, GraduationCap, HelpCircle, FolderOpen
+    ChevronRight, Settings, LogOut, Shield, Gift, GraduationCap, HelpCircle, FolderOpen
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
@@ -57,9 +58,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <button className="p-2 text-brand-400 hover:text-white transition-colors">
-                                <Bell className="w-5 h-5" />
-                            </button>
+                            <NotificationBell />
                             <button className="p-2 text-brand-400 hover:text-white transition-colors">
                                 <Settings className="w-5 h-5" />
                             </button>

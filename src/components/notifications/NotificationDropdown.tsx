@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCheck, Loader2, Bell } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { NotificationItem } from './NotificationItem';
 
 interface NotificationDropdownProps {
@@ -12,6 +13,7 @@ interface NotificationDropdownProps {
 
 export function NotificationDropdown({ isOpen, onClose, anchorRef }: NotificationDropdownProps) {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const {
         notifications,
@@ -22,6 +24,16 @@ export function NotificationDropdown({ isOpen, onClose, anchorRef }: Notificatio
         markAsRead,
         markAllAsRead,
     } = useNotifications();
+
+    // Get notifications page route based on user role
+    const notificationsRoute = useMemo(() => {
+        switch (user?.role) {
+            case 'SUPPLIER': return '/portal/notificacoes';
+            case 'BRAND': return '/brand/notificacoes';
+            case 'ADMIN': return '/admin/notificacoes';
+            default: return '/portal/notificacoes';
+        }
+    }, [user?.role]);
 
     // Handle click outside
     useEffect(() => {
@@ -58,7 +70,7 @@ export function NotificationDropdown({ isOpen, onClose, anchorRef }: Notificatio
     return (
         <div
             ref={dropdownRef}
-            className="absolute left-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+            className="absolute left-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-[9999] overflow-hidden"
         >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -119,7 +131,7 @@ export function NotificationDropdown({ isOpen, onClose, anchorRef }: Notificatio
                 <div className="border-t border-gray-200 dark:border-gray-700 p-2">
                     <button
                         onClick={() => {
-                            navigate('/notificacoes');
+                            navigate(notificationsRoute);
                             onClose();
                         }}
                         className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
