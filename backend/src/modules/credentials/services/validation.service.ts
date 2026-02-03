@@ -6,12 +6,16 @@ import {
   BadRequestException,
   Inject,
   forwardRef,
+  Optional,
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IntegrationService } from '../../integrations/services/integration.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { SupplierCredentialStatus, ValidationSource } from '@prisma/client';
+import { QUEUE_NAMES, JOB_NAMES } from '../../../config/bull.config';
 
 interface AuthUser {
   id: string;
@@ -57,7 +61,17 @@ export class ValidationService {
     @Inject(CACHE_MANAGER) private cacheManager: any,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
+    @Optional()
+    @InjectQueue(QUEUE_NAMES.CNPJ_VALIDATION)
+    private readonly validationQueue?: Queue,
   ) {}
+
+  /**
+   * Check if async validation via Bull is available
+   */
+  private isAsyncValidationAvailable(): boolean {
+    return !!this.validationQueue;
+  }
 
   // ==================== START VALIDATION ====================
 
@@ -67,7 +81,8 @@ export class ValidationService {
    * - Busca credential e valida propriedade
    * - Valida status (deve ser DRAFT ou VALIDATION_FAILED)
    * - Atualiza status para PENDING_VALIDATION
-   * - Processa validação (síncrono por enquanto, assíncrono no futuro)
+   * - Se Bull/Redis disponível: agenda job assíncrono
+   * - Se não: processa síncronamente (fallback)
    */
   async startValidation(credentialId: string, user: AuthUser) {
     const companyId = user.brandId || user.companyId;
@@ -97,8 +112,36 @@ export class ValidationService {
 
     this.logger.log(`Validação iniciada para credential ${credentialId}`);
 
-    // Processa validação (por enquanto síncrono)
-    // TODO: No futuro, criar job assíncrono com Bull/Redis
+    // Se Bull/Redis está disponível, processa assincronamente
+    if (this.isAsyncValidationAvailable()) {
+      this.logger.log(`Agendando validação assíncrona via Bull para credential ${credentialId}`);
+
+      const job = await this.validationQueue!.add(
+        JOB_NAMES.VALIDATE_CNPJ,
+        {
+          credentialId,
+          performedById: user.id,
+        },
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+          removeOnComplete: true,
+        },
+      );
+
+      return {
+        credentialId,
+        jobId: job.id,
+        status: 'QUEUED',
+        message: 'Validação de CNPJ agendada. Você será notificado quando concluir.',
+      };
+    }
+
+    // Fallback: processa sincronamente se Bull não está disponível
+    this.logger.log(`Processando validação síncrona para credential ${credentialId} (Bull não disponível)`);
     const result = await this.processValidation(credentialId, user.id);
 
     return result;

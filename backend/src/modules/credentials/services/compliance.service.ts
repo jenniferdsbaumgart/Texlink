@@ -108,19 +108,31 @@ export class ComplianceService {
     // Obtém última validação
     const lastValidation = credential.validations[0];
 
-    // Chama API de análise de crédito (mock por enquanto)
-    const creditResult = await this.integrationService.analyzeCredit(
-      credential.cnpj,
-    );
+    // Chama APIs de análise em paralelo
+    const [creditResult, legalResult, restrictionsResult] = await Promise.all([
+      this.integrationService.analyzeCredit(credential.cnpj),
+      this.integrationService.analyzeLegalIssues(credential.cnpj),
+      this.integrationService.analyzeRestrictions(credential.cnpj),
+    ]);
 
     // Calcula scores
-    const scores = this.calculateScores(lastValidation, creditResult);
+    const scores = this.calculateScores(
+      lastValidation,
+      creditResult,
+      legalResult,
+      restrictionsResult,
+    );
 
     // Determina nível de risco
     const riskLevel = this.determineRiskLevel(scores.overallScore);
 
     // Define flags
-    const flags = this.determineFlags(lastValidation, creditResult);
+    const flags = this.determineFlags(
+      lastValidation,
+      creditResult,
+      legalResult,
+      restrictionsResult,
+    );
 
     // Gera recomendação
     const recommendation = this.generateRecommendation(riskLevel, flags);
@@ -129,6 +141,8 @@ export class ComplianceService {
     const riskFactors = this.identifyRiskFactors(
       lastValidation,
       creditResult,
+      legalResult,
+      restrictionsResult,
       flags,
     );
 
@@ -535,6 +549,8 @@ export class ComplianceService {
   private calculateScores(
     validation: any,
     creditResult: any,
+    legalResult: any,
+    restrictionsResult: any,
   ): ComplianceScores {
     // ===== CREDIT SCORE (0-100) =====
     let creditScore = 50; // Base neutro
@@ -588,12 +604,48 @@ export class ComplianceService {
 
     // Penaliza por negativações (issues legais/financeiros)
     if (creditResult?.hasNegatives) {
-      legalScore -= 30;
+      legalScore -= 15;
     }
 
-    // Penaliza por processos judiciais (se disponível)
-    if (creditResult?.legalIssues) {
-      legalScore -= 25;
+    // Penaliza por processos judiciais (usa dados reais de legalResult)
+    if (legalResult?.hasLegalIssues) {
+      // Penalidade baseada no risco identificado
+      switch (legalResult.riskLevel) {
+        case 'CRITICAL':
+          legalScore -= 50;
+          break;
+        case 'HIGH':
+          legalScore -= 35;
+          break;
+        case 'MEDIUM':
+          legalScore -= 20;
+          break;
+        default:
+          legalScore -= 10;
+      }
+
+      // Penalidade adicional por quantidade de processos
+      if (legalResult.activeLawsuitsCount > 3) {
+        legalScore -= 10;
+      }
+    }
+
+    // Penaliza por restrições cadastrais (CADIN, CEIS, CNEP, etc.)
+    if (restrictionsResult?.hasRestrictions) {
+      // Penalidade baseada no risco identificado
+      switch (restrictionsResult.riskLevel) {
+        case 'CRITICAL':
+          legalScore -= 40;
+          break;
+        case 'HIGH':
+          legalScore -= 25;
+          break;
+        case 'MEDIUM':
+          legalScore -= 15;
+          break;
+        default:
+          legalScore -= 5;
+      }
     }
 
     // Considera tempo de existência da empresa
@@ -638,6 +690,16 @@ export class ComplianceService {
       overallScore = Math.min(overallScore, 45);
     }
 
+    // Restrições críticas (CEIS/CNEP) reduzem score drasticamente
+    if (restrictionsResult?.riskLevel === 'CRITICAL') {
+      overallScore = Math.min(overallScore, 30);
+    }
+
+    // Processos judiciais críticos também impactam
+    if (legalResult?.riskLevel === 'CRITICAL') {
+      overallScore = Math.min(overallScore, 35);
+    }
+
     return {
       creditScore: Math.round(creditScore),
       taxScore: Math.round(taxScore),
@@ -659,15 +721,20 @@ export class ComplianceService {
   /**
    * Define flags de compliance
    */
-  private determineFlags(validation: any, creditResult: any): ComplianceFlags {
+  private determineFlags(
+    validation: any,
+    creditResult: any,
+    legalResult: any,
+    restrictionsResult: any,
+  ): ComplianceFlags {
     const status = validation?.companyStatus?.toUpperCase() || '';
 
     return {
       hasActiveCNPJ: status === 'ATIVA' || status === 'REGULAR',
       hasRegularTaxStatus: status === 'ATIVA' || status === 'REGULAR',
       hasNegativeCredit: creditResult?.hasNegatives || false,
-      hasLegalIssues: false, // TODO: Integrar com APIs de processos judiciais
-      hasRelatedRestrictions: false, // TODO: Integrar com APIs de restrições
+      hasLegalIssues: legalResult?.hasLegalIssues || false,
+      hasRelatedRestrictions: restrictionsResult?.hasRestrictions || false,
     };
   }
 
@@ -733,6 +800,8 @@ export class ComplianceService {
   private identifyRiskFactors(
     validation: any,
     creditResult: any,
+    legalResult: any,
+    restrictionsResult: any,
     flags: ComplianceFlags,
   ): string[] {
     const factors: string[] = [];
@@ -792,19 +861,50 @@ export class ComplianceService {
       factors.push('Valor elevado de dívidas registradas');
     }
 
-    // === FATORES LEGAIS ===
-    if (flags.hasLegalIssues) {
-      factors.push('Possui processos judiciais ativos');
+    // === FATORES LEGAIS (Processos Judiciais) ===
+    if (flags.hasLegalIssues && legalResult) {
+      const lawsuitCount = legalResult.activeLawsuitsCount || 0;
+      const totalValue = legalResult.totalLawsuitValue;
+
+      if (lawsuitCount > 0) {
+        let message = `${lawsuitCount} processo(s) judicial(is) ativo(s)`;
+        if (totalValue) {
+          message += ` (Valor total: R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`;
+        }
+        factors.push(message);
+      }
+
+      // Adiciona recomendações do provider de processos
+      if (legalResult.recommendations?.length > 0) {
+        factors.push(...legalResult.recommendations);
+      }
     }
 
-    if (flags.hasRelatedRestrictions) {
-      factors.push(
-        'Possui restrições relacionadas a sócios ou empresas vinculadas',
-      );
-    }
+    // === FATORES DE RESTRIÇÕES CADASTRAIS (CADIN, CEIS, CNEP, etc.) ===
+    if (flags.hasRelatedRestrictions && restrictionsResult) {
+      const restrictionCount = restrictionsResult.totalRestrictions || 0;
 
-    if (creditResult?.legalIssues) {
-      factors.push('Identificados problemas legais na análise');
+      if (restrictionCount > 0) {
+        factors.push(
+          `${restrictionCount} restrição(ões) cadastral(is) identificada(s)`,
+        );
+
+        // Adiciona detalhes das restrições
+        if (restrictionsResult.restrictions?.length > 0) {
+          for (const restriction of restrictionsResult.restrictions) {
+            if (restriction.status === 'ACTIVE') {
+              factors.push(
+                `${restriction.type}: ${restriction.description} (${restriction.origin})`,
+              );
+            }
+          }
+        }
+      }
+
+      // Adiciona recomendações do provider de restrições
+      if (restrictionsResult.recommendations?.length > 0) {
+        factors.push(...restrictionsResult.recommendations);
+      }
     }
 
     // === FATORES DE EXPERIÊNCIA ===
@@ -829,7 +929,7 @@ export class ComplianceService {
       factors.push('Capital social muito baixo (menor que R$ 10.000)');
     }
 
-    // === RECOMENDAÇÕES EXTERNAS ===
+    // === RECOMENDAÇÕES EXTERNAS DE CRÉDITO ===
     if (
       creditResult?.recommendations &&
       Array.isArray(creditResult.recommendations)

@@ -1,8 +1,10 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
+import { BullModule } from '@nestjs/bull';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { QUEUE_NAMES } from '../../config/bull.config';
 
 // Main service and controller
 import { CredentialsService } from './credentials.service';
@@ -12,6 +14,9 @@ import { CredentialsController } from './credentials.controller';
 import { ValidationService } from './services/validation.service';
 import { ComplianceService } from './services/compliance.service';
 import { InvitationService } from './services/invitation.service';
+
+// Processors
+import { CnpjValidationProcessor } from './processors/cnpj-validation.processor';
 
 /**
  * Módulo de Credenciamento de Facções
@@ -33,6 +38,10 @@ import { InvitationService } from './services/invitation.service';
       ttl: 30 * 24 * 60 * 60 * 1000, // 30 dias em ms
       max: 1000, // Máximo 1000 itens em cache
     }),
+    // Bull queue for CNPJ validation
+    BullModule.registerQueue({
+      name: QUEUE_NAMES.CNPJ_VALIDATION,
+    }),
   ],
   controllers: [CredentialsController],
   providers: [
@@ -43,6 +52,9 @@ import { InvitationService } from './services/invitation.service';
     ValidationService,
     ComplianceService,
     InvitationService,
+
+    // Processors
+    CnpjValidationProcessor,
   ],
   exports: [
     CredentialsService,

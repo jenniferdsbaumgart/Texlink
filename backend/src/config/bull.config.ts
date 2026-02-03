@@ -65,6 +65,7 @@ export const QUEUE_NAMES = {
   PAYMENT_OVERDUE: 'payment-overdue',
   CLEANUP: 'cleanup',
   CREDIT_ANALYSIS: 'credit-analysis',
+  CNPJ_VALIDATION: 'cnpj-validation',
 } as const;
 
 /**
@@ -93,4 +94,7 @@ export const JOB_NAMES = {
 
   // Credit analysis jobs
   ANALYZE_CREDIT: 'analyze-credit',
+
+  // CNPJ validation jobs
+  VALIDATE_CNPJ: 'validate-cnpj',
 } as const;
