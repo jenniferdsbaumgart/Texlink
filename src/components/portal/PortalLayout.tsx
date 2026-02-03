@@ -4,7 +4,7 @@ import { PortalSidebar } from './PortalSidebar';
 
 export const PortalLayout: React.FC = () => {
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
+        <div className="h-screen overflow-hidden bg-gray-50 dark:bg-gray-900 flex">
             {/* Sidebar */}
             <PortalSidebar />
 

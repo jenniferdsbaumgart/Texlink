@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { suppliersService, ordersService, Order } from '../../services';
+import type { SupplierDocument, SupplierDocumentStatus } from '../../types';
+import { SUPPLIER_DOCUMENT_TYPE_LABELS } from '../../types';
 import {
     ArrowLeft, Factory, Star, MapPin, Package,
     Loader2, Calendar, Clock, Phone, Mail,
-    CheckCircle, TrendingUp
+    CheckCircle, TrendingUp, FileText, AlertTriangle, XCircle,
+    Eye, Download, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 interface SupplierDetail {
@@ -28,11 +31,21 @@ const SupplierProfilePage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [supplier, setSupplier] = useState<SupplierDetail | null>(null);
     const [orderHistory, setOrderHistory] = useState<Order[]>([]);
+    const [documents, setDocuments] = useState<SupplierDocument[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'details' | 'documents'>('details');
+    const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+    const [docsError, setDocsError] = useState<string | null>(null);
 
     useEffect(() => {
         if (id) loadData();
     }, [id]);
+
+    useEffect(() => {
+        if (id && activeTab === 'documents' && documents.length === 0 && !isLoadingDocs) {
+            loadDocuments();
+        }
+    }, [id, activeTab]);
 
     const loadData = async () => {
         try {
@@ -49,6 +62,25 @@ const SupplierProfilePage: React.FC = () => {
             console.error('Error loading data:', error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const loadDocuments = async () => {
+        if (!id) return;
+        try {
+            setIsLoadingDocs(true);
+            setDocsError(null);
+            const docs = await suppliersService.getSupplierDocuments(id);
+            setDocuments(docs);
+        } catch (error: any) {
+            console.error('Error loading documents:', error);
+            if (error.response?.status === 403) {
+                setDocsError('Você não possui relacionamento ativo com esta facção para visualizar documentos.');
+            } else {
+                setDocsError('Erro ao carregar documentos.');
+            }
+        } finally {
+            setIsLoadingDocs(false);
         }
     };
 
@@ -100,6 +132,38 @@ const SupplierProfilePage: React.FC = () => {
                 </Link>
             </div>
 
+            {/* Tabs */}
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
+                <button
+                    onClick={() => setActiveTab('details')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === 'details'
+                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                >
+                    Detalhes
+                </button>
+                <button
+                    onClick={() => setActiveTab('documents')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                        activeTab === 'documents'
+                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                >
+                    <FileText className="w-4 h-4" />
+                    Documentos
+                </button>
+            </div>
+
+            {activeTab === 'documents' ? (
+                <DocumentsSection
+                    documents={documents}
+                    isLoading={isLoadingDocs}
+                    error={docsError}
+                />
+            ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Info */}
                 <div className="lg:col-span-2 space-y-6">
@@ -232,6 +296,7 @@ const SupplierProfilePage: React.FC = () => {
                     </Link>
                 </div>
             </div>
+            )}
         </div>
     );
 };
@@ -265,6 +330,238 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     };
     const { label, color } = config[status] || { label: status, color: 'bg-gray-100 text-gray-700' };
     return <span className={`px-2 py-1 text-xs font-medium rounded-lg ${color}`}>{label}</span>;
+};
+
+// Documents Status Config
+const DOC_STATUS_CONFIG: Record<SupplierDocumentStatus, {
+    label: string;
+    icon: React.ElementType;
+    bgColor: string;
+    textColor: string;
+}> = {
+    VALID: {
+        label: 'Válido',
+        icon: CheckCircle,
+        bgColor: 'bg-green-100 dark:bg-green-500/10',
+        textColor: 'text-green-700 dark:text-green-400',
+    },
+    EXPIRING_SOON: {
+        label: 'Vencendo',
+        icon: AlertTriangle,
+        bgColor: 'bg-yellow-100 dark:bg-yellow-500/10',
+        textColor: 'text-yellow-700 dark:text-yellow-400',
+    },
+    EXPIRED: {
+        label: 'Vencido',
+        icon: XCircle,
+        bgColor: 'bg-red-100 dark:bg-red-500/10',
+        textColor: 'text-red-700 dark:text-red-400',
+    },
+    PENDING: {
+        label: 'Pendente',
+        icon: Clock,
+        bgColor: 'bg-gray-100 dark:bg-gray-500/10',
+        textColor: 'text-gray-700 dark:text-gray-400',
+    },
+};
+
+// Documents Section Component
+interface DocumentsSectionProps {
+    documents: SupplierDocument[];
+    isLoading: boolean;
+    error: string | null;
+}
+
+const DocumentsSection: React.FC<DocumentsSectionProps> = ({ documents, isLoading, error }) => {
+    const [expandedCategories, setExpandedCategories] = useState<string[]>(['compliance', 'licenses', 'safety']);
+
+    const toggleCategory = (category: string) => {
+        setExpandedCategories(prev =>
+            prev.includes(category)
+                ? prev.filter(c => c !== category)
+                : [...prev, category]
+        );
+    };
+
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleDateString('pt-BR');
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <p className="text-gray-900 dark:text-white font-medium mb-2">Acesso Restrito</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">{error}</p>
+            </div>
+        );
+    }
+
+    if (documents.length === 0) {
+        return (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-900 dark:text-white font-medium">Nenhum documento disponível</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                    Esta facção ainda não enviou documentos de compliance.
+                </p>
+            </div>
+        );
+    }
+
+    // Group documents by category
+    const complianceDocs = documents.filter(d =>
+        ['CNPJ_ATIVO', 'CND_FEDERAL', 'CRF_FGTS', 'CONTRATO_SOCIAL', 'INSCRICAO_MUNICIPAL', 'ABVTEX_TERMO'].includes(d.type)
+    );
+    const licenseDocs = documents.filter(d =>
+        ['LICENCA_FUNCIONAMENTO', 'AVCB', 'LICENCA_AMBIENTAL'].includes(d.type)
+    );
+    const safetyDocs = documents.filter(d =>
+        ['LAUDO_NR1_GRO_PGR', 'LAUDO_NR7_PCMSO', 'LAUDO_NR10_SEGURANCA_ELETRICA', 'LAUDO_NR15_INSALUBRIDADE', 'LAUDO_NR17_AET'].includes(d.type)
+    );
+    const monthlyDocs = documents.filter(d =>
+        ['GUIA_INSS', 'GUIA_FGTS', 'GUIA_SIMPLES_DAS', 'RELATORIO_EMPREGADOS'].includes(d.type)
+    );
+    const otherDocs = documents.filter(d =>
+        ['RELACAO_SUBCONTRATADOS', 'OUTRO'].includes(d.type)
+    );
+
+    // Summary stats
+    const validCount = documents.filter(d => d.status === 'VALID').length;
+    const expiringCount = documents.filter(d => d.status === 'EXPIRING_SOON').length;
+    const expiredCount = documents.filter(d => d.status === 'EXPIRED').length;
+    const pendingCount = documents.filter(d => d.status === 'PENDING').length;
+
+    const DocumentCategory = ({ id, title, docs }: { id: string; title: string; docs: SupplierDocument[] }) => {
+        if (docs.length === 0) return null;
+        const isExpanded = expandedCategories.includes(id);
+
+        return (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <button
+                    onClick={() => toggleCategory(id)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-gray-400" />
+                        <h3 className="font-medium text-gray-900 dark:text-white">{title}</h3>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">({docs.length})</span>
+                    </div>
+                    {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                </button>
+                {isExpanded && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+                        {docs.map((doc) => {
+                            const statusConfig = DOC_STATUS_CONFIG[doc.status];
+                            const StatusIcon = statusConfig.icon;
+
+                            return (
+                                <div key={doc.id} className="flex items-center justify-between p-4">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className={`p-1.5 rounded ${statusConfig.bgColor}`}>
+                                            <StatusIcon className={`w-4 h-4 ${statusConfig.textColor}`} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                {SUPPLIER_DOCUMENT_TYPE_LABELS[doc.type]}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                {doc.expiresAt ? `Vence: ${formatDate(doc.expiresAt)}` : 'Sem vencimento'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`px-2 py-1 rounded text-xs font-medium ${statusConfig.bgColor} ${statusConfig.textColor}`}>
+                                            {statusConfig.label}
+                                        </span>
+                                        {doc.fileUrl && (
+                                            <div className="flex items-center gap-1">
+                                                <a
+                                                    href={doc.fileUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                                                    title="Visualizar"
+                                                >
+                                                    <Eye className="w-4 h-4 text-gray-500" />
+                                                </a>
+                                                <a
+                                                    href={doc.fileUrl}
+                                                    download
+                                                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                                                    title="Download"
+                                                >
+                                                    <Download className="w-4 h-4 text-gray-500" />
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Válidos</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{validCount}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                        <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Vencendo</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{expiringCount}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                        <XCircle className="w-4 h-4 text-red-500" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Vencidos</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{expiredCount}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                        <Clock className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Pendentes</span>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{pendingCount}</p>
+                </div>
+            </div>
+
+            {/* Document Categories */}
+            <div className="space-y-4">
+                <DocumentCategory id="compliance" title="Compliance e Regularidade" docs={complianceDocs} />
+                <DocumentCategory id="licenses" title="Licenças e Autorizações" docs={licenseDocs} />
+                <DocumentCategory id="safety" title="Segurança do Trabalho" docs={safetyDocs} />
+                <DocumentCategory id="monthly" title="Documentos Mensais" docs={monthlyDocs} />
+                <DocumentCategory id="other" title="Outros Documentos" docs={otherDocs} />
+            </div>
+        </div>
+    );
 };
 
 export default SupplierProfilePage;

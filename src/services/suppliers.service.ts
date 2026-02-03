@@ -1,6 +1,7 @@
 import api from './api';
 import { MOCK_MODE, simulateDelay } from './mockMode';
 import { MOCK_SUPPLIERS, MOCK_SUPPLIER_DASHBOARD, MOCK_OPPORTUNITIES } from './mockData';
+import type { SupplierDocument } from '../types';
 
 export interface SupplierDashboard {
     company: {
@@ -171,6 +172,19 @@ export const suppliersService = {
         }
 
         const response = await api.get(`/suppliers/${id}`);
+        return response.data;
+    },
+
+    // Get supplier documents for a brand (requires active relationship)
+    async getSupplierDocuments(supplierId: string): Promise<SupplierDocument[]> {
+        if (MOCK_MODE) {
+            await simulateDelay(400);
+            return []; // No mock data for documents
+        }
+
+        const response = await api.get<SupplierDocument[]>(
+            `/supplier-documents/brand/suppliers/${supplierId}`
+        );
         return response.data;
     },
 };

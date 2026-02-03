@@ -56,6 +56,8 @@ const NewCredentialPage = React.lazy(() => import('./pages/brand/credentials/New
 const CredentialDetailsPage = React.lazy(() => import('./pages/brand/credentials/CredentialDetailsPage'));
 const AddSupplierPage = React.lazy(() => import('./pages/brand/suppliers/AddSupplierPage'));
 const RelationshipDetailsPage = React.lazy(() => import('./pages/brand/suppliers/RelationshipDetailsPage'));
+const BrandHelpCenter = React.lazy(() => import('./pages/brand/HelpCenterPage'));
+const BrandTicketDetail = React.lazy(() => import('./pages/brand/TicketDetailPage'));
 
 // Admin pages
 const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'));
@@ -67,6 +69,7 @@ const AdminEducationalContent = React.lazy(() => import('./pages/admin/Education
 const AdminSupportTickets = React.lazy(() => import('./pages/admin/SupportTicketsPage'));
 const AdminBrands = React.lazy(() => import('./pages/admin/BrandsPage'));
 const AdminOrders = React.lazy(() => import('./pages/admin/OrdersPage'));
+const AdminDocuments = React.lazy(() => import('./pages/admin/DocumentsPage'));
 
 // Portal do Parceiro pages
 const PortalLayout = React.lazy(() => import('./components/portal/PortalLayout'));
@@ -198,6 +201,9 @@ const App: React.FC = () => {
                                 <Route path="credenciamento" element={<CredentialsListPage />} />
                                 <Route path="credenciamento/novo" element={<NewCredentialPage />} />
                                 <Route path="credenciamento/:id" element={<CredentialDetailsPage />} />
+                                {/* Central de Ajuda */}
+                                <Route path="suporte" element={<BrandHelpCenter />} />
+                                <Route path="suporte/:id" element={<BrandTicketDetail />} />
                                 {/* Configurações */}
                                 <Route path="equipe" element={<TeamPage />} />
                             </Route>
@@ -217,6 +223,7 @@ const App: React.FC = () => {
                             <Route path="/admin/partners" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminPartners /></ProtectedRoute>} />
                             <Route path="/admin/educational-content" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminEducationalContent /></ProtectedRoute>} />
                             <Route path="/admin/support" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminSupportTickets /></ProtectedRoute>} />
+                            <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDocuments /></ProtectedRoute>} />
 
                             {/* Error pages */}
                             <Route path="/500" element={<ServerErrorPage />} />

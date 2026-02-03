@@ -23,7 +23,8 @@ import {
     Settings,
     Plus,
     MessageSquare,
-    Star
+    Star,
+    HelpCircle
 } from 'lucide-react';
 
 interface NavItem {
@@ -93,6 +94,12 @@ const navItems: NavItem[] = [
         label: 'Equipe',
         icon: <Users className="h-5 w-5" />,
         path: '/brand/equipe',
+    },
+    {
+        id: 'suporte',
+        label: 'Central de Ajuda',
+        icon: <HelpCircle className="h-5 w-5" />,
+        path: '/brand/suporte',
     },
 ];
 
