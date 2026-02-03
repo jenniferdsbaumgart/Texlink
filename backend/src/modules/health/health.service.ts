@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import Redis from 'ioredis';
 
 export interface ServiceHealth {
   status: 'up' | 'down';
@@ -19,11 +20,50 @@ export interface HealthStatus {
 }
 
 @Injectable()
-export class HealthService {
+export class HealthService implements OnModuleDestroy {
   private readonly logger = new Logger(HealthService.name);
   private readonly startTime = Date.now();
+  private redisClient: Redis | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {
+    this.initializeRedisClient();
+  }
+
+  /**
+   * Initialize Redis client for health checks
+   */
+  private initializeRedisClient(): void {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      this.logger.debug('REDIS_URL not configured, Redis health check will be skipped');
+      return;
+    }
+
+    try {
+      this.redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 1,
+        connectTimeout: 5000,
+        lazyConnect: true,
+        enableReadyCheck: false,
+      });
+
+      this.redisClient.on('error', (err) => {
+        this.logger.debug(`Redis client error: ${err.message}`);
+      });
+
+      this.logger.log('Redis health check client initialized');
+    } catch (error) {
+      this.logger.warn(`Failed to initialize Redis client: ${error.message}`);
+      this.redisClient = null;
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.redisClient) {
+      await this.redisClient.quit();
+      this.redisClient = null;
+    }
+  }
 
   async check(): Promise<HealthStatus> {
     const [database, redis] = await Promise.all([
@@ -84,11 +124,37 @@ export class HealthService {
         };
       }
 
-      // TODO: Implement actual Redis ping when Redis client is available
-      // For now, report as up if URL is configured
+      // If client not initialized, try to reinitialize
+      if (!this.redisClient) {
+        this.initializeRedisClient();
+        if (!this.redisClient) {
+          return {
+            status: 'down',
+            latency: Date.now() - start,
+            error: 'Failed to initialize Redis client',
+          };
+        }
+      }
+
+      // Perform actual Redis PING
+      const response = await Promise.race([
+        this.redisClient.ping(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Redis ping timeout')), 5000),
+        ),
+      ]);
+
+      if (response === 'PONG') {
+        return {
+          status: 'up',
+          latency: Date.now() - start,
+        };
+      }
+
       return {
-        status: 'up',
+        status: 'down',
         latency: Date.now() - start,
+        error: `Unexpected Redis response: ${response}`,
       };
     } catch (error) {
       this.logger.error('Redis health check failed', error);
