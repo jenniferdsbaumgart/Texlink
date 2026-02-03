@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bull';
 import { join } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -34,6 +35,22 @@ import { EducationalContentModule } from './modules/educational-content/educatio
 import { SupportTicketsModule } from './modules/support-tickets/support-tickets.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import configuration from './config/configuration';
+import { BullConfigService, QUEUE_NAMES } from './config/bull.config';
+
+/**
+ * Conditionally import ServeStaticModule only when using local storage
+ */
+const conditionalImports: any[] = [];
+
+// Only serve static files locally when not using S3
+if (process.env.STORAGE_TYPE !== 's3') {
+  conditionalImports.push(
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
+  );
+}
 
 @Module({
   imports: [
@@ -41,10 +58,8 @@ import configuration from './config/configuration';
       isGlobal: true,
       load: [configuration],
     }),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'uploads'),
-      serveRoot: '/uploads',
-    }),
+    // Conditional static file serving (only for local storage)
+    ...conditionalImports,
     // Rate limiting global (60 req/min por IP)
     ThrottlerModule.forRoot([
       {
@@ -62,8 +77,21 @@ import configuration from './config/configuration';
       verboseMemoryLeak: false,
       ignoreErrors: false,
     }),
-    // Scheduled jobs for reminders
+    // Scheduled jobs for reminders (fallback when Redis not available)
     ScheduleModule.forRoot(),
+    // Bull queues for background jobs (uses Redis when available)
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useClass: BullConfigService,
+    }),
+    // Register individual queues
+    BullModule.registerQueue(
+      { name: QUEUE_NAMES.NOTIFICATIONS },
+      { name: QUEUE_NAMES.DOCUMENT_EXPIRATION },
+      { name: QUEUE_NAMES.PAYMENT_OVERDUE },
+      { name: QUEUE_NAMES.CLEANUP },
+      { name: QUEUE_NAMES.CREDIT_ANALYSIS },
+    ),
     PrismaModule,
     HealthModule,
     CommonModule,

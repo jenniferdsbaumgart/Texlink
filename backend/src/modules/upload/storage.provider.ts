@@ -1,7 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { v4 as uuid } from 'uuid';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export interface UploadedFile {
   fieldname: string;
@@ -21,7 +29,11 @@ export interface StorageProvider {
   upload(file: UploadedFile, folder?: string): Promise<StorageResult>;
   delete(key: string): Promise<void>;
   getUrl(key: string): string;
+  getPresignedUrl?(key: string, expiresIn?: number): Promise<string>;
 }
+
+// Token for dependency injection
+export const STORAGE_PROVIDER = 'STORAGE_PROVIDER';
 
 @Injectable()
 export class LocalStorageProvider implements StorageProvider {
@@ -61,33 +73,153 @@ export class LocalStorageProvider implements StorageProvider {
   getUrl(key: string): string {
     return `${this.baseUrl}/uploads/${key}`;
   }
+
+  async getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {
+    // Local storage doesn't need presigned URLs, return direct URL
+    return this.getUrl(key);
+  }
 }
 
-// S3 implementation placeholder - ready for future use
 @Injectable()
 export class S3StorageProvider implements StorageProvider {
-  // private readonly s3: S3Client;
-  // private readonly bucket: string;
+  private readonly s3: S3Client;
+  private readonly bucket: string;
+  private readonly cloudFrontDomain: string | undefined;
+  private readonly region: string;
+  private readonly logger = new Logger(S3StorageProvider.name);
+
+  constructor(private readonly configService: ConfigService) {
+    this.region = this.configService.get<string>('AWS_REGION', 'us-east-1');
+    this.bucket = this.configService.get<string>('AWS_S3_BUCKET', '');
+    this.cloudFrontDomain = this.configService.get<string>('CLOUDFRONT_DOMAIN');
+
+    this.s3 = new S3Client({
+      region: this.region,
+      credentials: {
+        accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID', ''),
+        secretAccessKey: this.configService.get<string>(
+          'AWS_SECRET_ACCESS_KEY',
+          '',
+        ),
+      },
+    });
+
+    if (this.bucket) {
+      this.logger.log(`S3 Storage configured: bucket=${this.bucket}, region=${this.region}`);
+      if (this.cloudFrontDomain) {
+        this.logger.log(`CloudFront CDN enabled: ${this.cloudFrontDomain}`);
+      }
+    }
+  }
 
   async upload(
     file: UploadedFile,
     folder = 'attachments',
   ): Promise<StorageResult> {
-    // TODO: Implement S3 upload
-    // const key = `${folder}/${uuid()}.${ext}`;
-    // await this.s3.send(new PutObjectCommand({ ... }));
-    throw new Error(
-      'S3 storage not configured. Set USE_S3=true and provide credentials.',
-    );
+    if (!this.bucket) {
+      throw new Error(
+        'S3 storage not configured. Set AWS_S3_BUCKET environment variable.',
+      );
+    }
+
+    const ext = file.originalname.split('.').pop() || 'bin';
+    const key = `${folder}/${uuid()}.${ext}`;
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      CacheControl: 'max-age=31536000', // 1 year cache
+      ContentDisposition: `inline; filename="${encodeURIComponent(file.originalname)}"`,
+    });
+
+    try {
+      await this.s3.send(command);
+      this.logger.log(`File uploaded to S3: ${key}`);
+
+      return {
+        url: this.getUrl(key),
+        key,
+      };
+    } catch (error) {
+      this.logger.error(`S3 upload failed: ${error.message}`);
+      throw new Error(`Failed to upload file to S3: ${error.message}`);
+    }
   }
 
   async delete(key: string): Promise<void> {
-    // TODO: Implement S3 delete
-    throw new Error('S3 storage not configured.');
+    if (!this.bucket) {
+      this.logger.warn('S3 storage not configured, skipping delete');
+      return;
+    }
+
+    const command = new DeleteObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    try {
+      await this.s3.send(command);
+      this.logger.log(`File deleted from S3: ${key}`);
+    } catch (error) {
+      this.logger.warn(`S3 delete failed (may not exist): ${error.message}`);
+    }
   }
 
   getUrl(key: string): string {
-    // TODO: Return CloudFront or S3 URL
-    return '';
+    // Use CloudFront if configured, otherwise direct S3 URL
+    if (this.cloudFrontDomain) {
+      return `https://${this.cloudFrontDomain}/${key}`;
+    }
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+  }
+
+  async getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {
+    if (!this.bucket) {
+      throw new Error('S3 storage not configured');
+    }
+
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    const presignedUrl = await getSignedUrl(this.s3, command, {
+      expiresIn, // Default 1 hour
+    });
+
+    return presignedUrl;
+  }
+
+  /**
+   * Generate a presigned URL for direct upload from client
+   * Useful for large files to avoid server memory usage
+   */
+  async getPresignedUploadUrl(
+    folder: string,
+    filename: string,
+    contentType: string,
+    expiresIn = 3600,
+  ): Promise<{ uploadUrl: string; key: string }> {
+    if (!this.bucket) {
+      throw new Error('S3 storage not configured');
+    }
+
+    const ext = filename.split('.').pop() || 'bin';
+    const key = `${folder}/${uuid()}.${ext}`;
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ContentType: contentType,
+      CacheControl: 'max-age=31536000',
+    });
+
+    const uploadUrl = await getSignedUrl(this.s3, command, {
+      expiresIn,
+    });
+
+    return { uploadUrl, key };
   }
 }
