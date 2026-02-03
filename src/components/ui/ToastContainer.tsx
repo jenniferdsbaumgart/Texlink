@@ -1,89 +1,198 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
-import { useToast, Toast, ToastType } from '../../contexts/ToastContext';
+import { useToast, type Toast, type ToastType } from '../../contexts/ToastContext';
 
-const TOAST_STYLES: Record<ToastType, { bg: string; border: string; icon: string; iconComponent: React.ElementType }> = {
-    success: {
-        bg: 'bg-green-50 dark:bg-green-900/20',
-        border: 'border-green-200 dark:border-green-800',
-        icon: 'text-green-500',
-        iconComponent: CheckCircle,
-    },
-    error: {
-        bg: 'bg-red-50 dark:bg-red-900/20',
-        border: 'border-red-200 dark:border-red-800',
-        icon: 'text-red-500',
-        iconComponent: XCircle,
-    },
-    warning: {
-        bg: 'bg-yellow-50 dark:bg-yellow-900/20',
-        border: 'border-yellow-200 dark:border-yellow-800',
-        icon: 'text-yellow-500',
-        iconComponent: AlertTriangle,
-    },
-    info: {
-        bg: 'bg-blue-50 dark:bg-blue-900/20',
-        border: 'border-blue-200 dark:border-blue-800',
-        icon: 'text-blue-500',
-        iconComponent: Info,
-    },
+const TOAST_STYLES: Record<
+  ToastType,
+  {
+    bg: string;
+    border: string;
+    icon: string;
+    progress: string;
+    iconComponent: React.ElementType;
+  }
+> = {
+  success: {
+    bg: 'bg-white dark:bg-gray-800',
+    border: 'border-green-200 dark:border-green-800/50',
+    icon: 'text-green-500',
+    progress: 'bg-green-500',
+    iconComponent: CheckCircle,
+  },
+  error: {
+    bg: 'bg-white dark:bg-gray-800',
+    border: 'border-red-200 dark:border-red-800/50',
+    icon: 'text-red-500',
+    progress: 'bg-red-500',
+    iconComponent: XCircle,
+  },
+  warning: {
+    bg: 'bg-white dark:bg-gray-800',
+    border: 'border-yellow-200 dark:border-yellow-800/50',
+    icon: 'text-yellow-500',
+    progress: 'bg-yellow-500',
+    iconComponent: AlertTriangle,
+  },
+  info: {
+    bg: 'bg-white dark:bg-gray-800',
+    border: 'border-blue-200 dark:border-blue-800/50',
+    icon: 'text-blue-500',
+    progress: 'bg-blue-500',
+    iconComponent: Info,
+  },
 };
 
 interface ToastItemProps {
-    toast: Toast;
-    onRemove: (id: string) => void;
+  toast: Toast;
+  onRemove: (id: string) => void;
+  onPause: (id: string) => void;
+  onResume: (id: string) => void;
 }
 
-function ToastItem({ toast, onRemove }: ToastItemProps) {
-    const style = TOAST_STYLES[toast.type];
-    const Icon = style.iconComponent;
+function ToastItem({ toast, onRemove, onPause, onResume }: ToastItemProps) {
+  const [isExiting, setIsExiting] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const style = TOAST_STYLES[toast.type];
+  const Icon = style.iconComponent;
 
-    return (
-        <div
+  const handleRemove = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => onRemove(toast.id), 200);
+  }, [onRemove, toast.id]);
+
+  const handleMouseEnter = useCallback(() => {
+    setIsPaused(true);
+    onPause(toast.id);
+    if (progressRef.current) {
+      progressRef.current.style.animationPlayState = 'paused';
+    }
+  }, [onPause, toast.id]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsPaused(false);
+    onResume(toast.id);
+    if (progressRef.current) {
+      progressRef.current.style.animationPlayState = 'running';
+    }
+  }, [onResume, toast.id]);
+
+  const handleActionClick = useCallback(() => {
+    if (toast.action) {
+      toast.action.onClick();
+      handleRemove();
+    }
+  }, [toast.action, handleRemove]);
+
+  // Set up progress animation duration
+  useEffect(() => {
+    if (progressRef.current && toast.duration && toast.duration > 0) {
+      progressRef.current.style.animationDuration = `${toast.duration}ms`;
+    }
+  }, [toast.duration]);
+
+  return (
+    <div
+      className={`
+        relative overflow-hidden
+        flex items-start gap-3 p-4 rounded-xl border shadow-toast
+        ${style.bg} ${style.border}
+        transform transition-all duration-200 ease-spring
+        ${isExiting ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'}
+        animate-slide-in-right
+      `}
+      role="alert"
+      aria-live="polite"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Icon */}
+      <div className={`flex-shrink-0 mt-0.5 ${style.icon}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+          {toast.title}
+        </p>
+        {toast.message && (
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            {toast.message}
+          </p>
+        )}
+        {toast.action && (
+          <button
+            onClick={handleActionClick}
             className={`
-                flex items-start gap-3 p-4 rounded-lg border shadow-lg
-                ${style.bg} ${style.border}
-                animate-in slide-in-from-right-full duration-300
+              mt-2 text-sm font-medium
+              ${style.icon} hover:underline
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2
             `}
-            role="alert"
+          >
+            {toast.action.label}
+          </button>
+        )}
+      </div>
+
+      {/* Close Button */}
+      {toast.dismissible !== false && (
+        <button
+          onClick={handleRemove}
+          className={`
+            flex-shrink-0 p-1 -m-1 rounded-lg
+            text-gray-400 hover:text-gray-600 hover:bg-gray-100
+            dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-700
+            transition-colors duration-150
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500
+          `}
+          aria-label="Fechar notificação"
         >
-            <Icon className={`h-5 w-5 flex-shrink-0 ${style.icon}`} />
+          <X className="h-4 w-4" />
+        </button>
+      )}
 
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {toast.title}
-                </p>
-                {toast.message && (
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                        {toast.message}
-                    </p>
-                )}
-            </div>
-
-            <button
-                onClick={() => onRemove(toast.id)}
-                className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-            >
-                <X className="h-4 w-4" />
-            </button>
-        </div>
-    );
+      {/* Progress Bar */}
+      {toast.duration && toast.duration > 0 && (
+        <div
+          ref={progressRef}
+          className={`
+            absolute bottom-0 left-0 h-1 rounded-b-xl
+            ${style.progress} opacity-30
+            toast-progress-animate
+          `}
+          style={{
+            width: '100%',
+            transformOrigin: 'left',
+          }}
+        />
+      )}
+    </div>
+  );
 }
 
 export function ToastContainer() {
-    const { toasts, removeToast } = useToast();
+  const { toasts, removeToast, pauseToast, resumeToast } = useToast();
 
-    if (toasts.length === 0) return null;
+  if (toasts.length === 0) return null;
 
-    return (
-        <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
-            {toasts.map((toast) => (
-                <div key={toast.id} className="pointer-events-auto">
-                    <ToastItem toast={toast} onRemove={removeToast} />
-                </div>
-            ))}
+  return (
+    <div
+      className="fixed top-4 right-4 z-toast flex flex-col gap-3 max-w-sm w-full pointer-events-none"
+      aria-label="Notificações"
+    >
+      {toasts.map((toast) => (
+        <div key={toast.id} className="pointer-events-auto">
+          <ToastItem
+            toast={toast}
+            onRemove={removeToast}
+            onPause={pauseToast}
+            onResume={resumeToast}
+          />
         </div>
-    );
+      ))}
+    </div>
+  );
 }
 
 export default ToastContainer;

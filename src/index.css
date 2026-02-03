@@ -1,120 +1,471 @@
-/* Base styles for TEXLINK */
+/* ============================================
+   TEXLINK - Premium Design System
+   ============================================ */
+
+/* CSS Custom Properties */
 :root {
-    --brand-50: #f0f9ff;
-    --brand-100: #e0f2fe;
-    --brand-200: #bae6fd;
-    --brand-300: #7dd3fc;
-    --brand-400: #38bdf8;
-    --brand-500: #0ea5e9;
-    --brand-600: #0284c7;
-    --brand-700: #0369a1;
-    --brand-800: #075985;
-    --brand-900: #0c4a6e;
-    --brand-950: #082f49;
+  /* Brand color scale */
+  --brand-50: #f0f9ff;
+  --brand-100: #e0f2fe;
+  --brand-200: #bae6fd;
+  --brand-300: #7dd3fc;
+  --brand-400: #38bdf8;
+  --brand-500: #0ea5e9;
+  --brand-600: #0284c7;
+  --brand-700: #0369a1;
+  --brand-800: #075985;
+  --brand-900: #0c4a6e;
+  --brand-950: #082f49;
+
+  /* Premium shadows */
+  --shadow-premium: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+                    0 10px 15px -3px rgba(0, 0, 0, 0.08),
+                    0 20px 25px -5px rgba(0, 0, 0, 0.05);
+  --shadow-premium-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08),
+                          0 20px 30px -5px rgba(0, 0, 0, 0.12);
+
+  /* Gradient tokens */
+  --gradient-brand: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 100%);
+  --gradient-brand-subtle: linear-gradient(135deg, var(--brand-400) 0%, var(--brand-600) 100%);
+  --gradient-surface: linear-gradient(180deg, var(--brand-50) 0%, white 100%);
+  --gradient-surface-dark: linear-gradient(180deg, #1f2937 0%, #111827 100%);
 }
 
+/* Dark mode shadow adjustments */
+.dark {
+  --shadow-premium: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
+                    0 10px 15px -3px rgba(0, 0, 0, 0.3),
+                    0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  --shadow-premium-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.3),
+                          0 20px 30px -5px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 body {
-    margin: 0;
-    min-height: 100vh;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar - Light mode */
+/* ============================================
+   FOCUS STYLES - Accessibility
+   ============================================ */
+
+*:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ============================================
+   SCROLLBAR CUSTOMIZATION
+   ============================================ */
+
+/* Default scrollbar - Light mode */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #e5e7eb;
+  background: #f1f5f9;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #9ca3af;
-    border-radius: 4px;
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #6b7280;
+  background: #94a3b8;
 }
 
-/* Custom scrollbar - Dark mode */
+/* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-track,
 :root.dark ::-webkit-scrollbar-track {
-    background: var(--brand-900);
+  background: var(--brand-900);
 }
 
 .dark ::-webkit-scrollbar-thumb,
 :root.dark ::-webkit-scrollbar-thumb {
-    background: var(--brand-700);
+  background: var(--brand-700);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover,
 :root.dark ::-webkit-scrollbar-thumb:hover {
-    background: var(--brand-600);
+  background: var(--brand-600);
 }
 
-/* No scrollbar utility class */
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* No scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Kanban scrollbar - subtle horizontal scroll */
 .kanban-scroll::-webkit-scrollbar {
-    height: 6px;
+  height: 6px;
 }
 
 .kanban-scroll::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 .kanban-scroll::-webkit-scrollbar-thumb {
-    background: rgba(156, 163, 175, 0.4);
-    border-radius: 3px;
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 3px;
 }
 
 .kanban-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(156, 163, 175, 0.6);
+  background: rgba(156, 163, 175, 0.6);
 }
 
 .dark .kanban-scroll::-webkit-scrollbar-thumb {
-    background: rgba(100, 116, 139, 0.4);
+  background: rgba(100, 116, 139, 0.4);
 }
 
 .dark .kanban-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 116, 139, 0.6);
+  background: rgba(100, 116, 139, 0.6);
 }
 
-/* Focus styles */
-*:focus-visible {
-    outline: 2px solid var(--brand-500);
-    outline-offset: 2px;
-}
+/* ============================================
+   INPUT AUTOFILL STYLING
+   ============================================ */
 
-/* Input autofill styling */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-    -webkit-text-fill-color: white;
-    -webkit-box-shadow: 0 0 0px 1000px var(--brand-800) inset;
-    transition: background-color 5000s ease-in-out 0s;
+  -webkit-text-fill-color: white;
+  -webkit-box-shadow: 0 0 0px 1000px var(--brand-800) inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Light mode autofill */
 :not(.dark) input:-webkit-autofill,
 :not(.dark) input:-webkit-autofill:hover,
 :not(.dark) input:-webkit-autofill:focus {
-    -webkit-text-fill-color: #1f2937;
-    -webkit-box-shadow: 0 0 0px 1000px #f3f4f6 inset;
+  -webkit-text-fill-color: #1f2937;
+  -webkit-box-shadow: 0 0 0px 1000px #f3f4f6 inset;
 }
+
+/* ============================================
+   GLASS MORPHISM UTILITIES
+   ============================================ */
+
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-brand {
+  background: rgba(14, 165, 233, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+/* ============================================
+   GRADIENT UTILITIES
+   ============================================ */
+
+.gradient-brand {
+  background: var(--gradient-brand);
+}
+
+.gradient-brand-subtle {
+  background: var(--gradient-brand-subtle);
+}
+
+.gradient-surface {
+  background: var(--gradient-surface);
+}
+
+.dark .gradient-surface {
+  background: var(--gradient-surface-dark);
+}
+
+.gradient-text-brand {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   TOUCH FEEDBACK - Mobile
+   ============================================ */
+
+@media (hover: none) {
+  .touch-feedback {
+    -webkit-tap-highlight-color: rgba(14, 165, 233, 0.1);
+  }
+
+  .touch-feedback:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+    transition: transform 0.1s ease, opacity 0.1s ease;
+  }
+}
+
+/* ============================================
+   SKELETON LOADING ANIMATION
+   ============================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e5e7eb 0%,
+    #f3f4f6 50%,
+    #e5e7eb 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    #374151 0%,
+    #4b5563 50%,
+    #374151 100%
+  );
+  background-size: 200% 100%;
+}
+
+.skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ============================================
+   INTERACTIVE STATES - Premium Feel
+   ============================================ */
+
+/* Card hover lift effect */
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-premium-hover);
+}
+
+/* Button press effect */
+.press-scale {
+  transition: transform 0.1s ease;
+}
+
+.press-scale:active {
+  transform: scale(0.98);
+}
+
+/* Smooth color transitions */
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Spring timing function */
+.ease-spring {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================
+   ACCESSIBILITY - SKIP LINK
+   ============================================ */
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 0.75rem 1.5rem;
+  background: var(--brand-500);
+  color: white;
+  font-weight: 500;
+  border-radius: 0 0 0.5rem 0;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: none;
+}
+
+/* ============================================
+   PROGRESS BAR FOR TOASTS
+   ============================================ */
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.3;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.toast-progress-animate {
+  animation: progress-shrink linear forwards;
+}
+
+@keyframes progress-shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* ============================================
+   CHECKBOX ANIMATION
+   ============================================ */
+
+.checkbox-bounce {
+  animation: bounce-check 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bounce-check {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   MODAL BACKDROP
+   ============================================ */
+
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.dark .modal-backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* ============================================
+   SIDEBAR HOVER EFFECT
+   ============================================ */
+
+.sidebar-item-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-item-hover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-item-hover:hover::before {
+  opacity: 0.05;
+}
+
+.sidebar-item-hover:active::before {
+  opacity: 0.1;
+}
+
+/* ============================================
+   TOOLTIP STYLES
+   ============================================ */
+
+.tooltip-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+.tooltip-arrow-top {
+  bottom: -4px;
+  left: 50%;
+  margin-left: -4px;
+}
+
+.tooltip-arrow-bottom {
+  top: -4px;
+  left: 50%;
+  margin-left: -4px;
+}
+
+.tooltip-arrow-left {
+  right: -4px;
+  top: 50%;
+  margin-top: -4px;
+}
+
+.tooltip-arrow-right {
+  left: -4px;
+  top: 50%;
+  margin-top: -4px;
+}
+
+/* ============================================
+   Z-INDEX UTILITIES
+   ============================================ */
+
+.z-dropdown { z-index: 1000; }
+.z-modal { z-index: 1050; }
+.z-tooltip { z-index: 1070; }
+.z-toast { z-index: 9999; }
