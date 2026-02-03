@@ -19,6 +19,7 @@ import {
   SupportTicketStatus,
   SupportTicketCategory,
   SupportTicketPriority,
+  CompanyType,
 } from '@prisma/client';
 
 @Controller('support-tickets')
@@ -38,6 +39,7 @@ export class SupportTicketsController {
     @Query('category') category?: SupportTicketCategory,
     @Query('companyId') companyId?: string,
     @Query('assignedToId') assignedToId?: string,
+    @Query('companyType') companyType?: CompanyType,
   ) {
     return this.supportTicketsService.getAllTickets(
       status,
@@ -45,6 +47,7 @@ export class SupportTicketsController {
       category,
       companyId,
       assignedToId,
+      companyType,
     );
   }
 

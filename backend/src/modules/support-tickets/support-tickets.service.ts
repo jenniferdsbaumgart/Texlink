@@ -12,6 +12,7 @@ import {
   SupportTicketCategory,
   SupportTicketPriority,
   UserRole,
+  CompanyType,
 } from '@prisma/client';
 import {
   TICKET_CREATED,
@@ -341,6 +342,7 @@ export class SupportTicketsService {
     category?: SupportTicketCategory,
     companyId?: string,
     assignedToId?: string,
+    companyType?: CompanyType,
   ) {
     return this.prisma.supportTicket.findMany({
       where: {
@@ -349,11 +351,12 @@ export class SupportTicketsService {
         ...(category && { category }),
         ...(companyId && { companyId }),
         ...(assignedToId && { assignedToId }),
+        ...(companyType && { company: { type: companyType } }),
       },
       include: {
         createdBy: { select: { id: true, name: true } },
         assignedTo: { select: { id: true, name: true } },
-        company: { select: { id: true, tradeName: true } },
+        company: { select: { id: true, tradeName: true, type: true } },
         _count: { select: { messages: true } },
       },
       orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
