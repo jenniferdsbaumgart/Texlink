@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { CheckCheck, Loader2, Bell } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -35,6 +36,30 @@ export function NotificationDropdown({ isOpen, onClose, anchorRef }: Notificatio
         }
     }, [user?.role]);
 
+    // Calculate dropdown position based on anchor
+    const [position, setPosition] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        if (isOpen && anchorRef.current) {
+            const rect = anchorRef.current.getBoundingClientRect();
+            const dropdownWidth = 384; // w-96 = 24rem = 384px
+
+            // Calculate left position, ensuring it doesn't go off-screen
+            let left = rect.left;
+            if (left + dropdownWidth > window.innerWidth) {
+                left = window.innerWidth - dropdownWidth - 16; // 16px padding
+            }
+            if (left < 16) {
+                left = 16;
+            }
+
+            setPosition({
+                top: rect.bottom + 8, // 8px gap
+                left: left,
+            });
+        }
+    }, [isOpen, anchorRef]);
+
     // Handle click outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -67,10 +92,12 @@ export function NotificationDropdown({ isOpen, onClose, anchorRef }: Notificatio
 
     if (!isOpen) return null;
 
-    return (
+    // Use portal to render at body level, outside any stacking context
+    return createPortal(
         <div
             ref={dropdownRef}
-            className="absolute left-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-[9999] overflow-hidden"
+            style={{ top: position.top, left: position.left }}
+            className="fixed w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-[99999] overflow-hidden"
         >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -140,7 +167,8 @@ export function NotificationDropdown({ isOpen, onClose, anchorRef }: Notificatio
                     </button>
                 </div>
             )}
-        </div>
+        </div>,
+        document.body
     );
 }
 

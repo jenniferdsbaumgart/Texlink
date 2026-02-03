@@ -51,22 +51,17 @@ const ApprovalsPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-brand-950">
-            <header className="bg-brand-900/50 border-b border-brand-800 sticky top-0 z-10">
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center gap-4">
-                        <Link to="/admin" className="text-brand-400 hover:text-white">
-                            <ArrowLeft className="w-5 h-5" />
-                        </Link>
-                        <div>
-                            <h1 className="text-xl font-bold text-white">Aprovações Pendentes</h1>
-                            <p className="text-sm text-brand-400">{approvals.length} facções aguardando</p>
-                        </div>
+        <div className="animate-fade-in">
+            <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="flex items-center gap-4 mb-8">
+                    <Link to="/admin" className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-white dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.06] rounded-xl transition-all">
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Aprovações Pendentes</h1>
+                        <p className="text-gray-500 dark:text-gray-400">{approvals.length} facções aguardando revisão</p>
                     </div>
                 </div>
-            </header>
-
-            <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 {isLoading ? (
                     <div className="flex justify-center py-12">
                         <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
@@ -81,18 +76,18 @@ const ApprovalsPage: React.FC = () => {
                         {approvals.map((approval) => (
                             <div
                                 key={approval.id}
-                                className="bg-brand-900/50 border border-brand-800 rounded-2xl p-6"
+                                className="bg-white dark:bg-slate-900/50 border border-gray-200 dark:border-white/[0.06] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all"
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 bg-brand-800 rounded-xl flex items-center justify-center">
-                                            <Factory className="w-6 h-6 text-brand-400" />
+                                        <div className="w-12 h-12 bg-gray-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
+                                            <Factory className="w-6 h-6 text-sky-500 dark:text-sky-400" />
                                         </div>
                                         <div>
-                                            <h3 className="text-white font-semibold">{approval.tradeName || approval.legalName}</h3>
-                                            <p className="text-sm text-brand-400">{approval.document}</p>
+                                            <h3 className="text-gray-900 dark:text-white font-semibold">{approval.tradeName || approval.legalName}</h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{approval.document}</p>
 
-                                            <div className="flex flex-wrap gap-4 mt-3 text-sm text-brand-300">
+                                            <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
                                                 <span className="flex items-center gap-1">
                                                     <MapPin className="w-4 h-4" />
                                                     {approval.city}, {approval.state}
@@ -112,7 +107,7 @@ const ApprovalsPage: React.FC = () => {
                                                     {approval.supplierProfile.productTypes?.map((type) => (
                                                         <span
                                                             key={type}
-                                                            className="px-2 py-1 bg-brand-800 rounded-lg text-xs text-brand-300"
+                                                            className="px-2 py-1 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/[0.06]"
                                                         >
                                                             {type}
                                                         </span>

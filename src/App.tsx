@@ -59,7 +59,7 @@ const RelationshipDetailsPage = React.lazy(() => import('./pages/brand/suppliers
 const BrandHelpCenter = React.lazy(() => import('./pages/brand/HelpCenterPage'));
 const BrandTicketDetail = React.lazy(() => import('./pages/brand/TicketDetailPage'));
 
-// Admin pages
+const AdminLayout = React.lazy(() => import('./components/admin/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'));
 const AdminApprovals = React.lazy(() => import('./pages/admin/ApprovalsPage'));
 const AdminSuppliers = React.lazy(() => import('./pages/admin/SuppliersPage'));
@@ -81,7 +81,7 @@ const PerformancePage = React.lazy(() => import('./pages/portal/PerformancePage'
 const ReportsPage = React.lazy(() => import('./pages/portal/ReportsPage'));
 const DepositsPage = React.lazy(() => import('./pages/portal/financial/DepositsPage'));
 const DepositDetailPage = React.lazy(() => import('./pages/portal/financial/DepositDetailPage'));
-const BankDetailsPage = React.lazy(() => import('./pages/portal/financial/BankDetailsPage'));
+
 const PayoutFrequencyPage = React.lazy(() => import('./pages/portal/financial/PayoutFrequencyPage'));
 const AdvancePage = React.lazy(() => import('./pages/portal/financial/AdvancePage'));
 const SupplierBrandsPage = React.lazy(() => import('./pages/portal/BrandsPage'));
@@ -158,7 +158,7 @@ const App: React.FC = () => {
                                                 {/* Financeiro */}
                                                 <Route path="financeiro/depositos" element={<DepositsPage />} />
                                                 <Route path="financeiro/depositos/:id" element={<DepositDetailPage />} />
-                                                <Route path="financeiro/dados-bancarios" element={<BankDetailsPage />} />
+
                                                 <Route path="financeiro/frequencia" element={<PayoutFrequencyPage />} />
                                                 <Route path="financeiro/antecipacao" element={<AdvancePage />} />
                                                 {/* Configurações */}
@@ -219,17 +219,19 @@ const App: React.FC = () => {
                                             <Route path="/brand/suppliers" element={<Navigate to="/brand/faccoes" replace />} />
 
                                             {/* Admin routes */}
-                                            <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
-                                            <Route path="/admin/approvals" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminApprovals /></ProtectedRoute>} />
-                                            <Route path="/admin/suppliers" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminSuppliers /></ProtectedRoute>} />
-                                            <Route path="/admin/suppliers-pool" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminSuppliersPool /></ProtectedRoute>} />
-                                            <Route path="/admin/brands" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminBrands /></ProtectedRoute>} />
-                                            <Route path="/admin/orders" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminOrders /></ProtectedRoute>} />
-                                            <Route path="/admin/partners" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminPartners /></ProtectedRoute>} />
-                                            <Route path="/admin/educational-content" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminEducationalContent /></ProtectedRoute>} />
-                                            <Route path="/admin/support" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminSupportTickets /></ProtectedRoute>} />
-                                            <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDocuments /></ProtectedRoute>} />
-                                            <Route path="/admin/notificacoes" element={<ProtectedRoute allowedRoles={['ADMIN']}><NotificationsPage /></ProtectedRoute>} />
+                                            <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminLayout /></ProtectedRoute>}>
+                                                <Route index element={<AdminDashboard />} />
+                                                <Route path="approvals" element={<AdminApprovals />} />
+                                                <Route path="suppliers" element={<AdminSuppliers />} />
+                                                <Route path="suppliers-pool" element={<AdminSuppliersPool />} />
+                                                <Route path="brands" element={<AdminBrands />} />
+                                                <Route path="orders" element={<AdminOrders />} />
+                                                <Route path="partners" element={<AdminPartners />} />
+                                                <Route path="educational-content" element={<AdminEducationalContent />} />
+                                                <Route path="support" element={<AdminSupportTickets />} />
+                                                <Route path="documents" element={<AdminDocuments />} />
+                                                <Route path="notificacoes" element={<NotificationsPage />} />
+                                            </Route>
 
                                             {/* Error pages */}
                                             <Route path="/500" element={<ServerErrorPage />} />

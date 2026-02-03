@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ordersService, Order as ApiOrder, OrderStatus as ApiOrderStatus } from '../../services';
 import { Order, OrderStatus } from '../../types';
-import { DashboardHeader } from '../../components/kanban/DashboardHeader';
+
 import { OrderCard } from '../../components/kanban/OrderCard';
 import { OrderDetailModal } from '../../components/kanban/OrderDetailModal';
 import { StatsOverview } from '../../components/kanban/StatsOverview';
 import { OrderListView } from '../../components/kanban/OrderListView';
-import { Filter, LayoutGrid, List, Loader2, Plus } from 'lucide-react';
+import { Filter, LayoutGrid, List, Loader2, Plus, Search } from 'lucide-react';
 
 // Status mapping from API to Kanban UI (Brand perspective)
 const STATUS_MAP: Record<ApiOrderStatus, OrderStatus> = {
@@ -219,34 +219,36 @@ const BrandKanbanDashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col font-sans text-gray-900 dark:text-gray-100">
-            <DashboardHeader
-                toggleMobileMenu={() => { }}
-                darkMode={darkMode}
-                toggleDarkMode={toggleDarkMode}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                profile={brandProfile}
-            />
-
             <main className="flex-1 overflow-hidden flex flex-col relative">
                 <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6 lg:px-8 shadow-sm z-30">
                     <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {/* Search Bar */}
+                            <div className="relative flex-1 max-w-md">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Buscar pedido, facção ou ref..."
+                                    className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                                />
+                            </div>
                             <div ref={filterMenuRef} className="relative shrink-0">
                                 <button
                                     onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-700 border border-transparent hover:bg-gray-200"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-700 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
                                 >
                                     <Filter className="h-4 w-4" /> Filtros
                                     {activeFiltersCount > 0 && <span className="ml-1 bg-brand-600 text-white text-[10px] px-1.5 rounded-full">{activeFiltersCount}</span>}
                                 </button>
                             </div>
-                            <span className="text-sm text-gray-500 dark:text-gray-400"><strong>{filteredOrders.length}</strong> pedidos</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block"><strong>{filteredOrders.length}</strong> pedidos</span>
                         </div>
 
                         <div className="flex items-center gap-3">
                             <Link
-                                to="/brand/orders/new"
+                                to="/brand/pedidos/novo"
                                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white text-sm font-medium rounded-lg transition-all shadow-sm"
                             >
                                 <Plus className="h-4 w-4" />

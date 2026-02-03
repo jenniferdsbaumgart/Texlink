@@ -38,7 +38,7 @@ const NotificationToggle: React.FC<NotificationToggleProps> = ({
     onEmailChange,
     onWhatsappChange,
 }) => (
-    <div className="flex items-center justify-between py-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
+    <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
         <div className="flex items-center gap-3">
             <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
                 {icon}
@@ -218,7 +218,7 @@ const NotificationsSection: React.FC = () => {
 
                 {/* Notification Types */}
                 <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between px-1 mb-4">
                         <h3 className="font-medium text-gray-900 dark:text-white">Tipos de Notificação</h3>
                         <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                             <span className="flex items-center gap-1">

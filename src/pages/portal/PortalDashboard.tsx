@@ -1,10 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { portalService, PortalSummary } from '../../services/portal.service';
+import { portalService, PortalSummary, RevenueHistoryItem, PerformanceData } from '../../services/portal.service';
+import { settingsService } from '../../services/settings.service';
 import { onboardingService, SupplierProfile } from '../../services/onboarding.service';
-import { MetricCard } from '../../components/shared/MetricCard';
+import { BankAccount } from '../../types';
 import { AlertBanner } from '../../components/shared/AlertBanner';
+import {
+    DashboardShell,
+    HeroMetrics,
+    MetricCard,
+    ChartCard,
+    AreaChartRevenue,
+    DonutChartStatus,
+    RecentOrdersTable,
+    QuickActionsGrid,
+    getGreeting,
+    DashboardFooter,
+} from '../../components/dashboard';
+import type { OrderTableItem, QuickActionItem } from '../../components/dashboard';
 import {
     Package,
     Clock,
@@ -17,7 +31,8 @@ import {
     Loader2,
     CheckCircle,
     CheckCircle2,
-    Circle
+    TrendingUp,
+    FolderOpen,
 } from 'lucide-react';
 
 const PortalDashboard: React.FC = () => {
@@ -25,6 +40,9 @@ const PortalDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [summary, setSummary] = useState<PortalSummary | null>(null);
     const [profile, setProfile] = useState<SupplierProfile | null>(null);
+    const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
+    const [revenueHistory, setRevenueHistory] = useState<RevenueHistoryItem[]>([]);
+    const [performance, setPerformance] = useState<PerformanceData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
@@ -35,12 +53,18 @@ const PortalDashboard: React.FC = () => {
     const loadSummary = async () => {
         try {
             setIsLoading(true);
-            const [summaryData, profileData] = await Promise.all([
+            const [summaryData, profileData, bankData, revenueData, perfData] = await Promise.all([
                 portalService.getSummary(),
                 onboardingService.getProfile().catch(() => null),
+                settingsService.getBankAccount().catch(() => null),
+                portalService.getRevenueHistory(6).catch(() => []),
+                portalService.getPerformance().catch(() => null),
             ]);
             setSummary(summaryData);
             setProfile(profileData);
+            setBankAccount(bankData);
+            setRevenueHistory(revenueData);
+            setPerformance(perfData);
         } catch (error) {
             console.error('Error loading portal data:', error);
         } finally {
@@ -55,42 +79,170 @@ const PortalDashboard: React.FC = () => {
 
     const visibleAlerts = summary?.alerts.filter(a => !dismissedAlerts.includes(a.id)) || [];
 
+    // Memoized chart data from real API
+    const revenueData = useMemo(() => {
+        if (revenueHistory.length === 0) {
+            // Return empty placeholder if no data
+            return [];
+        }
+        return revenueHistory.map((item) => ({
+            name: item.month,
+            value: item.revenue,
+            previousValue: 0, // We don't have previous period data yet
+        }));
+    }, [revenueHistory]);
+
+    const statusData = useMemo(() => {
+        // Use performance data if available, otherwise use summary data
+        if (performance?.byStatus && performance.byStatus.length > 0) {
+            const colorMap: Record<string, string> = {
+                'Concluído': '#10b981',
+                'Em Produção': '#8b5cf6',
+                'Aceito': '#3b82f6',
+                'Aguardando': '#f59e0b',
+                'Recusado': '#ef4444',
+                'Pronto': '#06b6d4',
+                'Em Trânsito': '#6366f1',
+            };
+            return performance.byStatus.map((item) => ({
+                name: item.status,
+                value: item.count,
+                color: colorMap[item.status] || '#6b7280',
+            }));
+        }
+        // Fallback to summary data
+        return [
+            { name: 'Em Produção', value: summary?.activeOrders || 0, color: '#8b5cf6' },
+            { name: 'Aguardando', value: summary?.pendingAccept || 0, color: '#f59e0b' },
+            { name: 'Entregas', value: summary?.upcomingDeliveries || 0, color: '#3b82f6' },
+        ];
+    }, [summary, performance]);
+
+    // Check if bank data is complete based on settings
+    const isBankDataComplete = useMemo(() => {
+        if (!bankAccount) return false;
+        return !!(
+            bankAccount.bankCode &&
+            bankAccount.agency &&
+            bankAccount.accountNumber &&
+            bankAccount.accountHolder
+        );
+    }, [bankAccount]);
+
+    const generateSparklineData = (baseValue: number, variance = 0.3) => {
+        return Array.from({ length: 7 }, () =>
+            Math.max(0, baseValue * (1 + (Math.random() - 0.5) * variance))
+        );
+    };
+
+    // Quick actions configuration
+    const quickActions: QuickActionItem[] = [
+        {
+            id: 'orders',
+            label: 'Ver Pedidos',
+            description: 'Gerenciar pedidos ativos',
+            icon: <Package className="h-6 w-6" />,
+            href: '/portal/pedidos',
+            color: 'brand',
+            badge: summary?.activeOrders,
+        },
+        {
+            id: 'bank',
+            label: 'Dados Bancários',
+            description: 'Configurar conta para repasse',
+            icon: <Wallet className="h-6 w-6" />,
+            href: '/portal/configuracoes',
+            color: 'green',
+        },
+        {
+            id: 'deposits',
+            label: 'Ver Depósitos',
+            description: 'Histórico de pagamentos',
+            icon: <DollarSign className="h-6 w-6" />,
+            href: '/portal/financeiro/depositos',
+            color: 'purple',
+        },
+        {
+            id: 'performance',
+            label: 'Ver Desempenho',
+            description: 'Métricas e estatísticas',
+            icon: <BarChart3 className="h-6 w-6" />,
+            href: '/portal/desempenho',
+            color: 'blue',
+        },
+    ];
+
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-            </div>
+            <DashboardShell>
+                <div className="min-h-[60vh] flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+                </div>
+            </DashboardShell>
         );
     }
 
+    const firstName = user?.name?.split(' ')[0] || 'Parceiro';
+    const totalStatusOrders = statusData.reduce((sum, item) => sum + item.value, 0);
+
     return (
-        <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Olá, {user?.name?.split(' ')[0] || 'Parceiro'}! 👋
-                </h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">
-                    Aqui está o resumo da sua operação
-                </p>
-            </div>
+        <DashboardShell>
+            {/* Hero Section with Metrics */}
+            <HeroMetrics
+                greeting={`${getGreeting()}, ${firstName}`}
+                subtitle="Aqui está o resumo da sua operação"
+            >
+                <MetricCard
+                    icon={<Package className="h-6 w-6" />}
+                    label="Pedidos Ativos"
+                    value={summary?.activeOrders || 0}
+                    color="brand"
+                    sparklineData={generateSparklineData(summary?.activeOrders || 5)}
+                    onClick={() => navigate('/portal/pedidos')}
+                />
+                <MetricCard
+                    icon={<Clock className="h-6 w-6" />}
+                    label="Aguardando Aceite"
+                    value={summary?.pendingAccept || 0}
+                    color="amber"
+                    sparklineData={generateSparklineData(summary?.pendingAccept || 3)}
+                    onClick={() => navigate('/portal/pedidos?status=pending')}
+                />
+                <MetricCard
+                    icon={<Truck className="h-6 w-6" />}
+                    label="Entregas Próximas"
+                    value={summary?.upcomingDeliveries || 0}
+                    color="blue"
+                    sparklineData={generateSparklineData(summary?.upcomingDeliveries || 2)}
+                    onClick={() => navigate('/portal/pedidos?status=delivery')}
+                />
+                <MetricCard
+                    icon={summary?.pendingDocuments ? <FileWarning className="h-6 w-6" /> : <CheckCircle className="h-6 w-6" />}
+                    label="Documentos Pendentes"
+                    value={summary?.pendingDocuments || 0}
+                    color={summary?.pendingDocuments ? 'red' : 'green'}
+                    sparklineData={generateSparklineData(summary?.pendingDocuments || 0)}
+                />
+            </HeroMetrics>
 
             {/* Onboarding Progress Card */}
             {profile && !profile.onboardingComplete && (
-                <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 mb-8 text-white">
-                    <div className="flex items-start justify-between">
+                <div className="relative overflow-hidden bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 text-white dashboard-section">
+                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                    <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-orange-300/20 rounded-full blur-2xl" />
+
+                    <div className="relative z-10 flex items-start justify-between">
                         <div className="flex-1">
                             <h3 className="text-lg font-semibold mb-2">Complete seu cadastro</h3>
                             <p className="text-amber-100 text-sm mb-4">
                                 Finalize as etapas para receber pedidos na plataforma.
                             </p>
-                            {/* Progress Steps */}
                             <div className="flex items-center gap-3 mb-4">
                                 {[1, 2, 3].map((step) => (
                                     <div key={step} className="flex items-center gap-2">
                                         <div
-                                            className={`w-8 h-8 rounded-full flex items-center justify-center ${step < (profile.onboardingPhase || 1) + 1
-                                                ? 'bg-white text-amber-600'
+                                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${step < (profile.onboardingPhase || 1) + 1
+                                                ? 'bg-white text-amber-600 shadow-lg shadow-amber-600/20'
                                                 : step === (profile.onboardingPhase || 1) + 1
                                                     ? 'bg-white/30 text-white ring-2 ring-white'
                                                     : 'bg-white/20 text-white/60'
@@ -103,7 +255,7 @@ const PortalDashboard: React.FC = () => {
                                             )}
                                         </div>
                                         {step < 3 && (
-                                            <div className={`w-8 h-0.5 ${step < (profile.onboardingPhase || 1) + 1 ? 'bg-white' : 'bg-white/30'}`} />
+                                            <div className={`w-8 h-0.5 transition-all ${step < (profile.onboardingPhase || 1) + 1 ? 'bg-white' : 'bg-white/30'}`} />
                                         )}
                                     </div>
                                 ))}
@@ -111,7 +263,7 @@ const PortalDashboard: React.FC = () => {
                             <div className="flex gap-2">
                                 <Link
                                     to={`/onboarding/phase${Math.min((profile.onboardingPhase || 1) + 1, 3)}`}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white text-amber-600 rounded-lg font-medium hover:bg-amber-50 transition-colors"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white text-amber-600 rounded-lg font-medium hover:bg-amber-50 transition-all hover:-translate-y-0.5 shadow-lg shadow-amber-600/20"
                                 >
                                     Continuar cadastro
                                     <ArrowRight className="h-4 w-4" />
@@ -141,7 +293,7 @@ const PortalDashboard: React.FC = () => {
 
             {/* Alerts */}
             {visibleAlerts.length > 0 && (
-                <div className="space-y-3 mb-8">
+                <div className="space-y-3 dashboard-section">
                     {visibleAlerts.map(alert => (
                         <AlertBanner
                             key={alert.id}
@@ -156,120 +308,72 @@ const PortalDashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Status Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <MetricCard
-                    title="Pedidos Ativos"
-                    value={summary?.activeOrders || 0}
-                    icon={Package}
-                    iconColor="brand"
-                    onClick={() => navigate('/portal/pedidos')}
-                />
-                <MetricCard
-                    title="Aguardando Aceite"
-                    value={summary?.pendingAccept || 0}
-                    icon={Clock}
-                    iconColor="yellow"
-                    onClick={() => navigate('/portal/pedidos?status=pending')}
-                />
-                <MetricCard
-                    title="Entregas Próximas"
-                    value={summary?.upcomingDeliveries || 0}
-                    subtitle="Próximos 7 dias"
-                    icon={Truck}
-                    iconColor="blue"
-                    onClick={() => navigate('/portal/pedidos?status=delivery')}
-                />
-                <MetricCard
-                    title="Documentos Pendentes"
-                    value={summary?.pendingDocuments || 0}
-                    icon={summary?.pendingDocuments ? FileWarning : CheckCircle}
-                    iconColor={summary?.pendingDocuments ? 'red' : 'green'}
-                />
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ChartCard
+                    title="Receita Mensal"
+                    subtitle="Últimos 6 meses"
+                    showPeriodSelector={false}
+                >
+                    <AreaChartRevenue
+                        data={revenueData}
+                        showComparison={true}
+                        color="#0ea5e9"
+                        comparisonColor="#8b5cf6"
+                    />
+                </ChartCard>
+
+                <ChartCard
+                    title="Distribuição de Pedidos"
+                    subtitle="Por status"
+                    showPeriodSelector={false}
+                    minHeight="320px"
+                >
+                    <DonutChartStatus
+                        data={statusData}
+                        centerValue={totalStatusOrders}
+                        centerLabel="Total"
+                    />
+                </ChartCard>
             </div>
 
             {/* Quick Actions */}
-            <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Ações Rápidas
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <Link
-                        to="/portal/pedidos"
-                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-md transition-all group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-brand-100 dark:bg-brand-900/30 rounded-lg">
-                                <Package className="h-5 w-5 text-brand-600 dark:text-brand-400" />
-                            </div>
-                            <span className="font-medium text-gray-900 dark:text-white">Ver Pedidos</span>
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-brand-500 transition-colors" />
-                    </Link>
-
-                    <Link
-                        to="/portal/financeiro/dados-bancarios"
-                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-md transition-all group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                                <Wallet className="h-5 w-5 text-green-600 dark:text-green-400" />
-                            </div>
-                            <span className="font-medium text-gray-900 dark:text-white">Dados Bancários</span>
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-brand-500 transition-colors" />
-                    </Link>
-
-                    <Link
-                        to="/portal/financeiro/depositos"
-                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-md transition-all group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                                <DollarSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <span className="font-medium text-gray-900 dark:text-white">Ver Depósitos</span>
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-brand-500 transition-colors" />
-                    </Link>
-
-                    <Link
-                        to="/portal/desempenho"
-                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:shadow-md transition-all group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <span className="font-medium text-gray-900 dark:text-white">Ver Desempenho</span>
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-brand-500 transition-colors" />
-                    </Link>
-                </div>
-            </div>
+            <QuickActionsGrid
+                title="Ações Rápidas"
+                actions={quickActions}
+                columns={4}
+            />
 
             {/* Bank Data Status */}
-            {!summary?.bankDataComplete && (
-                <div className="bg-gradient-to-r from-brand-500 to-brand-600 rounded-2xl p-6 text-white">
-                    <div className="flex items-start justify-between">
+            {!isBankDataComplete && (
+                <div className="relative overflow-hidden bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl p-6 text-white dashboard-section">
+                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                    <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-blue-300/20 rounded-full blur-2xl" />
+
+                    <div className="relative z-10 flex items-start justify-between">
                         <div>
                             <h3 className="text-lg font-semibold mb-2">Configure seus dados bancários</h3>
-                            <p className="text-brand-100 text-sm mb-4">
+                            <p className="text-sky-100 text-sm mb-4">
                                 Para receber os repasses dos pedidos, você precisa cadastrar suas informações bancárias.
                             </p>
                             <Link
-                                to="/portal/financeiro/dados-bancarios"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-brand-600 rounded-lg font-medium hover:bg-brand-50 transition-colors"
+                                to="/portal/configuracoes"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-sky-600 rounded-lg font-medium hover:bg-sky-50 transition-all hover:-translate-y-0.5 shadow-lg shadow-sky-700/20"
                             >
                                 Configurar agora
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
                         </div>
-                        <Wallet className="h-16 w-16 text-brand-300 opacity-50" />
+                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                            <Wallet className="h-8 w-8 text-white" />
+                        </div>
                     </div>
                 </div>
             )}
-        </div>
+
+            {/* Footer */}
+            <DashboardFooter variant="portal" />
+        </DashboardShell>
     );
 };
 

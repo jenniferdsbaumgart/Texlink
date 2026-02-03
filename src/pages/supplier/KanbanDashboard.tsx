@@ -2,13 +2,13 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ordersService, suppliersService, ratingsService, Order as ApiOrder, OrderStatus as ApiOrderStatus, SupplierDashboard, PendingRating } from '../../services';
 import { Order, OrderStatus } from '../../types';
-import { DashboardHeader } from '../../components/kanban/DashboardHeader';
+
 import { OrderCard } from '../../components/kanban/OrderCard';
 import { OrderDetailModal } from '../../components/kanban/OrderDetailModal';
 import { StatsOverview } from '../../components/kanban/StatsOverview';
 import { OrderListView } from '../../components/kanban/OrderListView';
 import { RatingModal } from '../../components/ratings/RatingModal';
-import { Filter, LayoutGrid, List, Loader2 } from 'lucide-react';
+import { Filter, LayoutGrid, List, Loader2, Search } from 'lucide-react';
 
 // Status mapping from API to Kanban UI
 const STATUS_MAP: Record<ApiOrderStatus, OrderStatus> = {
@@ -266,29 +266,31 @@ const SupplierKanbanDashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col font-sans text-gray-900 dark:text-gray-100">
-            <DashboardHeader
-                toggleMobileMenu={() => { }}
-                darkMode={darkMode}
-                toggleDarkMode={toggleDarkMode}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                profile={headerProfile}
-            />
-
             <main className="flex-1 overflow-hidden flex flex-col relative">
                 <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6 lg:px-8 shadow-sm z-30">
                     <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {/* Search Bar */}
+                            <div className="relative flex-1 max-w-md">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Buscar pedido, marca ou ref..."
+                                    className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                                />
+                            </div>
                             <div ref={filterMenuRef} className="relative shrink-0">
                                 <button
                                     onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-700 border border-transparent hover:bg-gray-200"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 dark:bg-gray-700 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
                                 >
                                     <Filter className="h-4 w-4" /> Filtros
                                     {activeFiltersCount > 0 && <span className="ml-1 bg-brand-600 text-white text-[10px] px-1.5 rounded-full">{activeFiltersCount}</span>}
                                 </button>
                             </div>
-                            <span className="text-sm text-gray-500 dark:text-gray-400"><strong>{filteredOrders.length}</strong> pedidos</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block"><strong>{filteredOrders.length}</strong> pedidos</span>
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -309,7 +311,7 @@ const SupplierKanbanDashboard: React.FC = () => {
                                     {STATUS_COLUMNS.map(col => (
                                         <div
                                             key={col.id}
-                                            className="min-w-[400px] w-[400px] flex flex-col h-full bg-gray-100/50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-700 flex-shrink-0"
+                                            className="min-w-[300px] w-[300px] flex flex-col h-full bg-gray-100/50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-700 flex-shrink-0"
                                         >
                                             <div className="p-3 rounded-t-xl border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex justify-between items-center sticky top-0 z-10">
                                                 <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-200">{col.label}</h3>

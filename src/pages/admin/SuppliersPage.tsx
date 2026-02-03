@@ -53,38 +53,30 @@ const SuppliersPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-brand-950">
-            <header className="bg-brand-900/50 border-b border-brand-800 sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Link to="/admin" className="text-brand-400 hover:text-white">
-                                <ArrowLeft className="w-5 h-5" />
-                            </Link>
-                            <div>
-                                <h1 className="text-xl font-bold text-white">Facções</h1>
-                                <p className="text-sm text-brand-400">{suppliers.length} cadastradas</p>
-                            </div>
-                        </div>
+        <div className="animate-fade-in">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Facções</h1>
+                        <p className="text-gray-500 dark:text-gray-400">{suppliers.length} facções cadastradas no sistema</p>
+                    </div>
 
-                        <div className="relative">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400" />
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:flex-none">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <select
                                 value={filter}
                                 onChange={(e) => setFilter(e.target.value)}
-                                className="pl-11 pr-8 py-2 bg-brand-800 border border-brand-700 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                className="pl-10 pr-8 py-2 w-full sm:w-auto bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/[0.06] rounded-xl text-gray-700 dark:text-gray-200 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
                             >
-                                <option value="">Todos</option>
-                                <option value="ACTIVE">Ativas</option>
-                                <option value="PENDING">Pendentes</option>
-                                <option value="SUSPENDED">Suspensas</option>
+                                <option value="">Todos os status</option>
+                                <option value="ACTIVE">Somente Ativas</option>
+                                <option value="PENDING">Somente Pendentes</option>
+                                <option value="SUSPENDED">Somente Suspensas</option>
                             </select>
                         </div>
                     </div>
                 </div>
-            </header>
-
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 {isLoading ? (
                     <div className="flex justify-center py-12">
                         <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
@@ -99,28 +91,28 @@ const SuppliersPage: React.FC = () => {
                         {suppliers.map((supplier) => (
                             <div
                                 key={supplier.id}
-                                className="bg-brand-900/50 border border-brand-800 rounded-2xl p-5"
+                                className="bg-white dark:bg-slate-900/50 border border-gray-200 dark:border-white/[0.06] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-brand-800 rounded-xl flex items-center justify-center">
-                                            <Factory className="w-5 h-5 text-brand-400" />
+                                        <div className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <Factory className="w-5 h-5 text-sky-500 dark:text-sky-400" />
                                         </div>
                                         <div>
-                                            <h3 className="text-white font-medium">{supplier.tradeName || supplier.legalName}</h3>
-                                            <p className="text-xs text-brand-400">{supplier.city}, {supplier.state}</p>
+                                            <h3 className="text-gray-900 dark:text-white font-medium">{supplier.tradeName || supplier.legalName}</h3>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{supplier.city}, {supplier.state}</p>
                                         </div>
                                     </div>
                                     <StatusBadge status={supplier.status} />
                                 </div>
 
-                                <div className="flex items-center gap-4 text-sm text-brand-300 mb-4">
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
                                     <span className="flex items-center gap-1">
-                                        <Star className="w-4 h-4 text-amber-400" />
-                                        {supplier.avgRating?.toFixed(1) || 'N/A'}
+                                        <Star className="w-4 h-4 text-amber-500" />
+                                        <span className="font-medium text-gray-900 dark:text-white">{supplier.avgRating?.toFixed(1) || 'N/A'}</span>
                                     </span>
                                     <span className="flex items-center gap-1">
-                                        <Package className="w-4 h-4" />
+                                        <Package className="w-4 h-4 text-sky-500" />
                                         {supplier._count?.ordersAsSupplier || 0} pedidos
                                     </span>
                                 </div>
@@ -130,7 +122,7 @@ const SuppliersPage: React.FC = () => {
                                         {supplier.supplierProfile.productTypes.slice(0, 3).map((type) => (
                                             <span
                                                 key={type}
-                                                className="px-2 py-0.5 bg-brand-800 rounded text-xs text-brand-300"
+                                                className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-white/[0.06] rounded text-[10px] font-medium text-gray-600 dark:text-gray-400"
                                             >
                                                 {type}
                                             </span>

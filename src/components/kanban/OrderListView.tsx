@@ -192,10 +192,10 @@ export const OrderListView: React.FC<OrderListViewProps> = ({ orders, onOrderCli
 
   const renderHeader = (label: string, sortKey: SortKey, width?: string) => (
     <th
-      className={`px-6 py-4 cursor-pointer group/th hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none ${width || ''}`}
+      className={`px-3 py-2 cursor-pointer group/th hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none ${width || ''}`}
       onClick={() => handleSort(sortKey)}
     >
-      <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+      <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
         {label}
         <SortIcon
           active={sortConfig?.key === sortKey}
@@ -208,16 +208,16 @@ export const OrderListView: React.FC<OrderListViewProps> = ({ orders, onOrderCli
   return (
     <>
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col h-full transition-colors relative">
-        <div className="overflow-x-auto custom-scrollbar flex-1 pb-16">
+        <div className="overflow-x-auto custom-scrollbar flex-1">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 text-xs uppercase tracking-wider font-semibold">
-                <th className="px-6 py-4 w-10">
+              <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 text-[10px] uppercase tracking-wider font-semibold">
+                <th className="px-3 py-2 w-10">
                   <button onClick={handleSelectAll} className="flex items-center text-gray-400 hover:text-brand-600">
                     {selectedOrderIds.size === orders.length && orders.length > 0 ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
                   </button>
                 </th>
-                {renderHeader('ID', 'id', 'w-24')}
+                {renderHeader('ID', 'id', 'w-32')}
                 {renderHeader('Marca', 'brand')}
                 {renderHeader('Produto', 'product')}
                 {renderHeader('OP', 'op')}
@@ -226,7 +226,7 @@ export const OrderListView: React.FC<OrderListViewProps> = ({ orders, onOrderCli
                 {renderHeader('Status', 'status')}
                 {renderHeader('$', 'payment')}
                 {renderHeader('Prazo', 'deadline')}
-                <th className="px-6 py-4 text-right text-gray-500 dark:text-gray-400">Ações</th>
+                <th className="px-3 py-2 text-right text-[10px] text-gray-500 dark:text-gray-400">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -241,19 +241,19 @@ export const OrderListView: React.FC<OrderListViewProps> = ({ orders, onOrderCli
                     onClick={() => onOrderClick(order)}
                     className={`hover:bg-brand-50/30 dark:hover:bg-brand-900/20 transition-colors cursor-pointer group ${isSelected ? 'bg-brand-50/50 dark:bg-brand-900/30' : ''}`}
                   >
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                       <button onClick={(e) => handleSelectOrder(e, order.id)} className={`text-gray-300 hover:text-brand-600 ${isSelected ? 'text-brand-600' : ''}`}>
                         {isSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
                       </button>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs group-hover:text-brand-600 dark:group-hover:text-brand-300 group-hover:bg-brand-100 dark:group-hover:bg-brand-900/50 transition-colors">
+                    <td className="px-3 py-2">
+                      <span className="font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-[10px] group-hover:text-brand-600 dark:group-hover:text-brand-300 group-hover:bg-brand-100 dark:group-hover:bg-brand-900/50 transition-colors whitespace-nowrap">
                         {order.displayId}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img src={order.brand.image} alt="" className="h-8 w-8 rounded-full border border-gray-200 dark:border-gray-600" />
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <img src={order.brand.image} alt="" className="h-6 w-6 rounded-full border border-gray-200 dark:border-gray-600" />
 
                         {/* Brand Info with Portal Tooltip Trigger */}
                         <div
@@ -261,64 +261,64 @@ export const OrderListView: React.FC<OrderListViewProps> = ({ orders, onOrderCli
                           onMouseLeave={handleBrandMouseLeave}
                           className="relative"
                         >
-                          <div className="font-medium text-gray-900 dark:text-white text-sm">{order.brand.name}</div>
-                          <div className="text-xs text-gray-400 dark:text-gray-500">{order.brand.location}</div>
+                          <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight">{order.brand.name}</div>
+                          <div className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight">{order.brand.location}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-800 dark:text-gray-200 text-sm">{order.productName}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{order.type}</div>
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-gray-800 dark:text-gray-200 text-xs leading-tight">{order.productName}</div>
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0">{order.type}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2">
                       {order.op ? (
-                        <span className="inline-flex items-center text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 px-2 py-0.5 rounded">
+                        <span className="inline-flex items-center text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 px-1.5 py-0 rounded">
                           {order.op}
                         </span>
                       ) : (
-                        <span className="text-gray-400 dark:text-gray-600">-</span>
+                        <span className="text-gray-400 dark:text-gray-600 text-[10px]">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2">
                       {order.artigo ? (
-                        <span className="inline-flex items-center text-xs font-medium bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50 px-2 py-0.5 rounded">
+                        <span className="inline-flex items-center text-[10px] font-medium bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50 px-1.5 py-0 rounded">
                           {order.artigo}
                         </span>
                       ) : (
-                        <span className="text-gray-400 dark:text-gray-600">-</span>
+                        <span className="text-gray-400 dark:text-gray-600 text-[10px]">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-semibold text-gray-900 dark:text-white">{order.quantity} <span className="text-gray-400 dark:text-gray-500 font-normal">pçs</span></div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">R$ {order.totalValue.toLocaleString('pt-BR')}</div>
+                    <td className="px-3 py-2">
+                      <div className="text-xs font-semibold text-gray-900 dark:text-white">{order.quantity} <span className="text-gray-400 dark:text-gray-500 font-normal">pçs</span></div>
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">R$ {order.totalValue.toLocaleString('pt-BR')}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(order.status)}`}>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex items-center px-1.5 py-0 rounded-full text-[10px] font-medium border ${getStatusBadge(order.status)}`}>
                         {getStatusLabel(order.status)}
                       </span>
                       {order.waitingReason && (order.status === OrderStatus.PREPARING_BRAND || order.status === OrderStatus.TRANSIT_TO_SUPPLIER) && (
-                        <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 max-w-[120px] truncate" title={order.waitingReason}>
+                        <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 max-w-[120px] truncate" title={order.waitingReason}>
                           ⚠️ {order.waitingReason}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2">
                       {getPaymentStatusIcon(order.paymentStatus)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                        <span className="text-xs font-medium text-gray-900 dark:text-gray-200 leading-tight">
                           {new Date(order.deliveryDeadline).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                         </span>
-                        <div className={`flex items-center gap-1 text-[10px] mt-1 font-medium ${urgency.color}`}>
-                          <UrgencyIcon className="h-3 w-3" />
+                        <div className={`flex items-center gap-1 text-[10px] mt-0.5 font-medium ${urgency.color}`}>
+                          <UrgencyIcon className="h-2 w-2" />
                           {urgency.text}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="text-gray-400 dark:text-gray-500 hover:text-brand-600 dark:hover:text-brand-400 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-                        <ArrowUpRight className="h-4 w-4" />
+                    <td className="px-3 py-2 text-right">
+                      <button className="text-gray-400 dark:text-gray-500 hover:text-brand-600 dark:hover:text-brand-400 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                        <ArrowUpRight className="h-3 w-3" />
                       </button>
                     </td>
                   </tr>
@@ -329,7 +329,7 @@ export const OrderListView: React.FC<OrderListViewProps> = ({ orders, onOrderCli
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+        <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2 flex justify-between items-center text-[10px] text-gray-500 dark:text-gray-400">
           <span>Mostrando {orders.length} pedidos</span>
           <div className="flex gap-2">
             <button className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 text-gray-700 dark:text-gray-200">Anterior</button>

@@ -30,6 +30,12 @@ export interface PerformanceData {
     byBrand: { brand: string; count: number; value: number }[];
 }
 
+export interface RevenueHistoryItem {
+    month: string;
+    revenue: number;
+    orders: number;
+}
+
 export interface ReportFilters {
     startDate?: string;
     endDate?: string;
@@ -59,7 +65,7 @@ const generateMockSummary = (): PortalSummary => ({
             title: 'Complete seus dados bancários',
             message: 'Para receber repasses, preencha suas informações bancárias.',
             actionLabel: 'Atualizar dados',
-            actionPath: '/portal/financeiro/dados-bancarios',
+            actionPath: '/portal/configuracoes',
         },
         {
             id: '2',
@@ -176,6 +182,18 @@ export const portalService = {
             await api.post(`/portal/alerts/${alertId}/dismiss`);
         } catch {
             // Silently fail in mock mode
+        }
+    },
+
+    async getRevenueHistory(months = 6): Promise<RevenueHistoryItem[]> {
+        try {
+            const response = await api.get<RevenueHistoryItem[]>('/portal/revenue-history', {
+                params: { months },
+            });
+            return response.data;
+        } catch {
+            // Return empty array - charts will show "no data" state
+            return [];
         }
     },
 };

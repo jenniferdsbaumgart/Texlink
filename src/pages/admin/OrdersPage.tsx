@@ -29,21 +29,21 @@ interface Order {
 }
 
 const ORDER_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-    LANCADO_PELA_MARCA: { label: 'Aguardando Aceite', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    ACEITO_PELA_FACCAO: { label: 'Aceito', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    EM_PREPARACAO_SAIDA_MARCA: { label: 'Preparando Envio', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    EM_TRANSITO_PARA_FACCAO: { label: 'Em Trânsito (Ida)', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    EM_PREPARACAO_ENTRADA_FACCAO: { label: 'Recebendo Materiais', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    EM_PRODUCAO: { label: 'Em Produção', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    PRONTO: { label: 'Pronto', color: 'text-green-400', bg: 'bg-green-500/10' },
-    EM_TRANSITO_PARA_MARCA: { label: 'Em Trânsito (Volta)', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    EM_REVISAO: { label: 'Em Revisão', color: 'text-orange-400', bg: 'bg-orange-500/10' },
-    PARCIALMENTE_APROVADO: { label: 'Parcialmente Aprovado', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-    REPROVADO: { label: 'Reprovado', color: 'text-red-400', bg: 'bg-red-500/10' },
-    AGUARDANDO_RETRABALHO: { label: 'Aguardando Retrabalho', color: 'text-orange-400', bg: 'bg-orange-500/10' },
-    FINALIZADO: { label: 'Finalizado', color: 'text-green-400', bg: 'bg-green-500/10' },
-    RECUSADO_PELA_FACCAO: { label: 'Recusado', color: 'text-red-400', bg: 'bg-red-500/10' },
-    DISPONIVEL_PARA_OUTRAS: { label: 'Disponível', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    LANCADO_PELA_MARCA: { label: 'Aguardando Aceite', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-500/10' },
+    ACEITO_PELA_FACCAO: { label: 'Aceito', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-500/10' },
+    EM_PREPARACAO_SAIDA_MARCA: { label: 'Preparando Envio', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-500/10' },
+    EM_TRANSITO_PARA_FACCAO: { label: 'Em Trânsito (Ida)', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-500/10' },
+    EM_PREPARACAO_ENTRADA_FACCAO: { label: 'Recebendo Materiais', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-500/10' },
+    EM_PRODUCAO: { label: 'Em Produção', color: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-100 dark:bg-cyan-500/10' },
+    PRONTO: { label: 'Pronto', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-500/10' },
+    EM_TRANSITO_PARA_MARCA: { label: 'Em Trânsito (Volta)', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-500/10' },
+    EM_REVISAO: { label: 'Em Revisão', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-500/10' },
+    PARCIALMENTE_APROVADO: { label: 'Parcialmente Aprovado', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-500/10' },
+    REPROVADO: { label: 'Reprovado', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-500/10' },
+    AGUARDANDO_RETRABALHO: { label: 'Aguardando Retrabalho', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-500/10' },
+    FINALIZADO: { label: 'Finalizado', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-500/10' },
+    RECUSADO_PELA_FACCAO: { label: 'Recusado', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-500/10' },
+    DISPONIVEL_PARA_OUTRAS: { label: 'Disponível', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-500/10' },
 };
 
 const OrdersPage: React.FC = () => {
@@ -97,70 +97,45 @@ const OrdersPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-brand-950">
-            <header className="bg-brand-900/50 border-b border-brand-800 sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Link to="/admin" className="text-brand-400 hover:text-white">
-                                <ArrowLeft className="w-5 h-5" />
-                            </Link>
-                            <div>
-                                <h1 className="text-xl font-bold text-white">Pedidos</h1>
-                                <p className="text-sm text-brand-400">{stats.total} pedidos na plataforma</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            {/* Search */}
-                            <div className="relative hidden md:block">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Buscar pedido..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10 pr-4 py-2 bg-brand-800 border border-brand-700 rounded-xl text-white placeholder-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 w-64"
-                                />
-                            </div>
-
-                            {/* Filter */}
-                            <div className="relative">
-                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400" />
-                                <select
-                                    value={filter}
-                                    onChange={(e) => setFilter(e.target.value)}
-                                    className="pl-11 pr-8 py-2 bg-brand-800 border border-brand-700 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"
-                                >
-                                    <option value="">Todos</option>
-                                    <option value="LANCADO_PELA_MARCA">Aguardando Aceite</option>
-                                    <option value="EM_PRODUCAO">Em Produção</option>
-                                    <option value="FINALIZADO">Finalizados</option>
-                                    <option value="RECUSADO_PELA_FACCAO">Recusados</option>
-                                </select>
-                            </div>
-                        </div>
+        <div className="animate-fade-in">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pedidos</h1>
+                        <p className="text-gray-500 dark:text-gray-400">{stats.total} pedidos gerenciados no sistema</p>
                     </div>
 
-                    {/* Mobile Search */}
-                    <div className="mt-4 md:hidden">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-400" />
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                        <div className="relative flex-1 sm:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                                 type="text"
-                                placeholder="Buscar pedido..."
+                                placeholder="Buscar pedido, marca ou facção..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-brand-800 border border-brand-700 rounded-xl text-white placeholder-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/[0.06] rounded-xl text-gray-700 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm transition-all"
                             />
+                        </div>
+
+                        <div className="relative flex-1 sm:flex-none">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <select
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value)}
+                                className="w-full pl-10 pr-8 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/[0.06] rounded-xl text-gray-700 dark:text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm transition-all"
+                            >
+                                <option value="">Todos os status</option>
+                                <option value="LANCADO_PELA_MARCA">Aguardando Aceite</option>
+                                <option value="EM_PRODUCAO">Em Produção</option>
+                                <option value="FINALIZADO">Finalizados</option>
+                                <option value="RECUSADO_PELA_FACCAO">Recusados</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-            </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <StatCard title="Total" value={stats.total} icon={Package} color="blue" />
                     <StatCard title="Ativos" value={stats.active} icon={Clock} color="purple" />
                     <StatCard title="Finalizados" value={stats.completed} icon={CheckCircle} color="green" />
@@ -169,45 +144,45 @@ const OrdersPage: React.FC = () => {
 
                 {isLoading ? (
                     <div className="flex justify-center py-12">
-                        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+                        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
                     </div>
                 ) : filteredOrders.length === 0 ? (
-                    <div className="text-center py-12">
-                        <Package className="w-12 h-12 text-brand-400 mx-auto mb-4" />
-                        <p className="text-brand-300">
+                    <div className="text-center py-12 bg-white dark:bg-slate-900/50 border border-gray-200 dark:border-white/[0.06] rounded-2xl">
+                        <Package className="w-12 h-12 text-gray-300 dark:text-slate-700 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400">
                             {searchQuery ? 'Nenhum pedido encontrado para esta busca' : 'Nenhum pedido encontrado'}
                         </p>
                     </div>
                 ) : (
-                    <div className="bg-brand-900/50 border border-brand-800 rounded-2xl overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900/50 border border-gray-200 dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm">
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-brand-800/50">
+                                <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-white/[0.06]">
                                     <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Pedido
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Marca
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Facção
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Valor
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Prazo
                                         </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Status
                                         </th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                             Ações
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-brand-800">
+                                <tbody className="divide-y divide-gray-200 dark:divide-white/[0.06]">
                                     {filteredOrders.map((order) => {
                                         const statusConfig = ORDER_STATUS_CONFIG[order.status] || {
                                             label: order.status,
@@ -219,18 +194,18 @@ const OrdersPage: React.FC = () => {
                                         return (
                                             <tr
                                                 key={order.id}
-                                                className="hover:bg-brand-800/30 transition-colors"
+                                                className="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors"
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 bg-brand-800 rounded-xl flex items-center justify-center">
-                                                            <Package className="w-5 h-5 text-brand-400" />
+                                                        <div className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
+                                                            <Package className="w-5 h-5 text-sky-500 dark:text-sky-400" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-white font-medium font-mono text-sm">
-                                                                {order.displayId}
+                                                            <p className="text-gray-900 dark:text-white font-medium font-mono text-sm leading-none mb-1">
+                                                                #{order.displayId}
                                                             </p>
-                                                            <p className="text-xs text-brand-500 truncate max-w-[150px]">
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
                                                                 {order.productName}
                                                             </p>
                                                         </div>
@@ -238,49 +213,49 @@ const OrdersPage: React.FC = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
-                                                        <Building2 className="w-4 h-4 text-brand-500" />
-                                                        <span className="text-brand-300">
+                                                        <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                                        <span className="text-sm text-gray-700 dark:text-gray-300">
                                                             {order.brand?.tradeName || '-'}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
-                                                        <Factory className="w-4 h-4 text-brand-500" />
-                                                        <span className="text-brand-300">
+                                                        <Factory className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                                        <span className="text-sm text-gray-700 dark:text-gray-300">
                                                             {order.supplier?.tradeName || (
-                                                                <span className="text-amber-400 italic">Aguardando</span>
+                                                                <span className="text-amber-500 italic">Aguardando</span>
                                                             )}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div>
-                                                        <p className="text-white font-medium">
+                                                        <p className="text-sm text-gray-900 dark:text-white font-semibold">
                                                             {formatCurrency(order.totalValue)}
                                                         </p>
-                                                        <p className="text-xs text-brand-500">
+                                                        <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">
                                                             {order.quantity} pçs
                                                         </p>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className={`flex items-center gap-1.5 ${overdue ? 'text-red-400' : 'text-brand-300'}`}>
+                                                    <div className={`flex items-center gap-1.5 text-sm ${overdue ? 'text-red-500 font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
                                                         <Calendar className="w-4 h-4" />
                                                         {formatDate(order.deliveryDeadline)}
                                                         {overdue && (
-                                                            <AlertCircle className="w-4 h-4 text-red-400" />
+                                                            <AlertCircle className="w-4 h-4 text-red-500" />
                                                         )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.bg} ${statusConfig.color}`}>
+                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusConfig.bg} ${statusConfig.color}`}>
                                                         {statusConfig.label}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <button
-                                                        className="text-brand-400 hover:text-white transition-colors p-2"
+                                                        className="text-gray-400 hover:text-sky-500 dark:hover:text-sky-400 transition-colors p-2 bg-gray-50 dark:bg-white/[0.05] rounded-xl border border-gray-200 dark:border-white/[0.06]"
                                                         title="Ver detalhes"
                                                     >
                                                         <ChevronRight className="w-5 h-5" />
@@ -308,19 +283,20 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) => {
     const colors = {
-        blue: 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-400',
-        purple: 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-400',
-        green: 'from-green-500/20 to-green-600/10 border-green-500/30 text-green-400',
-        red: 'from-red-500/20 to-red-600/10 border-red-500/30 text-red-400',
+        blue: 'from-blue-500/10 to-blue-600/5 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-500/20',
+        purple: 'from-purple-500/10 to-purple-600/5 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-500/20',
+        green: 'from-green-500/10 to-green-600/5 text-green-600 dark:text-green-400 border-green-100 dark:border-green-500/20',
+        red: 'from-red-500/10 to-red-600/5 text-red-600 dark:text-red-400 border-red-100 dark:border-red-500/20',
     };
 
     return (
-        <div className={`bg-gradient-to-br ${colors[color]} rounded-xl border p-4`}>
-            <div className="flex items-center justify-between mb-2">
-                <Icon className="w-5 h-5" />
+        <div className={`bg-white dark:bg-slate-900 border ${colors[color]} rounded-2xl p-4 shadow-sm transition-all hover:scale-[1.02]`}>
+            <div className="flex items-center justify-between mb-3">
+                <div className={`p-2 rounded-lg bg-current opacity-10`} />
+                <Icon className="w-5 h-5 absolute" />
             </div>
-            <p className="text-sm text-brand-300">{title}</p>
-            <p className="text-2xl font-bold text-white">{value}</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{title}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
         </div>
     );
 };

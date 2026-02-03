@@ -24,6 +24,21 @@ export interface AdminDashboard {
     }[];
 }
 
+export interface RevenueHistoryItem {
+    month: string;
+    fullMonth?: string;
+    revenue: number;
+    previousRevenue: number;
+    orders: number;
+    growth: number;
+}
+
+export interface OrdersMonthlyStats {
+    monthly: { month: string; total: number; value: number }[];
+    byStatus: { status: string; name: string; count: number; value: number }[];
+    byBrand: { brand: string; count: number; value: number }[];
+}
+
 export interface PendingApproval {
     id: string;
     legalName: string;
@@ -183,5 +198,44 @@ export const adminService = {
 
         const response = await api.patch(`/admin/approvals/${id}/reject`, { reason });
         return response.data;
-    }
+    },
+
+    async getRevenueHistory(months = 6): Promise<RevenueHistoryItem[]> {
+        if (MOCK_MODE) {
+            await simulateDelay(300);
+            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
+            return monthNames.map((month, i) => ({
+                month,
+                revenue: 50000 + (i * 10000) + Math.floor(Math.random() * 15000),
+                previousRevenue: 40000 + (i * 8000) + Math.floor(Math.random() * 10000),
+                orders: 20 + i * 5,
+                growth: 10 + Math.floor(Math.random() * 15),
+            }));
+        }
+
+        try {
+            const response = await api.get<RevenueHistoryItem[]>('/admin/dashboard/revenue-history', {
+                params: { months },
+            });
+            return response.data;
+        } catch {
+            return [];
+        }
+    },
+
+    async getOrdersMonthlyStats(months = 6): Promise<OrdersMonthlyStats | null> {
+        if (MOCK_MODE) {
+            await simulateDelay(300);
+            return null;
+        }
+
+        try {
+            const response = await api.get<OrdersMonthlyStats>('/admin/dashboard/orders-stats', {
+                params: { months },
+            });
+            return response.data;
+        } catch {
+            return null;
+        }
+    },
 };

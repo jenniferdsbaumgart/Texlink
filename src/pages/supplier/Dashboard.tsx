@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { suppliersService, SupplierDashboard as DashboardData } from '../../services';
+import { DashboardHero, getGreeting, StatCardPremium } from '../../components/dashboard';
 import {
-    Package, DollarSign, TrendingUp, Clock, Star,
+    Package, DollarSign, TrendingUp, Clock,
     Factory, ChevronRight, Bell, Settings, LogOut
 } from 'lucide-react';
 
@@ -43,14 +44,28 @@ const Dashboard: React.FC = () => {
         capacityUsage: 0,
     };
 
+    // Generate mock sparkline data for trends
+    const generateSparklineData = (baseValue: number, variance = 0.3) => {
+        return Array.from({ length: 7 }, () =>
+            Math.max(0, baseValue * (1 + (Math.random() - 0.5) * variance))
+        );
+    };
+
+    const firstName = user?.name?.split(' ')[0] || 'Usuário';
+
     return (
         <div className="min-h-screen bg-brand-950">
             {/* Header */}
-            <header className="bg-brand-900/50 border-b border-brand-800">
+            <header className="bg-brand-900/50 border-b border-brand-800 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Factory className="w-8 h-8 text-brand-500" />
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-brand-500/30 blur-lg rounded-full animate-pulse-glow" />
+                                <div className="relative w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center">
+                                    <Factory className="w-5 h-5 text-white" />
+                                </div>
+                            </div>
                             <div>
                                 <h1 className="text-xl font-bold text-white">
                                     {dashboard?.company?.tradeName || 'Minha Facção'}
@@ -60,15 +75,15 @@ const Dashboard: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <button className="p-2 text-brand-400 hover:text-white transition-colors">
+                            <button className="p-2 text-brand-400 hover:text-white transition-colors rounded-lg hover:bg-brand-800/50">
                                 <Bell className="w-5 h-5" />
                             </button>
-                            <button className="p-2 text-brand-400 hover:text-white transition-colors">
+                            <button className="p-2 text-brand-400 hover:text-white transition-colors rounded-lg hover:bg-brand-800/50">
                                 <Settings className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={logout}
-                                className="p-2 text-brand-400 hover:text-red-400 transition-colors"
+                                className="p-2 text-brand-400 hover:text-red-400 transition-colors rounded-lg hover:bg-brand-800/50"
                             >
                                 <LogOut className="w-5 h-5" />
                             </button>
@@ -79,61 +94,96 @@ const Dashboard: React.FC = () => {
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Welcome Section */}
-                <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-2">
-                        Olá, {user?.name}! 👋
-                    </h2>
-                    <p className="text-brand-400">
-                        Acompanhe seus pedidos e oportunidades
-                    </p>
+                {/* Hero Section */}
+                <div className="relative overflow-hidden rounded-3xl mb-8 bg-gradient-to-br from-brand-900/80 via-brand-800/50 to-purple-900/30 border border-brand-800/50">
+                    {/* Decorative elements */}
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl animate-float" />
+                    <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '-3s' }} />
+
+                    {/* Grid pattern */}
+                    <div
+                        className="absolute inset-0 opacity-[0.05]"
+                        style={{
+                            backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+                            backgroundSize: '24px 24px'
+                        }}
+                    />
+
+                    <div className="relative z-10 p-6 lg:p-8">
+                        <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">
+                            {getGreeting()}, {firstName}
+                        </h2>
+                        <p className="text-brand-300">
+                            Acompanhe seus pedidos e oportunidades
+                        </p>
+                    </div>
                 </div>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <StatCard
-                        title="Pedidos Pendentes"
-                        value={stats.pendingOrders}
-                        icon={Clock}
-                        color="amber"
-                    />
-                    <StatCard
-                        title="Em Produção"
-                        value={stats.activeOrders}
-                        icon={Package}
-                        color="blue"
-                    />
-                    <StatCard
-                        title="Finalizados (Mês)"
-                        value={stats.completedOrdersThisMonth}
-                        icon={TrendingUp}
-                        color="green"
-                    />
-                    <StatCard
-                        title="Receita Total"
-                        value={new Intl.NumberFormat('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL'
-                        }).format(Number(stats.totalRevenue))}
-                        icon={DollarSign}
-                        color="purple"
-                        isMonetary
-                    />
+                    <div className="animate-stagger-fade stagger-1">
+                        <StatCardPremium
+                            icon={<Clock className="h-6 w-6" />}
+                            label="Pedidos Pendentes"
+                            value={stats.pendingOrders}
+                            color="amber"
+                            sparklineData={generateSparklineData(stats.pendingOrders)}
+                        />
+                    </div>
+                    <div className="animate-stagger-fade stagger-2">
+                        <StatCardPremium
+                            icon={<Package className="h-6 w-6" />}
+                            label="Em Produção"
+                            value={stats.activeOrders}
+                            color="blue"
+                            sparklineData={generateSparklineData(stats.activeOrders)}
+                        />
+                    </div>
+                    <div className="animate-stagger-fade stagger-3">
+                        <StatCardPremium
+                            icon={<TrendingUp className="h-6 w-6" />}
+                            label="Finalizados (Mês)"
+                            value={stats.completedOrdersThisMonth}
+                            color="green"
+                            trend={12}
+                            sparklineData={generateSparklineData(stats.completedOrdersThisMonth)}
+                        />
+                    </div>
+                    <div className="animate-stagger-fade stagger-4">
+                        <StatCardPremium
+                            icon={<DollarSign className="h-6 w-6" />}
+                            label="Receita Total"
+                            value={Number(stats.totalRevenue)}
+                            prefix="R$ "
+                            decimals={0}
+                            color="purple"
+                            sparklineData={generateSparklineData(Number(stats.totalRevenue))}
+                        />
+                    </div>
                 </div>
 
                 {/* Capacity Usage */}
-                <div className="bg-brand-900/50 rounded-2xl border border-brand-800 p-6 mb-8">
+                <div className="bg-brand-900/50 rounded-2xl border border-brand-800 p-6 mb-8 backdrop-blur-sm animate-stagger-fade stagger-5">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-white">Capacidade de Produção</h3>
-                        <span className="text-2xl font-bold text-brand-400">{stats.capacityUsage}%</span>
+                        <span className="text-2xl font-bold text-gradient">{stats.capacityUsage}%</span>
                     </div>
                     <div className="h-3 bg-brand-800 rounded-full overflow-hidden">
                         <div
-                            className={`h-full rounded-full transition-all ${stats.capacityUsage > 80 ? 'bg-red-500' :
-                                stats.capacityUsage > 50 ? 'bg-amber-500' : 'bg-green-500'
-                                }`}
+                            className={`h-full rounded-full transition-all duration-1000 ${
+                                stats.capacityUsage > 80
+                                    ? 'bg-gradient-to-r from-red-500 to-red-400'
+                                    : stats.capacityUsage > 50
+                                        ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                                        : 'bg-gradient-to-r from-green-500 to-green-400'
+                            }`}
                             style={{ width: `${stats.capacityUsage}%` }}
                         />
+                    </div>
+                    <div className="flex justify-between mt-2 text-sm text-brand-400">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
                     </div>
                 </div>
 
@@ -155,34 +205,6 @@ const Dashboard: React.FC = () => {
     );
 };
 
-interface StatCardProps {
-    title: string;
-    value: number | string;
-    icon: React.FC<{ className?: string }>;
-    color: 'amber' | 'blue' | 'green' | 'purple';
-    isMonetary?: boolean;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color }) => {
-    const colorClasses = {
-        amber: 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-400',
-        blue: 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-400',
-        green: 'from-green-500/20 to-green-600/10 border-green-500/30 text-green-400',
-        purple: 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-400',
-    };
-
-    return (
-        <div className={`bg-gradient-to-br ${colorClasses[color]} rounded-2xl border p-6`}>
-            <div className="flex items-center justify-between mb-4">
-                <Icon className="w-6 h-6" />
-                <Star className="w-4 h-4 opacity-50" />
-            </div>
-            <p className="text-sm text-brand-300 mb-1">{title}</p>
-            <p className="text-2xl font-bold text-white">{value}</p>
-        </div>
-    );
-};
-
 interface QuickActionCardProps {
     title: string;
     description: string;
@@ -193,10 +215,10 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({ title, description, h
     return (
         <Link
             to={href}
-            className="group bg-brand-900/50 hover:bg-brand-800/50 rounded-2xl border border-brand-800 p-6 transition-all flex items-center justify-between"
+            className="group bg-brand-900/50 hover:bg-brand-800/50 rounded-2xl border border-brand-800 hover:border-brand-700 p-6 transition-all duration-300 flex items-center justify-between hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(14,165,233,0.15)]"
         >
             <div>
-                <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
+                <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-brand-300 transition-colors">{title}</h3>
                 <p className="text-brand-400 text-sm">{description}</p>
             </div>
             <ChevronRight className="w-6 h-6 text-brand-400 group-hover:text-white group-hover:translate-x-1 transition-all" />

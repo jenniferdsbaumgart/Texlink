@@ -186,424 +186,408 @@ const SuppliersPoolPage: React.FC = () => {
     };
 
     const StatCard = ({ icon: Icon, label, value, color }: any) => (
-        <div className="bg-brand-900/50 border border-brand-800 rounded-xl p-5">
-            <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
-                    <Icon className="w-5 h-5" />
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/[0.06] rounded-2xl p-5 shadow-sm transition-all hover:scale-[1.02]">
+            <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gray-50 dark:bg-white/[0.05]`}>
+                    <Icon className={`w-6 h-6 ${color}`} />
                 </div>
                 <div>
-                    <p className="text-sm text-brand-400">{label}</p>
-                    <p className="text-2xl font-bold text-white">{value}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{label}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
                 </div>
             </div>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-brand-950">
-            {/* Header */}
-            <header className="bg-brand-900/50 border-b border-brand-800 sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Link to="/admin" className="text-brand-400 hover:text-white">
-                                <ArrowLeft className="w-5 h-5" />
-                            </Link>
-                            <div>
-                                <h1 className="text-xl font-bold text-white">Pool de Facções</h1>
-                                <p className="text-sm text-brand-400">
-                                    Gerenciamento global de fornecedores
-                                </p>
-                            </div>
-                        </div>
+        <div className="animate-fade-in">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pool de Facções</h1>
+                        <p className="text-gray-500 dark:text-gray-400">Gerenciamento global de fornecedores no ecossistema</p>
                     </div>
                 </div>
-            </header>
-
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
                 {/* Stats */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <StatCard
                         icon={Factory}
                         label="Total de Facções"
                         value={stats.total}
-                        color="bg-brand-800 text-brand-400"
+                        color="text-sky-500 dark:text-sky-400"
                     />
                     <StatCard
                         icon={CheckCircle}
-                        label="Onboarding Completo"
+                        label="Onboarding"
                         value={stats.onboarded}
-                        color="bg-green-900/50 text-green-400"
+                        color="text-emerald-500 dark:text-emerald-400"
                     />
                     <StatCard
                         icon={Building2}
                         label="Com Marcas"
                         value={stats.withBrands}
-                        color="bg-blue-900/50 text-blue-400"
+                        color="text-indigo-500 dark:text-indigo-400"
                     />
                     <StatCard
                         icon={Users}
                         label="Disponíveis"
                         value={stats.available}
-                        color="bg-amber-900/50 text-amber-400"
+                        color="text-amber-500"
                     />
                 </div>
 
                 {/* Filters */}
-                <div className="bg-brand-900/50 border border-brand-800 rounded-xl p-4">
-                    <div className="flex flex-col lg:flex-row gap-4">
-                        {/* Search */}
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400" />
-                            <input
-                                type="text"
-                                placeholder="Buscar por nome, CNPJ, cidade..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-11 pr-4 py-2.5 bg-brand-800 border border-brand-700 rounded-xl text-white placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                            />
-                        </div>
+                <div className="flex flex-col lg:flex-row items-stretch sm:items-center gap-4 mb-8">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por nome, CNPJ, cidade..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/[0.06] rounded-xl text-gray-700 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm transition-all"
+                        />
+                    </div>
 
-                        {/* Status Filter */}
-                        <div className="relative w-full lg:w-56">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400 pointer-events-none" />
-                            <select
-                                value={filter}
-                                onChange={(e) => setFilter(e.target.value)}
-                                className="w-full pl-11 pr-4 py-2.5 bg-brand-800 border border-brand-700 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"
-                            >
-                                <option value="">Todos os status</option>
-                                <option value="ACTIVE">Ativas</option>
-                                <option value="PENDING">Pendentes</option>
-                                <option value="SUSPENDED">Suspensas</option>
-                            </select>
-                        </div>
+                    <div className="relative w-full lg:w-64">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <select
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            className="w-full pl-10 pr-8 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/[0.06] rounded-xl text-gray-700 dark:text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm transition-all"
+                        >
+                            <option value="">Todos os status</option>
+                            <option value="ACTIVE">Ativas</option>
+                            <option value="PENDING">Pendentes</option>
+                            <option value="SUSPENDED">Suspensas</option>
+                        </select>
                     </div>
                 </div>
 
                 {/* Suppliers Grid */}
-                {isLoading ? (
-                    <div className="flex justify-center py-12">
-                        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-                    </div>
-                ) : filteredSuppliers.length === 0 ? (
-                    <div className="bg-brand-900/50 border border-brand-800 rounded-2xl p-12 text-center">
-                        <Factory className="w-12 h-12 text-brand-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-white mb-2">
-                            Nenhuma facção encontrada
-                        </h3>
-                        <p className="text-brand-400">
-                            {searchTerm || filter
-                                ? 'Tente ajustar os filtros de busca'
-                                : 'Nenhuma facção cadastrada no sistema'}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {filteredSuppliers.map((supplier) => (
-                            <div
-                                key={supplier.id}
-                                className="bg-brand-900/50 border border-brand-800 rounded-2xl p-5 hover:border-brand-700 transition-all"
-                            >
-                                {/* Header */}
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center">
-                                            <Factory className="w-6 h-6 text-white" />
+                {
+                    isLoading ? (
+                        <div className="flex justify-center py-12">
+                            <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+                        </div>
+                    ) : filteredSuppliers.length === 0 ? (
+                        <div className="bg-white dark:bg-slate-900/50 border border-gray-200 dark:border-white/[0.06] rounded-2xl p-12 text-center">
+                            <Factory className="w-12 h-12 text-gray-300 dark:text-slate-700 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                Nenhuma facção encontrada
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400">
+                                {searchTerm || filter
+                                    ? 'Tente ajustar os filtros de busca'
+                                    : 'Nenhuma facção cadastrada no sistema'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {filteredSuppliers.map((supplier) => (
+                                <div
+                                    key={supplier.id}
+                                    className="bg-white dark:bg-slate-900/50 border border-gray-200 dark:border-white/[0.06] rounded-2xl p-5 hover:border-sky-500 transition-all shadow-sm"
+                                >
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+                                                <Factory className="w-6 h-6 text-white" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-gray-900 dark:text-white font-semibold">
+                                                    {supplier.tradeName || supplier.legalName}
+                                                </h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {supplier.document}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {getStatusBadge(supplier.status)}
+                                    </div>
+
+                                    {/* Location */}
+                                    {(supplier.city || supplier.state) && (
+                                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                            <MapPin className="w-4 h-4 text-sky-500 dark:text-sky-400" />
+                                            {[supplier.city, supplier.state].filter(Boolean).join(', ')}
+                                        </div>
+                                    )}
+
+                                    {/* Stats Row */}
+                                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                        {supplier.avgRating && (
+                                            <span className="flex items-center gap-1">
+                                                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                                                {supplier.avgRating.toFixed(1)}
+                                            </span>
+                                        )}
+                                        <span className="flex items-center gap-1">
+                                            <Package className="w-4 h-4 text-sky-500" />
+                                            {supplier._count?.ordersAsSupplier || 0} pedidos
+                                        </span>
+                                    </div>
+
+                                    {/* Onboarding Status */}
+                                    <div
+                                        className={`flex items-center gap-2 text-sm mb-4 ${supplier.onboarding?.isCompleted
+                                            ? 'text-green-400'
+                                            : 'text-amber-400'
+                                            }`}
+                                    >
+                                        {supplier.onboarding?.isCompleted ? (
+                                            <>
+                                                <CheckCircle className="w-4 h-4" />
+                                                <span>Onboarding completo</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Clock className="w-4 h-4" />
+                                                <span>Onboarding pendente</span>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Specialties */}
+                                    {supplier.supplierProfile?.specialties &&
+                                        supplier.supplierProfile.specialties.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mb-4">
+                                                {supplier.supplierProfile.specialties
+                                                    .slice(0, 3)
+                                                    .map((spec, i) => (
+                                                        <span
+                                                            key={i}
+                                                            className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-[10px] font-medium text-gray-600 dark:text-gray-400"
+                                                        >
+                                                            {spec}
+                                                        </span>
+                                                    ))}
+                                                {supplier.supplierProfile.specialties.length > 3 && (
+                                                    <span className="px-2 py-0.5 text-gray-400 text-[10px]">
+                                                        +{supplier.supplierProfile.specialties.length - 3}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleViewDetails(supplier)}
+                                            className="flex-1 py-2 text-sm bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.1] text-gray-700 dark:text-white rounded-xl transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                            Ver Detalhes
+                                        </button>
+                                        {supplier.status === 'ACTIVE' ? (
+                                            <button
+                                                onClick={() =>
+                                                    handleStatusChange(supplier.id, 'SUSPENDED')
+                                                }
+                                                className="py-2 px-4 text-sm bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-500/30 transition-colors"
+                                            >
+                                                <Pause className="w-4 h-4" />
+                                            </button>
+                                        ) : supplier.status === 'SUSPENDED' ? (
+                                            <button
+                                                onClick={() => handleStatusChange(supplier.id, 'ACTIVE')}
+                                                className="py-2 px-4 text-sm bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 rounded-xl border border-green-200 dark:border-green-500/30 transition-colors"
+                                            >
+                                                <CheckCircle className="w-4 h-4" />
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                }
+            </main >
+
+            {/* Details Modal */}
+            {
+                showDetailsModal && selectedSupplier && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/[0.06] rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                            {/* Modal Header */}
+                            <div className="p-6 border-b border-gray-100 dark:border-white/[0.06]">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+                                            <Factory className="w-7 h-7 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="text-white font-semibold">
-                                                {supplier.tradeName || supplier.legalName}
-                                            </h3>
-                                            <p className="text-xs text-brand-400">
-                                                {supplier.document}
+                                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                                {selectedSupplier.tradeName ||
+                                                    selectedSupplier.legalName}
+                                            </h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {selectedSupplier.document}
                                             </p>
                                         </div>
                                     </div>
-                                    {getStatusBadge(supplier.status)}
+                                    <button
+                                        onClick={() => setShowDetailsModal(false)}
+                                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                                    >
+                                        <XCircle className="w-6 h-6" />
+                                    </button>
                                 </div>
+                            </div>
 
-                                {/* Location */}
-                                {(supplier.city || supplier.state) && (
-                                    <div className="flex items-center gap-2 text-sm text-brand-300 mb-3">
-                                        <MapPin className="w-4 h-4 text-brand-400" />
-                                        {[supplier.city, supplier.state].filter(Boolean).join(', ')}
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto max-h-[60vh] space-y-6">
+                                {/* Info Grid */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.06] rounded-2xl p-4">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Localização</p>
+                                        <p className="text-gray-900 dark:text-white font-medium">
+                                            {[selectedSupplier.city, selectedSupplier.state]
+                                                .filter(Boolean)
+                                                .join(', ') || 'Não informado'}
+                                        </p>
                                     </div>
-                                )}
-
-                                {/* Stats Row */}
-                                <div className="flex items-center gap-4 text-sm text-brand-300 mb-4">
-                                    {supplier.avgRating && (
-                                        <span className="flex items-center gap-1">
-                                            <Star className="w-4 h-4 text-amber-400" />
-                                            {supplier.avgRating.toFixed(1)}
-                                        </span>
-                                    )}
-                                    <span className="flex items-center gap-1">
-                                        <Package className="w-4 h-4" />
-                                        {supplier._count?.ordersAsSupplier || 0} pedidos
-                                    </span>
+                                    <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.06] rounded-2xl p-4">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
+                                        {getStatusBadge(selectedSupplier.status)}
+                                    </div>
+                                    <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.06] rounded-2xl p-4">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avaliação Média</p>
+                                        <div className="flex items-center gap-1 text-gray-900 dark:text-white font-medium">
+                                            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                                            {selectedSupplier.avgRating?.toFixed(1) || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.06] rounded-2xl p-4">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total de Pedidos</p>
+                                        <p className="text-gray-900 dark:text-white font-medium">
+                                            {selectedSupplier._count?.ordersAsSupplier || 0}
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* Onboarding Status */}
                                 <div
-                                    className={`flex items-center gap-2 text-sm mb-4 ${
-                                        supplier.onboarding?.isCompleted
-                                            ? 'text-green-400'
-                                            : 'text-amber-400'
-                                    }`}
+                                    className={`rounded-2xl p-4 border ${selectedSupplier.onboarding?.isCompleted
+                                        ? 'bg-emerald-500/5 border-emerald-500/20'
+                                        : 'bg-amber-500/5 border-amber-500/20'
+                                        }`}
                                 >
-                                    {supplier.onboarding?.isCompleted ? (
-                                        <>
-                                            <CheckCircle className="w-4 h-4" />
-                                            <span>Onboarding completo</span>
-                                        </>
+                                    <div className="flex items-center gap-2">
+                                        {selectedSupplier.onboarding?.isCompleted ? (
+                                            <>
+                                                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                                                <span className="text-emerald-700 dark:text-emerald-400 font-medium font-bold uppercase tracking-wider text-xs">
+                                                    Onboarding Completo
+                                                </span>
+                                                {selectedSupplier.onboarding.completedAt && (
+                                                    <span className="text-gray-400 text-sm ml-auto">
+                                                        {new Date(
+                                                            selectedSupplier.onboarding.completedAt
+                                                        ).toLocaleDateString('pt-BR')}
+                                                    </span>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <AlertCircle className="w-5 h-5 text-amber-500" />
+                                                <span className="text-amber-700 dark:text-amber-400 font-medium font-bold uppercase tracking-wider text-xs">
+                                                    Onboarding Pendente
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Relationships Section */}
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <Building2 className="w-5 h-5 text-sky-500" />
+                                        Marcas Vinculadas
+                                    </h3>
+
+                                    {loadingRelationships ? (
+                                        <div className="flex justify-center py-8">
+                                            <Loader2 className="w-6 h-6 text-sky-500 animate-spin" />
+                                        </div>
+                                    ) : supplierRelationships.length === 0 ? (
+                                        <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.06] rounded-2xl p-6 text-center">
+                                            <Building2 className="w-8 h-8 text-gray-300 dark:text-slate-700 mx-auto mb-2" />
+                                            <p className="text-gray-500 dark:text-gray-400">
+                                                Nenhuma marca vinculada a esta facção
+                                            </p>
+                                            <p className="text-gray-400 text-xs mt-1">
+                                                Facção disponível para credenciamento
+                                            </p>
+                                        </div>
                                     ) : (
-                                        <>
-                                            <Clock className="w-4 h-4" />
-                                            <span>Onboarding pendente</span>
-                                        </>
+                                        <div className="space-y-3">
+                                            {supplierRelationships.map((rel) => (
+                                                <div
+                                                    key={rel.id}
+                                                    className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.06] rounded-2xl p-4 flex items-center justify-between"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-white dark:bg-slate-800 border border-gray-100 dark:border-white/[0.06] rounded-xl flex items-center justify-center">
+                                                            <Building2 className="w-5 h-5 text-sky-500" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-900 dark:text-white font-medium">
+                                                                {rel.brand?.tradeName ||
+                                                                    rel.brand?.legalName ||
+                                                                    'Marca'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                Desde{' '}
+                                                                {new Date(
+                                                                    rel.createdAt
+                                                                ).toLocaleDateString('pt-BR')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    {getRelationshipStatusBadge(rel.status)}
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
 
                                 {/* Specialties */}
-                                {supplier.supplierProfile?.specialties &&
-                                    supplier.supplierProfile.specialties.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mb-4">
-                                            {supplier.supplierProfile.specialties
-                                                .slice(0, 3)
-                                                .map((spec, i) => (
-                                                    <span
-                                                        key={i}
-                                                        className="px-2 py-0.5 bg-brand-800 rounded text-xs text-brand-300"
-                                                    >
-                                                        {spec}
-                                                    </span>
-                                                ))}
-                                            {supplier.supplierProfile.specialties.length > 3 && (
-                                                <span className="px-2 py-0.5 text-brand-400 text-xs">
-                                                    +{supplier.supplierProfile.specialties.length - 3}
-                                                </span>
-                                            )}
+                                {selectedSupplier.supplierProfile?.specialties &&
+                                    selectedSupplier.supplierProfile.specialties.length > 0 && (
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wider">
+                                                Especialidades
+                                            </h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedSupplier.supplierProfile.specialties.map(
+                                                    (spec, i) => (
+                                                        <span
+                                                            key={i}
+                                                            className="px-3 py-1 bg-gray-100 dark:bg-slate-800 rounded-lg text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/[0.06]"
+                                                        >
+                                                            {spec}
+                                                        </span>
+                                                    )
+                                                )}
+                                            </div>
                                         </div>
                                     )}
-
-                                {/* Actions */}
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => handleViewDetails(supplier)}
-                                        className="flex-1 py-2 text-sm bg-brand-800 hover:bg-brand-700 text-white rounded-xl transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Eye className="w-4 h-4" />
-                                        Ver Detalhes
-                                    </button>
-                                    {supplier.status === 'ACTIVE' ? (
-                                        <button
-                                            onClick={() =>
-                                                handleStatusChange(supplier.id, 'SUSPENDED')
-                                            }
-                                            className="py-2 px-4 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl border border-red-500/30 transition-colors"
-                                        >
-                                            <Pause className="w-4 h-4" />
-                                        </button>
-                                    ) : supplier.status === 'SUSPENDED' ? (
-                                        <button
-                                            onClick={() => handleStatusChange(supplier.id, 'ACTIVE')}
-                                            className="py-2 px-4 text-sm bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-xl border border-green-500/30 transition-colors"
-                                        >
-                                            <CheckCircle className="w-4 h-4" />
-                                        </button>
-                                    ) : null}
-                                </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </main>
 
-            {/* Details Modal */}
-            {showDetailsModal && selectedSupplier && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                    <div className="bg-brand-900 border border-brand-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-                        {/* Modal Header */}
-                        <div className="p-6 border-b border-brand-800">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center">
-                                        <Factory className="w-7 h-7 text-white" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-white">
-                                            {selectedSupplier.tradeName ||
-                                                selectedSupplier.legalName}
-                                        </h2>
-                                        <p className="text-sm text-brand-400">
-                                            {selectedSupplier.document}
-                                        </p>
-                                    </div>
-                                </div>
+                            {/* Modal Footer */}
+                            <div className="p-6 border-t border-gray-100 dark:border-white/[0.06]">
                                 <button
                                     onClick={() => setShowDetailsModal(false)}
-                                    className="text-brand-400 hover:text-white"
+                                    className="w-full py-3 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl font-bold transition-all shadow-lg shadow-sky-500/20 active:scale-[0.98]"
                                 >
-                                    <XCircle className="w-6 h-6" />
+                                    Fechar
                                 </button>
                             </div>
                         </div>
-
-                        {/* Modal Body */}
-                        <div className="p-6 overflow-y-auto max-h-[60vh] space-y-6">
-                            {/* Info Grid */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-brand-800/50 rounded-xl p-4">
-                                    <p className="text-xs text-brand-400 mb-1">Localização</p>
-                                    <p className="text-white">
-                                        {[selectedSupplier.city, selectedSupplier.state]
-                                            .filter(Boolean)
-                                            .join(', ') || 'Não informado'}
-                                    </p>
-                                </div>
-                                <div className="bg-brand-800/50 rounded-xl p-4">
-                                    <p className="text-xs text-brand-400 mb-1">Status</p>
-                                    {getStatusBadge(selectedSupplier.status)}
-                                </div>
-                                <div className="bg-brand-800/50 rounded-xl p-4">
-                                    <p className="text-xs text-brand-400 mb-1">Avaliação Média</p>
-                                    <div className="flex items-center gap-1 text-white">
-                                        <Star className="w-4 h-4 text-amber-400" />
-                                        {selectedSupplier.avgRating?.toFixed(1) || 'N/A'}
-                                    </div>
-                                </div>
-                                <div className="bg-brand-800/50 rounded-xl p-4">
-                                    <p className="text-xs text-brand-400 mb-1">Total de Pedidos</p>
-                                    <p className="text-white">
-                                        {selectedSupplier._count?.ordersAsSupplier || 0}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Onboarding Status */}
-                            <div
-                                className={`rounded-xl p-4 ${
-                                    selectedSupplier.onboarding?.isCompleted
-                                        ? 'bg-green-900/30 border border-green-800'
-                                        : 'bg-amber-900/30 border border-amber-800'
-                                }`}
-                            >
-                                <div className="flex items-center gap-2">
-                                    {selectedSupplier.onboarding?.isCompleted ? (
-                                        <>
-                                            <CheckCircle className="w-5 h-5 text-green-400" />
-                                            <span className="text-green-300 font-medium">
-                                                Onboarding Completo
-                                            </span>
-                                            {selectedSupplier.onboarding.completedAt && (
-                                                <span className="text-green-400 text-sm ml-auto">
-                                                    {new Date(
-                                                        selectedSupplier.onboarding.completedAt
-                                                    ).toLocaleDateString('pt-BR')}
-                                                </span>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <AlertCircle className="w-5 h-5 text-amber-400" />
-                                            <span className="text-amber-300 font-medium">
-                                                Onboarding Pendente
-                                            </span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Relationships Section */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                    <Building2 className="w-5 h-5 text-brand-400" />
-                                    Marcas Vinculadas
-                                </h3>
-
-                                {loadingRelationships ? (
-                                    <div className="flex justify-center py-8">
-                                        <Loader2 className="w-6 h-6 text-brand-500 animate-spin" />
-                                    </div>
-                                ) : supplierRelationships.length === 0 ? (
-                                    <div className="bg-brand-800/50 rounded-xl p-6 text-center">
-                                        <Building2 className="w-8 h-8 text-brand-400 mx-auto mb-2" />
-                                        <p className="text-brand-300">
-                                            Nenhuma marca vinculada a esta facção
-                                        </p>
-                                        <p className="text-brand-400 text-sm mt-1">
-                                            Facção disponível para credenciamento
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {supplierRelationships.map((rel) => (
-                                            <div
-                                                key={rel.id}
-                                                className="bg-brand-800/50 rounded-xl p-4 flex items-center justify-between"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-brand-700 rounded-lg flex items-center justify-center">
-                                                        <Building2 className="w-5 h-5 text-brand-400" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-white font-medium">
-                                                            {rel.brand?.tradeName ||
-                                                                rel.brand?.legalName ||
-                                                                'Marca'}
-                                                        </p>
-                                                        <p className="text-xs text-brand-400">
-                                                            Desde{' '}
-                                                            {new Date(
-                                                                rel.createdAt
-                                                            ).toLocaleDateString('pt-BR')}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                {getRelationshipStatusBadge(rel.status)}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Specialties */}
-                            {selectedSupplier.supplierProfile?.specialties &&
-                                selectedSupplier.supplierProfile.specialties.length > 0 && (
-                                    <div>
-                                        <h3 className="text-sm font-medium text-brand-300 mb-3">
-                                            Especialidades
-                                        </h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {selectedSupplier.supplierProfile.specialties.map(
-                                                (spec, i) => (
-                                                    <span
-                                                        key={i}
-                                                        className="px-3 py-1 bg-brand-800 rounded-lg text-sm text-brand-200"
-                                                    >
-                                                        {spec}
-                                                    </span>
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="p-6 border-t border-brand-800">
-                            <button
-                                onClick={() => setShowDetailsModal(false)}
-                                className="w-full py-3 bg-brand-800 hover:bg-brand-700 text-white rounded-xl font-medium transition-colors"
-                            >
-                                Fechar
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )}
+                )}
         </div>
     );
 };
