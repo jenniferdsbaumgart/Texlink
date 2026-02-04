@@ -97,6 +97,12 @@ const navGroups: NavGroup[] = [
         icon: <Building2 className="h-5 w-5" />,
         path: '/portal/marcas',
       },
+      {
+        id: 'solicitacoes',
+        label: 'Solicitações',
+        icon: <Star className="h-5 w-5" />,
+        path: '/portal/solicitacoes',
+      },
     ],
   },
   {

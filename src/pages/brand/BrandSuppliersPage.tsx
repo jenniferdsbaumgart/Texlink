@@ -16,6 +16,8 @@ import {
     Eye,
     Ban,
     RotateCcw,
+    Send,
+    Users,
 } from 'lucide-react';
 import { relationshipsService } from '../../services';
 import type {
@@ -23,8 +25,12 @@ import type {
     RelationshipStatus,
     RelationshipStats,
 } from '../../types/relationships';
+import SupplierInvitationsList from '../../components/suppliers/SupplierInvitationsList';
+
+type TabType = 'suppliers' | 'invitations';
 
 const BrandSuppliersPage: React.FC = () => {
+    const [activeTab, setActiveTab] = useState<TabType>('suppliers');
     const [relationships, setRelationships] = useState<SupplierBrandRelationship[]>([]);
     const [filteredRelationships, setFilteredRelationships] = useState<
         SupplierBrandRelationship[]
@@ -253,224 +259,264 @@ const BrandSuppliersPage: React.FC = () => {
                 />
             </div>
 
-            {/* Filters */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    {/* Search */}
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Buscar por nome, CNPJ, código..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-11 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="relative w-full lg:w-56">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value as any)}
-                            className="w-full pl-11 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"
-                        >
-                            <option value="">Todos os status</option>
-                            <option value="ACTIVE">Ativo</option>
-                            <option value="CONTRACT_PENDING">Contrato Pendente</option>
-                            <option value="PENDING">Pendente</option>
-                            <option value="SUSPENDED">Suspenso</option>
-                            <option value="TERMINATED">Encerrado</option>
-                        </select>
-                    </div>
-                </div>
+            {/* Tabs Navigation */}
+            <div className="border-b border-gray-200 dark:border-gray-700">
+                <nav className="flex gap-4" aria-label="Tabs">
+                    <button
+                        onClick={() => setActiveTab('suppliers')}
+                        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'suppliers'
+                            ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        <Users className="w-4 h-4" />
+                        Credenciados
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'suppliers'
+                            ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                            }`}>
+                            {stats.total}
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('invitations')}
+                        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'invitations'
+                            ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        <Send className="w-4 h-4" />
+                        Convites Pendentes
+                    </button>
+                </nav>
             </div>
 
-            {/* Content */}
-            {isLoading ? (
-                <div className="flex justify-center items-center py-20">
-                    <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-                </div>
-            ) : filteredRelationships.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center">
-                    <Factory className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        {relationships.length === 0
-                            ? 'Nenhum fornecedor credenciado'
-                            : 'Nenhum resultado encontrado'}
-                    </h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-6">
-                        {relationships.length === 0
-                            ? 'Comece credenciando um fornecedor do pool'
-                            : 'Tente ajustar os filtros de busca'}
-                    </p>
-                    {relationships.length === 0 && (
-                        <Link
-                            to="/brand/fornecedores/adicionar"
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium transition-colors"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Credenciar Fornecedor
-                        </Link>
-                    )}
-                </div>
+            {/* Tab Content */}
+            {activeTab === 'invitations' ? (
+                <SupplierInvitationsList />
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filteredRelationships.map((relationship) => (
-                        <div
-                            key={relationship.id}
-                            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 hover:border-brand-300 dark:hover:border-brand-700 transition-all"
-                        >
-                            {/* Header */}
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3 flex-1">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center">
-                                        <Factory className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                                            {relationship.supplier?.tradeName ||
-                                                relationship.supplier?.legalName}
-                                        </h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            CNPJ: {relationship.supplier?.document}
-                                        </p>
-                                    </div>
-                                </div>
+                <>
+                    {/* Filters */}
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                        <div className="flex flex-col lg:flex-row gap-4">
+                            {/* Search */}
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por nome, CNPJ, código..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                                />
+                            </div>
 
-                                {/* Actions Menu */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() =>
-                                            setActionMenuOpen(
-                                                actionMenuOpen === relationship.id
-                                                    ? null
-                                                    : relationship.id
-                                            )
-                                        }
-                                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                                    >
-                                        <MoreVertical className="w-5 h-5 text-gray-400" />
-                                    </button>
+                            {/* Status Filter */}
+                            <div className="relative w-full lg:w-56">
+                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                                    className="w-full pl-11 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                >
+                                    <option value="">Todos os status</option>
+                                    <option value="ACTIVE">Ativo</option>
+                                    <option value="CONTRACT_PENDING">Contrato Pendente</option>
+                                    <option value="PENDING">Pendente</option>
+                                    <option value="SUSPENDED">Suspenso</option>
+                                    <option value="TERMINATED">Encerrado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
-                                    {actionMenuOpen === relationship.id && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                    {/* Content */}
+                    {isLoading ? (
+                        <div className="flex justify-center items-center py-20">
+                            <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+                        </div>
+                    ) : filteredRelationships.length === 0 ? (
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+                            <Factory className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                {relationships.length === 0
+                                    ? 'Nenhum fornecedor credenciado'
+                                    : 'Nenhum resultado encontrado'}
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400 mb-6">
+                                {relationships.length === 0
+                                    ? 'Comece credenciando um fornecedor do pool'
+                                    : 'Tente ajustar os filtros de busca'}
+                            </p>
+                            {relationships.length === 0 && (
+                                <Link
+                                    to="/brand/fornecedores/adicionar"
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium transition-colors"
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    Credenciar Fornecedor
+                                </Link>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {filteredRelationships.map((relationship) => (
+                                <div
+                                    key={relationship.id}
+                                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 hover:border-brand-300 dark:hover:border-brand-700 transition-all"
+                                >
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl flex items-center justify-center">
+                                                <Factory className="w-6 h-6 text-white" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                                                    {relationship.supplier?.tradeName ||
+                                                        relationship.supplier?.legalName}
+                                                </h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    CNPJ: {relationship.supplier?.document}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Actions Menu */}
+                                        <div className="relative">
                                             <button
-                                                onClick={() => {
-                                                    window.location.href = `/brand/fornecedores/${relationship.id}`;
-                                                }}
-                                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                                                onClick={() =>
+                                                    setActionMenuOpen(
+                                                        actionMenuOpen === relationship.id
+                                                            ? null
+                                                            : relationship.id
+                                                    )
+                                                }
+                                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                                             >
-                                                <Eye className="w-4 h-4" />
-                                                Ver Detalhes
+                                                <MoreVertical className="w-5 h-5 text-gray-400" />
                                             </button>
 
-                                            {relationship.status === 'ACTIVE' && (
-                                                <button
-                                                    onClick={() => handleSuspend(relationship.id)}
-                                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600"
-                                                >
-                                                    <Ban className="w-4 h-4" />
-                                                    Suspender
-                                                </button>
-                                            )}
+                                            {actionMenuOpen === relationship.id && (
+                                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                                                    <button
+                                                        onClick={() => {
+                                                            window.location.href = `/brand/fornecedores/${relationship.id}`;
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                        Ver Detalhes
+                                                    </button>
 
-                                            {relationship.status === 'SUSPENDED' && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleReactivate(relationship.id)
-                                                    }
-                                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-green-600"
-                                                >
-                                                    <RotateCcw className="w-4 h-4" />
-                                                    Reativar
-                                                </button>
-                                            )}
+                                                    {relationship.status === 'ACTIVE' && (
+                                                        <button
+                                                            onClick={() => handleSuspend(relationship.id)}
+                                                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600"
+                                                        >
+                                                            <Ban className="w-4 h-4" />
+                                                            Suspender
+                                                        </button>
+                                                    )}
 
-                                            {relationship.status !== 'TERMINATED' && (
-                                                <button
-                                                    onClick={() => handleTerminate(relationship.id)}
-                                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 border-t border-gray-200 dark:border-gray-700"
-                                                >
-                                                    <XCircle className="w-4 h-4" />
-                                                    Encerrar
-                                                </button>
+                                                    {relationship.status === 'SUSPENDED' && (
+                                                        <button
+                                                            onClick={() =>
+                                                                handleReactivate(relationship.id)
+                                                            }
+                                                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-green-600"
+                                                        >
+                                                            <RotateCcw className="w-4 h-4" />
+                                                            Reativar
+                                                        </button>
+                                                    )}
+
+                                                    {relationship.status !== 'TERMINATED' && (
+                                                        <button
+                                                            onClick={() => handleTerminate(relationship.id)}
+                                                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 border-t border-gray-200 dark:border-gray-700"
+                                                        >
+                                                            <XCircle className="w-4 h-4" />
+                                                            Encerrar
+                                                        </button>
+                                                    )}
+                                                </div>
                                             )}
+                                        </div>
+                                    </div>
+
+                                    {/* Status Badge */}
+                                    <div className="mb-4">{getStatusBadge(relationship.status)}</div>
+
+                                    {/* Info */}
+                                    <div className="space-y-2 text-sm">
+                                        {relationship.internalCode && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-gray-500 dark:text-gray-400">
+                                                    Código:
+                                                </span>
+                                                <span className="font-medium text-gray-900 dark:text-white">
+                                                    {relationship.internalCode}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">
+                                                Credenciado em:
+                                            </span>
+                                            <span className="text-gray-900 dark:text-white">
+                                                {new Date(relationship.createdAt).toLocaleDateString(
+                                                    'pt-BR'
+                                                )}
+                                            </span>
+                                        </div>
+
+                                        {relationship.activatedAt && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-gray-500 dark:text-gray-400">
+                                                    Ativado em:
+                                                </span>
+                                                <span className="text-gray-900 dark:text-white">
+                                                    {new Date(relationship.activatedAt).toLocaleDateString(
+                                                        'pt-BR'
+                                                    )}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {relationship.contract?.supplierSignedAt && (
+                                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                                <CheckCircle className="w-4 h-4" />
+                                                <span>Contrato assinado</span>
+                                            </div>
+                                        )}
+
+                                        {relationship.status === 'CONTRACT_PENDING' && (
+                                            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                                <AlertCircle className="w-4 h-4" />
+                                                <span>Aguardando assinatura</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Notes */}
+                                    {relationship.notes && (
+                                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                                                {relationship.notes}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
-                            </div>
-
-                            {/* Status Badge */}
-                            <div className="mb-4">{getStatusBadge(relationship.status)}</div>
-
-                            {/* Info */}
-                            <div className="space-y-2 text-sm">
-                                {relationship.internalCode && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-gray-500 dark:text-gray-400">
-                                            Código:
-                                        </span>
-                                        <span className="font-medium text-gray-900 dark:text-white">
-                                            {relationship.internalCode}
-                                        </span>
-                                    </div>
-                                )}
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-500 dark:text-gray-400">
-                                        Credenciado em:
-                                    </span>
-                                    <span className="text-gray-900 dark:text-white">
-                                        {new Date(relationship.createdAt).toLocaleDateString(
-                                            'pt-BR'
-                                        )}
-                                    </span>
-                                </div>
-
-                                {relationship.activatedAt && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-gray-500 dark:text-gray-400">
-                                            Ativado em:
-                                        </span>
-                                        <span className="text-gray-900 dark:text-white">
-                                            {new Date(relationship.activatedAt).toLocaleDateString(
-                                                'pt-BR'
-                                            )}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {relationship.contract?.supplierSignedAt && (
-                                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                        <CheckCircle className="w-4 h-4" />
-                                        <span>Contrato assinado</span>
-                                    </div>
-                                )}
-
-                                {relationship.status === 'CONTRACT_PENDING' && (
-                                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                                        <AlertCircle className="w-4 h-4" />
-                                        <span>Aguardando assinatura</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Notes */}
-                            {relationship.notes && (
-                                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                                        {relationship.notes}
-                                    </p>
-                                </div>
-                            )}
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    )}
+                </>
             )}
         </div>
     );
 };
 
 export default BrandSuppliersPage;
+

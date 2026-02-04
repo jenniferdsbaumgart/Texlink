@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -14,9 +14,16 @@ import {
     FileText,
     Info,
     AlertCircle,
+    Mail,
+    MessageCircle,
+    Send,
+    XCircle,
 } from 'lucide-react';
-import { relationshipsService } from '../../../services';
+import { relationshipsService, partnershipRequestsService } from '../../../services';
+import { suppliersService, type CNPJValidationResult, type InvitationChannel } from '../../../services/suppliers.service';
 import type { SupplierCompany, CreateRelationshipDto } from '../../../types/relationships';
+import { RequestPartnershipModal, PartnershipRequestBadge } from '../../../components/partnership-requests';
+import type { CheckExistingResponse } from '../../../services/partnershipRequests.service';
 
 type TabType = 'new' | 'pool';
 
@@ -43,6 +50,10 @@ const AddSupplierPage: React.FC = () => {
     const [showSuccessToast, setShowSuccessToast] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
+    // Partnership Request Modal state
+    const [showRequestModal, setShowRequestModal] = useState(false);
+    const [supplierStatuses, setSupplierStatuses] = useState<Record<string, CheckExistingResponse>>({});
+
     // Form state for new supplier
     const [formData, setFormData] = useState<NewSupplierForm>({
         cnpj: '',
@@ -54,6 +65,15 @@ const AddSupplierPage: React.FC = () => {
         notes: '',
     });
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+    // CNPJ validation state
+    const [cnpjValidation, setCnpjValidation] = useState<CNPJValidationResult | null>(null);
+    const [isValidatingCnpj, setIsValidatingCnpj] = useState(false);
+
+    // Send channel toggles
+    const [sendEmail, setSendEmail] = useState(true);
+    const [sendWhatsapp, setSendWhatsapp] = useState(false);
+    const [customMessage, setCustomMessage] = useState('');
 
     // Credential form for pool supplier
     const [credentialForm, setCredentialForm] = useState({
@@ -81,12 +101,46 @@ const AddSupplierPage: React.FC = () => {
             setIsLoading(true);
             const data = await relationshipsService.getAvailableForBrand(brandId);
             setAvailableSuppliers(data);
+
+            // Load partnership request status for each supplier
+            const statuses: Record<string, CheckExistingResponse> = {};
+            for (const supplier of data) {
+                try {
+                    const status = await partnershipRequestsService.checkExisting(supplier.id);
+                    statuses[supplier.id] = status;
+                } catch {
+                    // Ignore errors for individual checks
+                }
+            }
+            setSupplierStatuses(statuses);
         } catch (error) {
             console.error('Error loading available suppliers:', error);
             setErrorMessage('Erro ao carregar fornecedores disponíveis');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleRequestPartnership = async (data: { supplierId: string; message?: string }) => {
+        try {
+            await partnershipRequestsService.create(data);
+            setShowRequestModal(false);
+            setSelectedSupplier(null);
+
+            // Refresh status
+            const status = await partnershipRequestsService.checkExisting(data.supplierId);
+            setSupplierStatuses(prev => ({ ...prev, [data.supplierId]: status }));
+
+            setShowSuccessToast(true);
+            setTimeout(() => setShowSuccessToast(false), 3000);
+        } catch (error: any) {
+            setErrorMessage(error.response?.data?.message || 'Erro ao enviar solicitação');
+        }
+    };
+
+    const handleOpenRequestModal = (supplier: SupplierCompany) => {
+        setSelectedSupplier(supplier);
+        setShowRequestModal(true);
     };
 
     const applySearch = () => {
@@ -151,6 +205,48 @@ const AddSupplierPage: React.FC = () => {
         }
     };
 
+    // Validate CNPJ when it changes (debounced)
+    const validateCnpj = useCallback(async (cnpj: string) => {
+        const cleaned = cnpj.replace(/\D/g, '');
+        if (cleaned.length !== 14) {
+            setCnpjValidation(null);
+            return;
+        }
+
+        setIsValidatingCnpj(true);
+        try {
+            const result = await suppliersService.validateCnpj(cleaned);
+            setCnpjValidation(result);
+
+            // Auto-fill contact phone if available
+            if (result.isValid && result.data?.telefone && !formData.contactPhone) {
+                handleFormChange('contactPhone', result.data.telefone);
+            }
+        } catch (err) {
+            setCnpjValidation({
+                isValid: false,
+                error: 'Erro ao validar CNPJ',
+                source: 'ERROR',
+                timestamp: new Date(),
+            });
+        } finally {
+            setIsValidatingCnpj(false);
+        }
+    }, [formData.contactPhone]);
+
+    // Trigger CNPJ validation on change
+    useEffect(() => {
+        const cleaned = formData.cnpj.replace(/\D/g, '');
+        if (cleaned.length === 14) {
+            const timer = setTimeout(() => {
+                validateCnpj(formData.cnpj);
+            }, 500);
+            return () => clearTimeout(timer);
+        } else {
+            setCnpjValidation(null);
+        }
+    }, [formData.cnpj, validateCnpj]);
+
     const validateNewSupplierForm = (): boolean => {
         const errors: Record<string, string> = {};
 
@@ -179,8 +275,18 @@ const AddSupplierPage: React.FC = () => {
             errors.contactPhone = 'Telefone inválido';
         }
 
+        if (!sendEmail && !sendWhatsapp) {
+            errors.sendVia = 'Selecione ao menos um canal de envio';
+        }
+
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
+    };
+
+    const getSendChannel = (): InvitationChannel => {
+        if (sendEmail && sendWhatsapp) return 'BOTH';
+        if (sendWhatsapp) return 'WHATSAPP';
+        return 'EMAIL';
     };
 
     const handleCreateNewSupplier = async () => {
@@ -190,12 +296,23 @@ const AddSupplierPage: React.FC = () => {
             setIsSubmitting(true);
             setErrorMessage('');
 
-            // This would call a different endpoint to create a new supplier
-            // and initiate the onboarding process
-            // For now, we'll show a message that this feature is coming soon
-            setErrorMessage(
-                'A criação de novo fornecedor ainda está em desenvolvimento. Use a opção "Do Pool" para credenciar fornecedores já cadastrados.'
-            );
+            const result = await suppliersService.inviteSupplier({
+                cnpj: formData.cnpj.replace(/\D/g, ''),
+                contactName: formData.contactName,
+                contactEmail: formData.contactEmail,
+                contactPhone: formData.contactPhone.replace(/\D/g, ''),
+                contactWhatsapp: formData.contactWhatsapp.replace(/\D/g, '') || undefined,
+                customMessage: customMessage || undefined,
+                sendVia: getSendChannel(),
+                internalCode: formData.internalCode || undefined,
+                notes: formData.notes || undefined,
+            });
+
+            // Success
+            setShowSuccessToast(true);
+            setTimeout(() => {
+                navigate('/brand/fornecedores');
+            }, 2000);
         } catch (error: any) {
             console.error('Error creating supplier:', error);
             setErrorMessage(error.response?.data?.message || 'Erro ao criar fornecedor');
@@ -302,11 +419,10 @@ const AddSupplierPage: React.FC = () => {
                     <nav className="flex">
                         <button
                             onClick={() => setActiveTab('pool')}
-                            className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                activeTab === 'pool'
-                                    ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                            }`}
+                            className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pool'
+                                ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                                }`}
                         >
                             <div className="flex items-center justify-center gap-2">
                                 <Users className="w-5 h-5" />
@@ -318,11 +434,10 @@ const AddSupplierPage: React.FC = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('new')}
-                            className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                activeTab === 'new'
-                                    ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                            }`}
+                            className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'new'
+                                ? 'border-brand-500 text-brand-600 dark:text-brand-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                                }`}
                         >
                             <div className="flex items-center justify-center gap-2">
                                 <Plus className="w-5 h-5" />
@@ -424,7 +539,7 @@ const AddSupplierPage: React.FC = () => {
                                                 {/* Specialties */}
                                                 {supplier.supplierProfile?.specialties &&
                                                     supplier.supplierProfile.specialties.length >
-                                                        0 && (
+                                                    0 && (
                                                         <div className="flex flex-wrap gap-1">
                                                             {supplier.supplierProfile.specialties
                                                                 .slice(0, 3)
@@ -438,12 +553,12 @@ const AddSupplierPage: React.FC = () => {
                                                                 ))}
                                                             {supplier.supplierProfile.specialties
                                                                 .length > 3 && (
-                                                                <span className="px-2 py-0.5 text-gray-500 text-xs">
-                                                                    +
-                                                                    {supplier.supplierProfile
-                                                                        .specialties.length - 3}
-                                                                </span>
-                                                            )}
+                                                                    <span className="px-2 py-0.5 text-gray-500 text-xs">
+                                                                        +
+                                                                        {supplier.supplierProfile
+                                                                            .specialties.length - 3}
+                                                                    </span>
+                                                                )}
                                                         </div>
                                                     )}
 
@@ -492,14 +607,26 @@ const AddSupplierPage: React.FC = () => {
                                                 <span>Onboarding completo</span>
                                             </div>
 
-                                            {/* Action Button */}
-                                            <button
-                                                onClick={() => handleSelectSupplier(supplier)}
-                                                className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <Plus className="w-4 h-4" />
-                                                Credenciar
-                                            </button>
+                                            {/* Partnership Status & Action Button */}
+                                            {supplierStatuses[supplier.id]?.hasActiveRelationship ? (
+                                                <div className="w-full py-2.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-xl font-medium text-center flex items-center justify-center gap-2">
+                                                    <CheckCircle className="w-4 h-4" />
+                                                    Vinculado
+                                                </div>
+                                            ) : supplierStatuses[supplier.id]?.hasPendingRequest ? (
+                                                <div className="w-full py-2.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-xl font-medium text-center flex items-center justify-center gap-2">
+                                                    <Loader2 className="w-4 h-4" />
+                                                    Solicitação Pendente
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleOpenRequestModal(supplier)}
+                                                    className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Send className="w-4 h-4" />
+                                                    Solicitar Parceria
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -527,26 +654,85 @@ const AddSupplierPage: React.FC = () => {
 
                             {/* Form */}
                             <div className="space-y-6">
-                                {/* CNPJ */}
+                                {/* CNPJ with Validation */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         CNPJ da Facção *
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={formData.cnpj}
-                                        onChange={(e) => handleFormChange('cnpj', e.target.value)}
-                                        placeholder="00.000.000/0000-00"
-                                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-                                            formErrors.cnpj
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={formData.cnpj}
+                                            onChange={(e) => handleFormChange('cnpj', e.target.value)}
+                                            placeholder="00.000.000/0000-00"
+                                            className={`w-full px-4 py-3 pr-10 bg-gray-50 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${formErrors.cnpj
                                                 ? 'border-red-500'
-                                                : 'border-gray-200 dark:border-gray-700'
-                                        }`}
-                                    />
+                                                : cnpjValidation?.isValid === false
+                                                    ? 'border-red-300 dark:border-red-500'
+                                                    : cnpjValidation?.isValid
+                                                        ? 'border-green-300 dark:border-green-500'
+                                                        : 'border-gray-200 dark:border-gray-700'
+                                                }`}
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            {isValidatingCnpj && (
+                                                <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+                                            )}
+                                            {!isValidatingCnpj && cnpjValidation?.isValid && (
+                                                <CheckCircle className="h-5 w-5 text-green-500" />
+                                            )}
+                                            {!isValidatingCnpj && cnpjValidation?.isValid === false && (
+                                                <XCircle className="h-5 w-5 text-red-500" />
+                                            )}
+                                        </div>
+                                    </div>
                                     {formErrors.cnpj && (
                                         <p className="mt-1 text-sm text-red-500">{formErrors.cnpj}</p>
                                     )}
+                                    {cnpjValidation?.isValid === false && !formErrors.cnpj && (
+                                        <p className="mt-1 text-sm text-red-500">{cnpjValidation.error}</p>
+                                    )}
                                 </div>
+
+                                {/* Company Preview Panel */}
+                                {cnpjValidation?.isValid && cnpjValidation.data && (
+                                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                                                <Building2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cnpjValidation.data.situacao === 'ATIVA'
+                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                        }`}>
+                                                        {cnpjValidation.data.situacao}
+                                                    </span>
+                                                </div>
+                                                <p className="font-semibold text-gray-900 dark:text-white">
+                                                    {cnpjValidation.data.razaoSocial}
+                                                </p>
+                                                {cnpjValidation.data.nomeFantasia && (
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                        {cnpjValidation.data.nomeFantasia}
+                                                    </p>
+                                                )}
+                                                {cnpjValidation.data.endereco && (
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {cnpjValidation.data.endereco.municipio}/{cnpjValidation.data.endereco.uf}
+                                                    </p>
+                                                )}
+                                                {cnpjValidation.data.atividadePrincipal && (
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        {cnpjValidation.data.atividadePrincipal.descricao}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Contact Name */}
                                 <div>
@@ -560,11 +746,10 @@ const AddSupplierPage: React.FC = () => {
                                             handleFormChange('contactName', e.target.value)
                                         }
                                         placeholder="Nome completo do responsável"
-                                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-                                            formErrors.contactName
-                                                ? 'border-red-500'
-                                                : 'border-gray-200 dark:border-gray-700'
-                                        }`}
+                                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${formErrors.contactName
+                                            ? 'border-red-500'
+                                            : 'border-gray-200 dark:border-gray-700'
+                                            }`}
                                     />
                                     {formErrors.contactName && (
                                         <p className="mt-1 text-sm text-red-500">
@@ -585,11 +770,10 @@ const AddSupplierPage: React.FC = () => {
                                             handleFormChange('contactEmail', e.target.value)
                                         }
                                         placeholder="email@empresa.com.br"
-                                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-                                            formErrors.contactEmail
-                                                ? 'border-red-500'
-                                                : 'border-gray-200 dark:border-gray-700'
-                                        }`}
+                                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${formErrors.contactEmail
+                                            ? 'border-red-500'
+                                            : 'border-gray-200 dark:border-gray-700'
+                                            }`}
                                     />
                                     {formErrors.contactEmail && (
                                         <p className="mt-1 text-sm text-red-500">
@@ -611,11 +795,10 @@ const AddSupplierPage: React.FC = () => {
                                                 handleFormChange('contactPhone', e.target.value)
                                             }
                                             placeholder="(00) 00000-0000"
-                                            className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-                                                formErrors.contactPhone
-                                                    ? 'border-red-500'
-                                                    : 'border-gray-200 dark:border-gray-700'
-                                            }`}
+                                            className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 ${formErrors.contactPhone
+                                                ? 'border-red-500'
+                                                : 'border-gray-200 dark:border-gray-700'
+                                                }`}
                                         />
                                         {formErrors.contactPhone && (
                                             <p className="mt-1 text-sm text-red-500">
@@ -662,13 +845,65 @@ const AddSupplierPage: React.FC = () => {
                                 {/* Notes */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Observações
+                                        Observações Internas
                                     </label>
                                     <textarea
                                         value={formData.notes}
                                         onChange={(e) => handleFormChange('notes', e.target.value)}
+                                        rows={2}
+                                        placeholder="Notas ou observações visíveis apenas para sua equipe..."
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                                    />
+                                </div>
+
+                                {/* Send Channel Toggles */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                                        Enviar Convite Via *
+                                    </label>
+                                    <div className="flex gap-4">
+                                        <label className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${sendEmail
+                                                ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
+                                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                            }`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={sendEmail}
+                                                onChange={(e) => setSendEmail(e.target.checked)}
+                                                className="sr-only"
+                                            />
+                                            <Mail className="h-5 w-5" />
+                                            <span className="font-medium">Email</span>
+                                        </label>
+                                        <label className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${sendWhatsapp
+                                                ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                            }`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={sendWhatsapp}
+                                                onChange={(e) => setSendWhatsapp(e.target.checked)}
+                                                className="sr-only"
+                                            />
+                                            <MessageCircle className="h-5 w-5" />
+                                            <span className="font-medium">WhatsApp</span>
+                                        </label>
+                                    </div>
+                                    {formErrors.sendVia && (
+                                        <p className="mt-2 text-sm text-red-500">{formErrors.sendVia}</p>
+                                    )}
+                                </div>
+
+                                {/* Custom Message */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Mensagem Personalizada (opcional)
+                                    </label>
+                                    <textarea
+                                        value={customMessage}
+                                        onChange={(e) => setCustomMessage(e.target.value)}
                                         rows={3}
-                                        placeholder="Notas ou observações sobre este fornecedor..."
+                                        placeholder="Adicione uma mensagem personalizada ao convite..."
                                         className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                                     />
                                 </div>
@@ -683,18 +918,18 @@ const AddSupplierPage: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={handleCreateNewSupplier}
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || (!sendEmail && !sendWhatsapp)}
                                         className="px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? (
                                             <>
                                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                                Criando...
+                                                Enviando...
                                             </>
                                         ) : (
                                             <>
-                                                <Plus className="w-5 h-5" />
-                                                Criar e Enviar Convite
+                                                <Send className="w-5 h-5" />
+                                                Enviar Convite
                                             </>
                                         )}
                                     </button>
@@ -840,11 +1075,33 @@ const AddSupplierPage: React.FC = () => {
                 </div>
             )}
 
+            {/* Request Partnership Modal */}
+            {showRequestModal && selectedSupplier && (
+                <RequestPartnershipModal
+                    isOpen={showRequestModal}
+                    onClose={() => {
+                        setShowRequestModal(false);
+                        setSelectedSupplier(null);
+                    }}
+                    onSubmit={handleRequestPartnership}
+                    supplier={{
+                        id: selectedSupplier.id,
+                        tradeName: selectedSupplier.tradeName || undefined,
+                        legalName: selectedSupplier.legalName || 'Empresa',
+                        city: selectedSupplier.city || '',
+                        state: selectedSupplier.state || '',
+                        avgRating: selectedSupplier.supplierProfile?.avgRating ? Number(selectedSupplier.supplierProfile.avgRating) : undefined,
+                        logoUrl: selectedSupplier.logoUrl || undefined,
+                    }}
+                    isLoading={isSubmitting}
+                />
+            )}
+
             {/* Success Toast */}
             {showSuccessToast && (
                 <div className="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 z-50">
                     <CheckCircle className="w-5 h-5" />
-                    <span>Fornecedor credenciado com sucesso!</span>
+                    <span>Solicitação enviada com sucesso!</span>
                 </div>
             )}
         </div>
