@@ -271,7 +271,7 @@ export const EDUCATIONAL_CATEGORY_LABELS: Record<EducationalContentCategory, str
 
 export type SupportTicketStatus = 'ABERTO' | 'EM_ANDAMENTO' | 'AGUARDANDO_RESPOSTA' | 'RESOLVIDO' | 'FECHADO';
 export type SupportTicketPriority = 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE';
-export type SupportTicketCategory = 'PEDIDOS' | 'PAGAMENTOS' | 'ACESSO' | 'TECNICO' | 'OUTROS';
+export type SupportTicketCategory = 'PEDIDOS' | 'PAGAMENTOS' | 'ACESSO' | 'TECNICO' | 'FORNECEDORES' | 'RELATORIOS' | 'SUGESTAO' | 'OUTROS';
 
 export interface SupportTicket {
   id: string;
@@ -335,6 +335,9 @@ export const TICKET_CATEGORY_LABELS: Record<SupportTicketCategory, string> = {
   PAGAMENTOS: 'Pagamentos',
   ACESSO: 'Acesso à Plataforma',
   TECNICO: 'Problemas Técnicos',
+  FORNECEDORES: 'Gestão de Fornecedores',
+  RELATORIOS: 'Relatórios',
+  SUGESTAO: 'Sugestão de Melhoria',
   OUTROS: 'Outros',
 };
 

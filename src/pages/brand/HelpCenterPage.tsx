@@ -4,6 +4,7 @@ import {
     ArrowLeft, HelpCircle, Plus, Search,
     MessageSquare, Clock, CheckCircle,
     Package, CreditCard, Key, Wrench, MoreHorizontal,
+    Factory, BarChart3, Lightbulb,
     ChevronRight, RefreshCw, X
 } from 'lucide-react';
 import { supportTicketsService, CreateTicketDto } from '../../services/supportTickets.service';
@@ -15,6 +16,9 @@ const CATEGORY_ICONS: Record<SupportTicketCategory, React.ElementType> = {
     PAGAMENTOS: CreditCard,
     ACESSO: Key,
     TECNICO: Wrench,
+    FORNECEDORES: Factory,
+    RELATORIOS: BarChart3,
+    SUGESTAO: Lightbulb,
     OUTROS: MoreHorizontal,
 };
 
