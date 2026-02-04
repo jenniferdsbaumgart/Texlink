@@ -59,6 +59,12 @@ export const RATING_RECEIVED = 'rating.received';
 // System Events
 export const SYSTEM_ANNOUNCEMENT = 'system.announcement';
 
+// Code of Conduct Events
+export const CODE_OF_CONDUCT_UPLOADED = 'code.of.conduct.uploaded';
+export const CODE_OF_CONDUCT_UPDATED = 'code.of.conduct.updated';
+export const CODE_OF_CONDUCT_ACCEPTED = 'code.of.conduct.accepted';
+export const CODE_OF_CONDUCT_REMINDER = 'code.of.conduct.reminder';
+
 // Event Payload Interfaces
 export interface OrderCreatedEvent {
   orderId: string;
@@ -356,4 +362,44 @@ export interface SupplierDocumentUpdatedEvent {
   documentType: string;
   documentName: string;
   action: 'uploaded' | 'updated';
+}
+
+// Code of Conduct Event Interfaces
+export interface CodeOfConductUploadedEvent {
+  documentId: string;
+  brandId: string;
+  brandName: string;
+  documentTitle: string;
+  isRequired: boolean;
+  supplierIds: string[];
+}
+
+export interface CodeOfConductUpdatedEvent {
+  documentId: string;
+  brandId: string;
+  brandName: string;
+  documentTitle: string;
+  newVersion: string;
+  requiresReacceptance: boolean;
+  affectedRelationshipIds: string[];
+}
+
+export interface CodeOfConductAcceptedEvent {
+  documentId: string;
+  acceptanceId: string;
+  brandId: string;
+  supplierId: string;
+  supplierName: string;
+  acceptedByName: string;
+  version: string;
+}
+
+export interface CodeOfConductReminderEvent {
+  documentId: string;
+  brandId: string;
+  brandName: string;
+  documentTitle: string;
+  relationshipId: string;
+  supplierId: string;
+  supplierName: string;
 }

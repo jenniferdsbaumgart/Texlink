@@ -40,6 +40,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { BrandDashboardModule } from './modules/brand-dashboard/brand-dashboard.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { BrandDocumentsModule } from './modules/brand-documents/brand-documents.module';
 import configuration from './config/configuration';
 import { BullConfigService, QUEUE_NAMES } from './config/bull.config';
 
@@ -130,6 +131,7 @@ if (process.env.STORAGE_TYPE !== 's3') {
     PortalModule,
     BrandDashboardModule,
     ReportsModule,
+    BrandDocumentsModule,
   ],
   providers: [
     // Global rate limiting guard

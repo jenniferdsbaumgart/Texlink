@@ -307,6 +307,21 @@ enum SuggestionStatus {
   REJEITADO
 }
 
+// ==================== BRAND DOCUMENT ENUMS ====================
+
+enum BrandDocumentType {
+  CODE_OF_CONDUCT
+  TERMS_OF_SERVICE
+  PRIVACY_POLICY
+  OTHER
+}
+
+enum BrandDocumentStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
 // ==================== PARTNERSHIP REQUEST ENUMS ====================
 
 enum PartnershipRequestStatus {
@@ -352,6 +367,10 @@ enum NotificationType {
   SUPPLIER_DOCUMENT_EXPIRING_FOR_BRAND
   SUPPLIER_DOCUMENT_UPDATED
   DOCUMENT_SHARING_CONSENT_REVOKED
+  CODE_OF_CONDUCT_UPLOADED
+  CODE_OF_CONDUCT_UPDATED
+  CODE_OF_CONDUCT_ACCEPTED
+  CODE_OF_CONDUCT_REMINDER
 }
 
 enum NotificationPriority {
@@ -424,6 +443,10 @@ model User {
   partnershipRequestsSent      PartnershipRequest[] @relation("PartnershipRequestsSent")
   partnershipRequestsResponded PartnershipRequest[] @relation("PartnershipRequestsResponded")
 
+  // Brand document relations
+  brandDocumentsUploaded BrandDocument[]           @relation("BrandDocumentsUploaded")
+  acceptedBrandDocuments BrandDocumentAcceptance[] @relation("AcceptedBrandDocuments")
+
   // Performance indexes
   @@index([email])
   @@index([role])
@@ -495,6 +518,9 @@ model Company {
   // Partnership requests
   partnershipRequestsAsBrand    PartnershipRequest[] @relation("BrandPartnershipRequests")
   partnershipRequestsAsSupplier PartnershipRequest[] @relation("SupplierPartnershipRequests")
+
+  // Brand documents (compliance/conduct)
+  brandDocuments BrandDocument[] @relation("BrandDocuments")
 
   // Settings
   bankAccount          BankAccount?
@@ -633,7 +659,7 @@ model Order {
 
   techSheetUrl          String?
   observations          String?
-  protectTechnicalSheet Boolean  @default(false) // Proteger ficha técnica até aceite
+  protectTechnicalSheet Boolean @default(false) // Proteger ficha técnica até aceite
   rejectionReason       String?
 
   acceptedAt   DateTime?
@@ -1233,11 +1259,12 @@ model SupplierBrandRelationship {
 
   initiatedByUser User @relation("RelationshipsInitiated", fields: [initiatedBy], references: [id])
 
-  contract           SupplierContract?
-  specificDocuments  BrandSpecificDocument[]
-  statusHistory      RelationshipStatusHistory[]
-  orders             Order[]                     @relation("RelationshipOrders")
-  partnershipRequest PartnershipRequest?
+  contract            SupplierContract?
+  specificDocuments   BrandSpecificDocument[]
+  statusHistory       RelationshipStatusHistory[]
+  orders              Order[]                     @relation("RelationshipOrders")
+  partnershipRequest  PartnershipRequest?
+  documentAcceptances BrandDocumentAcceptance[]
 
   @@unique([supplierId, brandId])
   @@index([supplierId])
@@ -1717,4 +1744,86 @@ model Notification {
   @@index([type, createdAt(sort: Desc)])
   @@index([entityType, entityId])
   @@map("notifications")
+}
+
+// ==================== BRAND DOCUMENTS (Code of Conduct, etc.) ====================
+
+model BrandDocument {
+  id      String              @id @default(uuid())
+  brandId String
+  type    BrandDocumentType
+  status  BrandDocumentStatus @default(DRAFT)
+
+  title       String
+  description String? @db.Text
+  fileName    String
+  fileUrl     String
+  fileSize    Int
+  mimeType    String
+
+  version       String @default("1.0")
+  versionNumber Int    @default(1)
+
+  isRequired           Boolean @default(false)
+  requiresReacceptance Boolean @default(true)
+
+  uploadedById String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  archivedAt   DateTime?
+
+  brand       Company                   @relation("BrandDocuments", fields: [brandId], references: [id], onDelete: Cascade)
+  uploadedBy  User                      @relation("BrandDocumentsUploaded", fields: [uploadedById], references: [id])
+  acceptances BrandDocumentAcceptance[]
+  versions    BrandDocumentVersion[]
+
+  @@unique([brandId, type, status])
+  @@index([brandId])
+  @@index([type])
+  @@map("brand_documents")
+}
+
+model BrandDocumentVersion {
+  id            String   @id @default(uuid())
+  documentId    String
+  version       String
+  versionNumber Int
+  fileName      String
+  fileUrl       String
+  fileSize      Int
+  uploadedById  String
+  createdAt     DateTime @default(now())
+  notes         String?  @db.Text
+
+  document BrandDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("brand_document_versions")
+}
+
+model BrandDocumentAcceptance {
+  id             String @id @default(uuid())
+  documentId     String
+  relationshipId String
+
+  acceptedAt            DateTime @default(now())
+  acceptedVersion       String
+  acceptedVersionNumber Int
+
+  acceptedById   String
+  acceptedByName String
+  acceptedByRole String?
+  clientIp       String
+  userAgent      String? @db.Text
+
+  checkboxConfirmed Boolean @default(true)
+
+  document     BrandDocument             @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  relationship SupplierBrandRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  acceptedBy   User                      @relation("AcceptedBrandDocuments", fields: [acceptedById], references: [id])
+
+  @@unique([documentId, relationshipId])
+  @@index([documentId])
+  @@index([relationshipId])
+  @@map("brand_document_acceptances")
 }
