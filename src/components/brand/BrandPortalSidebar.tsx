@@ -27,7 +27,8 @@ import {
     History,
     CreditCard,
     Briefcase,
-    TrendingUp
+    TrendingUp,
+    FileText
 } from 'lucide-react';
 
 interface NavItem {
@@ -114,6 +115,14 @@ const navGroups: NavGroup[] = [
                 label: 'Minha Equipe',
                 icon: <Users className="h-5 w-5" />,
                 path: '/brand/equipe',
+            },
+            {
+                id: 'documentos',
+                label: 'Documentos',
+                icon: <FileText className="h-5 w-5" />,
+                children: [
+                    { label: 'Código de Conduta', path: '/brand/documentos/codigo-conduta' },
+                ],
             },
         ],
     },

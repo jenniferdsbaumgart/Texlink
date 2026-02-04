@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Building2,
@@ -13,8 +13,11 @@ import {
     Calendar,
     TrendingUp,
     Package,
+    ShieldAlert,
 } from 'lucide-react';
 import { relationshipsService } from '../../services';
+import { brandDocumentsService, type DocumentWithAcceptance } from '../../services/brandDocuments.service';
+import { AcceptCodeOfConductModal } from '../../components/documents/AcceptCodeOfConductModal';
 import type {
     SupplierBrandRelationship,
     RelationshipStatus,
@@ -25,9 +28,36 @@ const BrandsPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Code of Conduct state
+    const [pendingDocsByBrand, setPendingDocsByBrand] = useState<Record<string, DocumentWithAcceptance[]>>({});
+    const [selectedDocument, setSelectedDocument] = useState<{
+        document: DocumentWithAcceptance;
+        relationshipId: string;
+        brandName: string;
+    } | null>(null);
+    const [showAcceptModal, setShowAcceptModal] = useState(false);
+
     // Get current user's supplierId from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const supplierId = user.supplierId || user.companyId;
+
+    const loadPendingDocs = useCallback(async (rels: SupplierBrandRelationship[]) => {
+        const docsMap: Record<string, DocumentWithAcceptance[]> = {};
+
+        for (const rel of rels.filter(r => r.status === 'ACTIVE')) {
+            try {
+                const docs = await brandDocumentsService.getDocumentsForBrand(rel.brandId);
+                const pending = docs.filter(d => !d.isAccepted && d.isRequired);
+                if (pending.length > 0) {
+                    docsMap[rel.brandId] = pending;
+                }
+            } catch (err) {
+                console.error(`Error loading docs for brand ${rel.brandId}:`, err);
+            }
+        }
+
+        setPendingDocsByBrand(docsMap);
+    }, []);
 
     useEffect(() => {
         loadRelationships();
@@ -39,12 +69,24 @@ const BrandsPage: React.FC = () => {
             setError(null);
             const data = await relationshipsService.getBySupplier(supplierId);
             setRelationships(data);
+            // Load pending documents for active relationships
+            loadPendingDocs(data);
         } catch (err) {
             console.error('Error loading relationships:', err);
             setError('Erro ao carregar suas marcas. Tente novamente.');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleOpenAcceptModal = (document: DocumentWithAcceptance, relationshipId: string, brandName: string) => {
+        setSelectedDocument({ document, relationshipId, brandName });
+        setShowAcceptModal(true);
+    };
+
+    const handleDocumentAccepted = () => {
+        // Reload pending docs after acceptance
+        loadPendingDocs(relationships);
     };
 
     const getStatusConfig = (status: RelationshipStatus) => {
@@ -277,6 +319,44 @@ const BrandsPage: React.FC = () => {
                                         </div>
                                     )}
 
+                                    {/* Pending Code of Conduct Alert */}
+                                    {pendingDocsByBrand[relationship.brandId]?.length > 0 && (
+                                        <div className="rounded-lg p-3 mb-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+                                            <div className="flex items-start gap-3">
+                                                <ShieldAlert className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2">
+                                                        Documentos Pendentes de Aceite
+                                                    </p>
+                                                    <div className="space-y-2">
+                                                        {pendingDocsByBrand[relationship.brandId].map((doc) => (
+                                                            <button
+                                                                key={doc.id}
+                                                                onClick={() =>
+                                                                    handleOpenAcceptModal(
+                                                                        doc,
+                                                                        relationship.id,
+                                                                        relationship.brand?.tradeName ||
+                                                                            relationship.brand?.legalName ||
+                                                                            'Marca'
+                                                                    )
+                                                                }
+                                                                className="w-full flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-700 hover:border-orange-400 dark:hover:border-orange-500 transition-colors text-left"
+                                                            >
+                                                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                                    {doc.title}
+                                                                </span>
+                                                                <span className="text-xs font-medium text-orange-600 dark:text-orange-400">
+                                                                    Aceitar
+                                                                </span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Contract Status */}
                                     {relationship.contract && (
                                         <div
@@ -378,6 +458,21 @@ const BrandsPage: React.FC = () => {
                         );
                     })}
                 </div>
+            )}
+
+            {/* Accept Code of Conduct Modal */}
+            {selectedDocument && (
+                <AcceptCodeOfConductModal
+                    isOpen={showAcceptModal}
+                    onClose={() => {
+                        setShowAcceptModal(false);
+                        setSelectedDocument(null);
+                    }}
+                    onAccepted={handleDocumentAccepted}
+                    document={selectedDocument.document}
+                    relationshipId={selectedDocument.relationshipId}
+                    brandName={selectedDocument.brandName}
+                />
             )}
         </div>
     );

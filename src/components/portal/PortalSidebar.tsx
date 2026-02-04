@@ -28,6 +28,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { suppliersService, SupplierDashboard } from '../../services';
+import { brandDocumentsService } from '../../services/brandDocuments.service';
 
 interface NavItem {
   id: string;
@@ -156,6 +157,7 @@ export const PortalSidebar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [supplierProfile, setSupplierProfile] = useState<SupplierDashboard | null>(null);
+  const [pendingDocsCount, setPendingDocsCount] = useState(0);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -174,6 +176,19 @@ export const PortalSidebar: React.FC = () => {
       }
     };
     loadProfile();
+  }, []);
+
+  // Load pending documents count
+  useEffect(() => {
+    const loadPendingDocs = async () => {
+      try {
+        const count = await brandDocumentsService.getPendingCount();
+        setPendingDocsCount(count);
+      } catch (error) {
+        console.error('Error loading pending docs count:', error);
+      }
+    };
+    loadPendingDocs();
   }, []);
 
   useEffect(() => {
@@ -453,10 +468,22 @@ export const PortalSidebar: React.FC = () => {
                             {isActive && (
                               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-brand-400 to-brand-600 rounded-r-full animate-slide-in-right" />
                             )}
-                            <span className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
+                            <span className={`flex items-center ${collapsed ? '' : 'gap-3'} relative`}>
                               {item.icon}
+                              {/* Badge for pending documents on Minhas Marcas */}
+                              {item.id === 'marcas' && pendingDocsCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[10px] font-bold text-white bg-orange-500 rounded-full">
+                                  {pendingDocsCount > 9 ? '9+' : pendingDocsCount}
+                                </span>
+                              )}
                               {!collapsed && item.label}
                             </span>
+                            {/* Badge also visible when not collapsed */}
+                            {!collapsed && item.id === 'marcas' && pendingDocsCount > 0 && (
+                              <span className="ml-auto flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-xs font-bold text-white bg-orange-500 rounded-full">
+                                {pendingDocsCount}
+                              </span>
+                            )}
                           </>
                         )}
                       </NavLink>
