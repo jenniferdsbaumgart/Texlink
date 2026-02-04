@@ -628,9 +628,10 @@ model Order {
   paymentTerms      String? // e.g., "50% adiantado, 50% na entrega"
   materialsProvided Boolean  @default(false)
 
-  techSheetUrl    String?
-  observations    String?
-  rejectionReason String?
+  techSheetUrl          String?
+  observations          String?
+  protectTechnicalSheet Boolean  @default(false) // Proteger ficha técnica até aceite
+  rejectionReason       String?
 
   acceptedAt   DateTime?
   acceptedById String?
@@ -1382,6 +1383,9 @@ model CredentialSettings {
   // Onboarding
   requiredDocuments String[] // Tipos de documentos obrigatórios
   requireContract   Boolean  @default(true)
+
+  // Configurações de pedido
+  defaultProtectTechnicalSheet Boolean @default(false)
 
   // Notificações
   notifyOnNewCredential Boolean  @default(true)

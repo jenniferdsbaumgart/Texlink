@@ -37,10 +37,36 @@ import {
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
 
+  // Status antes do aceite onde ficha deve ser protegida
+  private readonly PRE_ACCEPT_STATUSES = [
+    OrderStatus.LANCADO_PELA_MARCA,
+    OrderStatus.EM_NEGOCIACAO,
+    OrderStatus.DISPONIVEL_PARA_OUTRAS,
+  ];
+
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
   ) {}
+
+  private shouldProtectTechSheet(order: any, isSupplier: boolean): boolean {
+    return (
+      isSupplier &&
+      order.protectTechnicalSheet &&
+      this.PRE_ACCEPT_STATUSES.includes(order.status)
+    );
+  }
+
+  private applyTechSheetProtection(order: any): any {
+    return {
+      ...order,
+      techSheetUrl: null,
+      observations: null,
+      description: null,
+      _techSheetProtected: true, // Flag para UI saber que está protegido
+      attachments: order.attachments?.filter((a: any) => a.isPreview) || [],
+    };
+  }
 
   // Generate display ID: TX-YYYYMMDD-XXXX
   private generateDisplayId(): string {
@@ -80,6 +106,17 @@ export class OrdersService {
     const platformFee = totalValue * platformFeePercentage;
     const netValue = totalValue - platformFee;
 
+    // Buscar default da marca para proteção de ficha técnica
+    const brandSettings = await this.prisma.credentialSettings.findUnique({
+      where: { companyId: companyUser.companyId },
+      select: { defaultProtectTechnicalSheet: true },
+    });
+
+    const protectTechnicalSheet =
+      dto.protectTechnicalSheet ??
+      brandSettings?.defaultProtectTechnicalSheet ??
+      false;
+
     // Build order data
     const orderData: any = {
       displayId: this.generateDisplayId(),
@@ -101,6 +138,7 @@ export class OrdersService {
       paymentTerms: dto.paymentTerms,
       materialsProvided: dto.materialsProvided ?? false,
       observations: dto.observations,
+      protectTechnicalSheet,
       statusHistory: {
         create: {
           newStatus: OrderStatus.LANCADO_PELA_MARCA,
@@ -232,16 +270,24 @@ export class OrdersService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Financial Privacy Masking
+    // Financial Privacy Masking + Tech Sheet Protection for Supplier
     if (role === 'SUPPLIER') {
-      return orders.map((order) => ({
-        ...order,
-        totalValue: order.netValue || order.totalValue,
-        pricePerUnit: order.netValue
-          ? Number(order.netValue) / order.quantity
-          : order.pricePerUnit,
-        platformFee: undefined,
-      }));
+      return orders.map((order) => {
+        let result = {
+          ...order,
+          totalValue: order.netValue || order.totalValue,
+          pricePerUnit: order.netValue
+            ? Number(order.netValue) / order.quantity
+            : order.pricePerUnit,
+          platformFee: undefined,
+        };
+
+        if (this.shouldProtectTechSheet(order, true)) {
+          result = { ...result, ...this.applyTechSheetProtection(result) };
+        }
+
+        return result;
+      });
     }
 
     return orders;
@@ -281,7 +327,7 @@ export class OrdersService {
       companyUser && companyUser.company.type === CompanyType.SUPPLIER;
 
     if (isSupplier) {
-      return {
+      let result = {
         ...order,
         totalValue: order.netValue || order.totalValue,
         pricePerUnit: order.netValue
@@ -289,6 +335,12 @@ export class OrdersService {
           : order.pricePerUnit,
         platformFee: undefined,
       };
+
+      if (this.shouldProtectTechSheet(order, true)) {
+        result = { ...result, ...this.applyTechSheetProtection(result) };
+      }
+
+      return result;
     }
 
     return order;

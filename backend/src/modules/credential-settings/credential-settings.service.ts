@@ -247,6 +247,42 @@ export class CredentialSettingsService {
     }
   }
 
+  // ==================== ORDER DEFAULTS ====================
+
+  /**
+   * Retorna configurações padrão de pedidos
+   */
+  async getOrderDefaults(user: AuthUser) {
+    const companyId = user.brandId || user.companyId;
+    const settings = await this.prisma.credentialSettings.findUnique({
+      where: { companyId },
+      select: { defaultProtectTechnicalSheet: true },
+    });
+    return {
+      defaultProtectTechnicalSheet:
+        settings?.defaultProtectTechnicalSheet ?? false,
+    };
+  }
+
+  /**
+   * Atualiza configurações padrão de pedidos
+   */
+  async updateOrderDefaults(
+    user: AuthUser,
+    dto: { defaultProtectTechnicalSheet?: boolean },
+  ) {
+    const companyId = user.brandId || user.companyId;
+
+    return this.prisma.credentialSettings.upsert({
+      where: { companyId },
+      update: { defaultProtectTechnicalSheet: dto.defaultProtectTechnicalSheet },
+      create: {
+        companyId,
+        defaultProtectTechnicalSheet: dto.defaultProtectTechnicalSheet ?? false,
+      },
+    });
+  }
+
   /**
    * Busca ou cria template padrão da marca
    */

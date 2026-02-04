@@ -40,6 +40,25 @@ interface AuthUser {
 export class CredentialSettingsController {
   constructor(private readonly settingsService: CredentialSettingsService) {}
 
+  // ==================== ORDER DEFAULTS ====================
+
+  @Get('order-defaults')
+  @ApiOperation({ summary: 'Buscar configurações padrão de pedidos' })
+  @ApiResponse({ status: 200, description: 'Configurações encontradas' })
+  async getOrderDefaults(@CurrentUser() user: AuthUser) {
+    return this.settingsService.getOrderDefaults(user);
+  }
+
+  @Patch('order-defaults')
+  @ApiOperation({ summary: 'Atualizar configurações padrão de pedidos' })
+  @ApiResponse({ status: 200, description: 'Configurações atualizadas' })
+  async updateOrderDefaults(
+    @Body() dto: { defaultProtectTechnicalSheet?: boolean },
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.settingsService.updateOrderDefaults(user, dto);
+  }
+
   // ==================== INVITATION TEMPLATES ====================
 
   @Get('invitation-templates')

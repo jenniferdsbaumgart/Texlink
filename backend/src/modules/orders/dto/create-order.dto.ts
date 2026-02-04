@@ -54,6 +54,10 @@ export class CreateOrderDto {
   @IsOptional()
   observations?: string;
 
+  @IsBoolean()
+  @IsOptional()
+  protectTechnicalSheet?: boolean;
+
   // Assignment type: DIRECT, BIDDING or HYBRID
 
   @IsEnum(OrderAssignmentType)
