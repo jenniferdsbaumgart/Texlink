@@ -240,6 +240,100 @@ class RelationshipsService {
             terminated: relationships.filter((r) => r.status === 'TERMINATED').length,
         };
     }
+
+    // ==================== LGPD CONSENT METHODS ====================
+
+    /**
+     * Get consent status for a relationship
+     */
+    async getConsentStatus(relationshipId: string): Promise<ConsentStatus> {
+        if (MOCK_MODE) {
+            await simulateDelay();
+            return {
+                relationshipId,
+                documentSharingConsent: true,
+                documentSharingConsentAt: new Date().toISOString(),
+                documentSharingRevokedAt: null,
+                documentSharingRevokedReason: null,
+                status: 'ACTIVE',
+            };
+        }
+
+        const response = await api.get(`/suppliers/relationships/${relationshipId}/consent`);
+        return response.data;
+    }
+
+    /**
+     * Update consent (grant or remove without terminating relationship)
+     */
+    async updateConsent(relationshipId: string, consent: boolean): Promise<ConsentUpdateResponse> {
+        if (MOCK_MODE) {
+            await simulateDelay();
+            return {
+                success: true,
+                message: consent ? 'Consentimento concedido' : 'Consentimento removido',
+                documentSharingConsent: consent,
+                documentSharingConsentAt: consent ? new Date().toISOString() : null,
+            };
+        }
+
+        const response = await api.patch(`/suppliers/relationships/${relationshipId}/consent`, {
+            consent,
+        });
+        return response.data;
+    }
+
+    /**
+     * Revoke consent and terminate relationship (LGPD right)
+     */
+    async revokeConsent(relationshipId: string, reason: string): Promise<RevokeConsentResponse> {
+        if (MOCK_MODE) {
+            await simulateDelay();
+            return {
+                success: true,
+                message: 'Consentimento revogado e relacionamento encerrado',
+                relationship: {
+                    id: relationshipId,
+                    status: 'TERMINATED',
+                    documentSharingConsent: false,
+                    documentSharingRevokedAt: new Date().toISOString(),
+                },
+            };
+        }
+
+        const response = await api.post(`/suppliers/relationships/${relationshipId}/revoke-consent`, {
+            reason,
+        });
+        return response.data;
+    }
+}
+
+// Types for consent management
+export interface ConsentStatus {
+    relationshipId: string;
+    documentSharingConsent: boolean;
+    documentSharingConsentAt: string | null;
+    documentSharingRevokedAt: string | null;
+    documentSharingRevokedReason: string | null;
+    status: string;
+}
+
+export interface ConsentUpdateResponse {
+    success: boolean;
+    message: string;
+    documentSharingConsent: boolean;
+    documentSharingConsentAt: string | null;
+}
+
+export interface RevokeConsentResponse {
+    success: boolean;
+    message: string;
+    relationship: {
+        id: string;
+        status: string;
+        documentSharingConsent: boolean;
+        documentSharingRevokedAt: string;
+    };
 }
 
 export const relationshipsService = new RelationshipsService();

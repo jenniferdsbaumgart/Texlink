@@ -125,6 +125,69 @@ class SupplierDocumentsService {
     async delete(id: string): Promise<void> {
         await api.delete(`${this.basePath}/${id}`);
     }
+
+    // ========== BRAND ACCESS METHODS ==========
+
+    /**
+     * Get supplier documents for a brand (requires active relationship with consent)
+     */
+    async getForBrand(
+        supplierId: string,
+        type?: SupplierDocumentType,
+        status?: SupplierDocumentStatus
+    ): Promise<SupplierDocument[]> {
+        const params = new URLSearchParams();
+        if (type) params.append('type', type);
+        if (status) params.append('status', status);
+
+        const response = await api.get<SupplierDocument[]>(
+            `${this.basePath}/brand/suppliers/${supplierId}?${params.toString()}`
+        );
+        return response.data;
+    }
+
+    /**
+     * Get supplier document summary for a brand (with consent status)
+     */
+    async getSummaryForBrand(supplierId: string): Promise<SupplierDocumentSummaryForBrand> {
+        const response = await api.get<SupplierDocumentSummaryForBrand>(
+            `${this.basePath}/brand/suppliers/${supplierId}/summary`
+        );
+        return response.data;
+    }
+
+    /**
+     * Get download URL for a supplier document (brand access)
+     */
+    async getDownloadUrlForBrand(
+        supplierId: string,
+        documentId: string
+    ): Promise<DocumentDownloadResponse> {
+        const response = await api.get<DocumentDownloadResponse>(
+            `${this.basePath}/brand/suppliers/${supplierId}/documents/${documentId}/download`
+        );
+        return response.data;
+    }
+}
+
+// Types for brand access
+export interface SupplierDocumentSummaryForBrand {
+    hasConsent: boolean;
+    consentedAt: string | null;
+    total: number;
+    valid: number;
+    expiringSoon: number;
+    expired: number;
+    pending: number;
+    compliancePercentage: number;
+    message?: string;
+}
+
+export interface DocumentDownloadResponse {
+    url: string;
+    fileName: string;
+    mimeType: string;
+    expiresIn: number;
 }
 
 export const supplierDocumentsService = new SupplierDocumentsService();

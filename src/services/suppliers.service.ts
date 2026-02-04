@@ -78,6 +78,88 @@ export interface Supplier {
     };
 }
 
+// ==================== INVITATION TYPES ====================
+
+export interface CNPJValidationResult {
+    isValid: boolean;
+    data?: {
+        cnpj: string;
+        razaoSocial: string;
+        nomeFantasia?: string;
+        situacao: string;
+        dataSituacao?: string;
+        dataAbertura?: string;
+        naturezaJuridica?: string;
+        capitalSocial?: number;
+        porte?: string;
+        endereco: {
+            logradouro: string;
+            numero: string;
+            complemento?: string;
+            bairro: string;
+            municipio: string;
+            uf: string;
+            cep: string;
+        };
+        atividadePrincipal?: {
+            codigo: string;
+            descricao: string;
+        };
+        telefone?: string;
+        email?: string;
+    };
+    error?: string;
+    source: string;
+    timestamp: Date;
+}
+
+export type InvitationChannel = 'EMAIL' | 'WHATSAPP' | 'BOTH';
+
+export interface InviteSupplierDto {
+    cnpj: string;
+    contactName: string;
+    contactEmail: string;
+    contactPhone: string;
+    contactWhatsapp?: string;
+    customMessage?: string;
+    sendVia: InvitationChannel;
+    internalCode?: string;
+    notes?: string;
+}
+
+export interface InviteSupplierResponse {
+    id: string;
+    cnpj: string;
+    legalName?: string;
+    status: string;
+    message: string;
+    expiresAt: Date;
+}
+
+export interface SupplierInvitation {
+    id: string;
+    cnpj: string;
+    legalName?: string;
+    tradeName?: string;
+    contactName: string;
+    contactEmail: string;
+    contactPhone: string;
+    contactWhatsapp?: string;
+    status: string;
+    internalCode?: string;
+    createdAt: Date;
+    expiresAt?: Date;
+    lastInvitationSentAt?: Date;
+    canResend: boolean;
+}
+
+export interface ResendInvitationDto {
+    sendVia?: InvitationChannel;
+    customMessage?: string;
+}
+
+// ==================== SERVICE ====================
+
 export const suppliersService = {
     async getMyProfile() {
         if (MOCK_MODE) {
@@ -187,4 +269,125 @@ export const suppliersService = {
         );
         return response.data;
     },
+
+    // ==================== INVITATION METHODS ====================
+
+    /**
+     * Validate CNPJ via Brasil API
+     */
+    async validateCnpj(cnpj: string): Promise<CNPJValidationResult> {
+        if (MOCK_MODE) {
+            await simulateDelay(800);
+            const cleaned = cnpj.replace(/\D/g, '');
+            if (cleaned.length !== 14) {
+                return {
+                    isValid: false,
+                    error: 'CNPJ deve conter 14 dígitos',
+                    source: 'MOCK',
+                    timestamp: new Date(),
+                };
+            }
+            // Return mock valid data
+            return {
+                isValid: true,
+                data: {
+                    cnpj: cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5'),
+                    razaoSocial: 'Empresa Exemplo LTDA',
+                    nomeFantasia: 'Exemplo Confecções',
+                    situacao: 'ATIVA',
+                    endereco: {
+                        logradouro: 'Rua das Flores',
+                        numero: '123',
+                        bairro: 'Centro',
+                        municipio: 'São Paulo',
+                        uf: 'SP',
+                        cep: '01234-567',
+                    },
+                    atividadePrincipal: {
+                        codigo: '14.12-6-01',
+                        descricao: 'Confecção de peças do vestuário, exceto roupas íntimas e as confeccionadas sob medida',
+                    },
+                },
+                source: 'MOCK',
+                timestamp: new Date(),
+            };
+        }
+
+        const response = await api.get<CNPJValidationResult>(`/suppliers/validate-cnpj/${cnpj}`);
+        return response.data;
+    },
+
+    /**
+     * Invite a new supplier
+     */
+    async inviteSupplier(data: InviteSupplierDto): Promise<InviteSupplierResponse> {
+        if (MOCK_MODE) {
+            await simulateDelay(1000);
+            console.log('[MOCK] Supplier invited:', data);
+            return {
+                id: crypto.randomUUID(),
+                cnpj: data.cnpj,
+                legalName: 'Empresa Exemplo LTDA',
+                status: 'INVITATION_SENT',
+                message: `Convite enviado para ${data.contactEmail}`,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            };
+        }
+
+        const response = await api.post<InviteSupplierResponse>('/suppliers/invite', data);
+        return response.data;
+    },
+
+    /**
+     * Get all invitations for current brand
+     */
+    async getInvitations(): Promise<SupplierInvitation[]> {
+        if (MOCK_MODE) {
+            await simulateDelay(500);
+            return [
+                {
+                    id: '1',
+                    cnpj: '12.345.678/0001-90',
+                    legalName: 'Confecções Silva LTDA',
+                    tradeName: 'Silva Moda',
+                    contactName: 'Maria Silva',
+                    contactEmail: 'maria@silva.com',
+                    contactPhone: '11999998888',
+                    status: 'INVITATION_SENT',
+                    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+                    expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+                    canResend: true,
+                },
+                {
+                    id: '2',
+                    cnpj: '98.765.432/0001-10',
+                    legalName: 'Facção Santos ME',
+                    contactName: 'João Santos',
+                    contactEmail: 'joao@santos.com',
+                    contactPhone: '11988887777',
+                    status: 'ONBOARDING_STARTED',
+                    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+                    canResend: false,
+                },
+            ];
+        }
+
+        const response = await api.get<SupplierInvitation[]>('/suppliers/invitations');
+        return response.data;
+    },
+
+    /**
+     * Resend an invitation
+     */
+    async resendInvitation(invitationId: string, options?: ResendInvitationDto): Promise<{ success: boolean; message: string }> {
+        if (MOCK_MODE) {
+            await simulateDelay(800);
+            console.log('[MOCK] Invitation resent:', invitationId, options);
+            return { success: true, message: 'Convite reenviado com sucesso' };
+        }
+
+        const response = await api.post(`/suppliers/invitations/${invitationId}/resend`, options || {});
+        return response.data;
+    },
 };
+
