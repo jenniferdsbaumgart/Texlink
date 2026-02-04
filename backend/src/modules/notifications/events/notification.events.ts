@@ -28,6 +28,9 @@ export const CREDENTIAL_COMPLETED = 'credential.completed';
 export const DOCUMENT_UPLOADED = 'document.uploaded';
 export const DOCUMENT_EXPIRING = 'document.expiring';
 export const DOCUMENT_EXPIRED = 'document.expired';
+export const DOCUMENT_SHARING_CONSENT_REVOKED = 'document.sharing.consent.revoked';
+export const SUPPLIER_DOCUMENT_EXPIRING_FOR_BRAND = 'supplier.document.expiring.for.brand';
+export const SUPPLIER_DOCUMENT_UPDATED = 'supplier.document.updated';
 
 // Payment Events
 export const PAYMENT_REGISTERED = 'payment.registered';
@@ -43,6 +46,12 @@ export const TICKET_STATUS_CHANGED = 'ticket.status.changed';
 // Relationship Events
 export const RELATIONSHIP_REQUESTED = 'relationship.requested';
 export const RELATIONSHIP_STATUS_CHANGED = 'relationship.status.changed';
+
+// Partnership Request Events
+export const PARTNERSHIP_REQUEST_RECEIVED = 'partnership.request.received';
+export const PARTNERSHIP_REQUEST_ACCEPTED = 'partnership.request.accepted';
+export const PARTNERSHIP_REQUEST_REJECTED = 'partnership.request.rejected';
+export const PARTNERSHIP_REQUEST_CANCELLED = 'partnership.request.cancelled';
 
 // Rating Events
 export const RATING_RECEIVED = 'rating.received';
@@ -270,4 +279,81 @@ export interface SystemAnnouncementEvent {
   targetRole?: 'BRAND' | 'SUPPLIER' | 'ALL';
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
   actionUrl?: string;
+}
+
+export interface PartnershipRequestReceivedEvent {
+  requestId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  requestedById: string;
+  requestedByName: string;
+  message?: string;
+}
+
+export interface PartnershipRequestAcceptedEvent {
+  requestId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  respondedById: string;
+  respondedByName: string;
+  relationshipId: string;
+}
+
+export interface PartnershipRequestRejectedEvent {
+  requestId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  respondedById: string;
+  respondedByName: string;
+  rejectionReason?: string;
+}
+
+export interface PartnershipRequestCancelledEvent {
+  requestId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  cancelledById: string;
+  cancelledByName: string;
+}
+
+// Document Sharing Consent Events
+export interface DocumentSharingConsentRevokedEvent {
+  relationshipId: string;
+  supplierId: string;
+  supplierName: string;
+  brandId: string;
+  brandName: string;
+  revokedById: string;
+  revokedByName: string;
+  reason: string;
+  clientIp?: string;
+}
+
+export interface SupplierDocumentExpiringForBrandEvent {
+  documentId: string;
+  supplierId: string;
+  supplierName: string;
+  brandId: string;
+  documentType: string;
+  documentName: string;
+  expiresAt: Date;
+  daysRemaining: number;
+}
+
+export interface SupplierDocumentUpdatedEvent {
+  documentId: string;
+  supplierId: string;
+  supplierName: string;
+  brandIds: string[];
+  documentType: string;
+  documentName: string;
+  action: 'uploaded' | 'updated';
 }

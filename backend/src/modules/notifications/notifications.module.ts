@@ -13,6 +13,7 @@ import { MessageEventsHandler } from './handlers/message-events.handler';
 import { PaymentEventsHandler } from './handlers/payment-events.handler';
 import { TicketEventsHandler } from './handlers/ticket-events.handler';
 import { DocumentEventsHandler } from './handlers/document-events.handler';
+import { PartnershipRequestEventsHandler } from './handlers/partnership-request-events.handler';
 // Scheduled jobs
 import { DeadlineReminderJob } from './jobs/deadline-reminder.job';
 import { DocumentExpirationJob } from './jobs/document-expiration.job';
@@ -58,6 +59,7 @@ import { NotificationCleanupJob } from './jobs/notification-cleanup.job';
     PaymentEventsHandler,
     TicketEventsHandler,
     DocumentEventsHandler,
+    PartnershipRequestEventsHandler,
     // Scheduled jobs
     DeadlineReminderJob,
     DocumentExpirationJob,
