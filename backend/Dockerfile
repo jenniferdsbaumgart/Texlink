@@ -36,7 +36,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Cache bust - change this to force rebuild
-ARG CACHEBUST=2
+ARG CACHEBUST=3
 
 # Set production environment
 ENV NODE_ENV=production
@@ -56,6 +56,10 @@ COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nestjs:nodejs /app/prisma.config.ts ./
 COPY --from=builder --chown=nestjs:nodejs /app/start.sh ./
 RUN chmod +x start.sh
+
+# Create uploads directory with proper permissions for non-root user
+RUN mkdir -p uploads/contracts uploads/documents uploads/temp && \
+    chown -R nestjs:nodejs uploads
 
 # Switch to non-root user
 USER nestjs
