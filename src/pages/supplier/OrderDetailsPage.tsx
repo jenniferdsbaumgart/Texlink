@@ -110,7 +110,7 @@ const OrderDetailsPage: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-brand-950 flex items-center justify-center">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
             </div>
         );
@@ -118,8 +118,8 @@ const OrderDetailsPage: React.FC = () => {
 
     if (!order) {
         return (
-            <div className="min-h-screen bg-brand-950 flex items-center justify-center">
-                <p className="text-brand-300">Pedido não encontrado</p>
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+                <p className="text-gray-600 dark:text-gray-300">Pedido não encontrado</p>
             </div>
         );
     }
@@ -129,24 +129,24 @@ const OrderDetailsPage: React.FC = () => {
     const isProtected = order._techSheetProtected ?? false;
 
     return (
-        <div className="min-h-screen bg-brand-950">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <header className="bg-brand-900/50 border-b border-brand-800 sticky top-0 z-10">
+            <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Link to="/supplier/orders" className="text-brand-400 hover:text-white">
+                            <Link to="/supplier/orders" className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
                                 <ArrowLeft className="w-5 h-5" />
                             </Link>
                             <div>
-                                <h1 className="text-xl font-bold text-white">{order.displayId}</h1>
+                                <h1 className="text-xl font-bold text-gray-900 dark:text-white">{order.displayId}</h1>
                                 <StatusBadge status={order.status} />
                             </div>
                         </div>
 
                         <button
                             onClick={() => setShowChat(!showChat)}
-                            className="flex items-center gap-2 px-4 py-2 bg-brand-800 hover:bg-brand-700 text-white rounded-xl transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors"
                         >
                             <MessageSquare className="w-5 h-5" />
                             Chat
@@ -160,28 +160,28 @@ const OrderDetailsPage: React.FC = () => {
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Product Info */}
-                        <div className="bg-brand-900/50 rounded-2xl border border-brand-800 p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">Produto</h2>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Produto</h2>
                             <div className="space-y-4">
                                 <div>
-                                    <p className="text-sm text-brand-400">Nome do Produto</p>
-                                    <p className="text-white font-medium">{order.productName}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Nome do Produto</p>
+                                    <p className="text-gray-900 dark:text-white font-medium">{order.productName}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-sm text-brand-400">Tipo</p>
-                                        <p className="text-white">{order.productType}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Tipo</p>
+                                        <p className="text-gray-900 dark:text-white">{order.productType}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-brand-400">Categoria</p>
-                                        <p className="text-white">{order.productCategory || '-'}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Categoria</p>
+                                        <p className="text-gray-900 dark:text-white">{order.productCategory || '-'}</p>
                                     </div>
                                 </div>
                                 {(order.description || isProtected) && (
                                     <ProtectedContent isProtected={isProtected}>
                                         <div>
-                                            <p className="text-sm text-brand-400">Descrição</p>
-                                            <p className="text-white">{order.description || 'Descrição detalhada do produto'}</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Descrição</p>
+                                            <p className="text-gray-900 dark:text-white">{order.description || 'Descrição detalhada do produto'}</p>
                                         </div>
                                     </ProtectedContent>
                                 )}
@@ -200,8 +200,8 @@ const OrderDetailsPage: React.FC = () => {
                         </div>
 
                         {/* Order Details */}
-                        <div className="bg-brand-900/50 rounded-2xl border border-brand-800 p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">Detalhes do Pedido</h2>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detalhes do Pedido</h2>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <InfoCard icon={Package} label="Quantidade" value={`${order.quantity} pçs`} />
                                 <InfoCard icon={DollarSign} label="Preço/Un" value={formatCurrency(Number(order.pricePerUnit))} />
@@ -211,16 +211,16 @@ const OrderDetailsPage: React.FC = () => {
                         </div>
 
                         {/* Brand Info */}
-                        <div className="bg-brand-900/50 rounded-2xl border border-brand-800 p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">Marca</h2>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Marca</h2>
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-brand-800 rounded-full flex items-center justify-center">
-                                    <User className="w-6 h-6 text-brand-400" />
+                                <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                    <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">{order.brand?.tradeName}</p>
+                                    <p className="text-gray-900 dark:text-white font-medium">{order.brand?.tradeName}</p>
                                     {order.brand?.avgRating && (
-                                        <p className="text-sm text-brand-400">⭐ {Number(order.brand.avgRating).toFixed(1)}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">⭐ {Number(order.brand.avgRating).toFixed(1)}</p>
                                     )}
                                 </div>
                             </div>
@@ -264,15 +264,15 @@ const OrderDetailsPage: React.FC = () => {
                     {/* Chat Sidebar */}
                     {showChat && (
                         <div className="lg:col-span-1">
-                            <div className="bg-brand-900/50 rounded-2xl border border-brand-800 h-[600px] flex flex-col">
-                                <div className="p-4 border-b border-brand-800">
-                                    <h3 className="font-semibold text-white">Chat com a Marca</h3>
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 h-[600px] flex flex-col">
+                                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                                    <h3 className="font-semibold text-gray-900 dark:text-white">Chat com a Marca</h3>
                                 </div>
 
                                 {/* Messages */}
                                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                     {messages.length === 0 ? (
-                                        <p className="text-brand-400 text-center text-sm">Nenhuma mensagem ainda</p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-center text-sm">Nenhuma mensagem ainda</p>
                                     ) : (
                                         messages.map((msg) => (
                                             <div
@@ -281,8 +281,8 @@ const OrderDetailsPage: React.FC = () => {
                                             >
                                                 <div
                                                     className={`max-w-[80%] px-4 py-2 rounded-2xl ${msg.senderId === user?.id
-                                                            ? 'bg-brand-600 text-white'
-                                                            : 'bg-brand-800 text-brand-100'
+                                                            ? 'bg-brand-500 text-white'
+                                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                                                         }`}
                                                 >
                                                     <p className="text-sm">{msg.content}</p>
@@ -297,7 +297,7 @@ const OrderDetailsPage: React.FC = () => {
                                 </div>
 
                                 {/* Input */}
-                                <div className="p-4 border-t border-brand-800">
+                                <div className="p-4 border-t border-gray-200 dark:border-gray-700">
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
@@ -305,7 +305,7 @@ const OrderDetailsPage: React.FC = () => {
                                             onChange={(e) => setNewMessage(e.target.value)}
                                             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                                             placeholder="Digite sua mensagem..."
-                                            className="flex-1 px-4 py-2 bg-brand-800 border border-brand-700 rounded-xl text-white placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                            className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
                                         />
                                         <button
                                             onClick={handleSendMessage}
@@ -325,21 +325,21 @@ const OrderDetailsPage: React.FC = () => {
             {/* Reject Modal */}
             {showRejectModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-brand-900 rounded-2xl border border-brand-800 p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold text-white mb-4">Recusar Pedido</h3>
-                        <p className="text-brand-300 text-sm mb-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 w-full max-w-md">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recusar Pedido</h3>
+                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                             Descreva o motivo da recusa (opcional):
                         </p>
                         <textarea
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
                             placeholder="Ex: Capacidade indisponível no momento..."
-                            className="w-full px-4 py-3 bg-brand-800 border border-brand-700 rounded-xl text-white placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none h-24"
+                            className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none h-24"
                         />
                         <div className="flex gap-3 mt-4">
                             <button
                                 onClick={() => setShowRejectModal(false)}
-                                className="flex-1 py-2 bg-brand-800 hover:bg-brand-700 text-white rounded-xl transition-colors"
+                                className="flex-1 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white rounded-xl transition-colors"
                             >
                                 Cancelar
                             </button>
@@ -360,14 +360,14 @@ const OrderDetailsPage: React.FC = () => {
 // Helper components
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const statusConfig: Record<string, { label: string; color: string }> = {
-        LANCADO_PELA_MARCA: { label: 'Aguardando', color: 'bg-amber-500/20 text-amber-400' },
-        ACEITO_PELA_FACCAO: { label: 'Aceito', color: 'bg-blue-500/20 text-blue-400' },
-        EM_PRODUCAO: { label: 'Em Produção', color: 'bg-purple-500/20 text-purple-400' },
-        PRONTO: { label: 'Pronto', color: 'bg-cyan-500/20 text-cyan-400' },
-        FINALIZADO: { label: 'Finalizado', color: 'bg-green-500/20 text-green-400' },
+        LANCADO_PELA_MARCA: { label: 'Aguardando', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+        ACEITO_PELA_FACCAO: { label: 'Aceito', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+        EM_PRODUCAO: { label: 'Em Produção', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+        PRONTO: { label: 'Pronto', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400' },
+        FINALIZADO: { label: 'Finalizado', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
     };
 
-    const config = statusConfig[status] || { label: status, color: 'bg-gray-500/20 text-gray-400' };
+    const config = statusConfig[status] || { label: status, color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' };
 
     return (
         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${config.color}`}>
@@ -384,10 +384,10 @@ interface InfoCardProps {
 }
 
 const InfoCard: React.FC<InfoCardProps> = ({ icon: Icon, label, value, highlight }) => (
-    <div className={`p-4 rounded-xl ${highlight ? 'bg-brand-600/20 border border-brand-500/30' : 'bg-brand-800/50'}`}>
-        <Icon className={`w-5 h-5 mb-2 ${highlight ? 'text-brand-400' : 'text-brand-500'}`} />
-        <p className="text-xs text-brand-400">{label}</p>
-        <p className={`font-semibold ${highlight ? 'text-brand-300' : 'text-white'}`}>{value}</p>
+    <div className={`p-4 rounded-xl ${highlight ? 'bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-800' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
+        <Icon className={`w-5 h-5 mb-2 ${highlight ? 'text-brand-500' : 'text-gray-400'}`} />
+        <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+        <p className={`font-semibold ${highlight ? 'text-brand-600 dark:text-brand-400' : 'text-gray-900 dark:text-white'}`}>{value}</p>
     </div>
 );
 
