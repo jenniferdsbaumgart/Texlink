@@ -318,7 +318,7 @@ const SuppliersPoolPage: React.FC = () => {
                                         {supplier.avgRating && (
                                             <span className="flex items-center gap-1">
                                                 <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                                                {supplier.avgRating.toFixed(1)}
+                                                {Number(supplier.avgRating).toFixed(1)}
                                             </span>
                                         )}
                                         <span className="flex items-center gap-1">
@@ -454,7 +454,7 @@ const SuppliersPoolPage: React.FC = () => {
                                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avaliação Média</p>
                                         <div className="flex items-center gap-1 text-gray-900 dark:text-white font-medium">
                                             <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                                            {selectedSupplier.avgRating?.toFixed(1) || 'N/A'}
+                                            {selectedSupplier.avgRating ? Number(selectedSupplier.avgRating).toFixed(1) : 'N/A'}
                                         </div>
                                     </div>
                                     <div className="bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.06] rounded-2xl p-4">
