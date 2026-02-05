@@ -241,6 +241,19 @@ enum ContractStatus {
   CANCELLED
 }
 
+enum ContractType {
+  SERVICE_AGREEMENT // Contrato de Prestacao de Servicos
+  NDA // Termo de Confidencialidade
+  CODE_OF_CONDUCT // Codigo de Conduta
+  AMENDMENT // Aditivo contratual
+}
+
+enum ContractRevisionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 enum RelationshipStatus {
   PENDING // Aguardando ativação
   CONTRACT_PENDING // Aguardando assinatura de contrato
@@ -371,6 +384,15 @@ enum NotificationType {
   CODE_OF_CONDUCT_UPDATED
   CODE_OF_CONDUCT_ACCEPTED
   CODE_OF_CONDUCT_REMINDER
+  CONTRACT_CREATED
+  CONTRACT_SENT_FOR_SIGNATURE
+  CONTRACT_REVISION_REQUESTED
+  CONTRACT_REVISION_RESPONDED
+  CONTRACT_SIGNED
+  CONTRACT_FULLY_SIGNED
+  CONTRACT_EXPIRING
+  CONTRACT_EXPIRED
+  CONTRACT_CANCELLED
 }
 
 enum NotificationPriority {
@@ -417,6 +439,9 @@ model User {
   documentsValidated      OnboardingDocument[]      @relation("DocumentValidatedBy")
   contractsBrandSigned    SupplierContract[]        @relation("ContractBrandSignedBy")
   contractsSupplierSigned SupplierContract[]        @relation("ContractSupplierSignedBy")
+  contractsCreated        SupplierContract[]        @relation("ContractsCreated")
+  revisionsRequested      ContractRevision[]        @relation("RevisionsRequested")
+  revisionsResponded      ContractRevision[]        @relation("RevisionsResponded")
 
   // Relationship system relations (N:M)
   relationshipsInitiated     SupplierBrandRelationship[] @relation("RelationshipsInitiated")
@@ -1174,12 +1199,24 @@ model OnboardingDocument {
 // Contrato entre marca e facção
 model SupplierContract {
   id             String  @id @default(uuid())
-  relationshipId String? @unique // Vinculado ao relacionamento marca-facção
+  displayId      String  @unique // CTR-YYYYMMDD-XXXX
+  relationshipId String? // Vinculado ao relacionamento marca-facção
   credentialId   String? @unique // Mantido para compatibilidade/migração
 
   // Desnormalizado para facilitar queries
   supplierId String?
   brandId    String?
+
+  // Tipo e hierarquia de contratos
+  type             ContractType @default(SERVICE_AGREEMENT)
+  parentContractId String? // Para aditivos - referência ao contrato pai
+  parentContract   SupplierContract?  @relation("ContractAmendments", fields: [parentContractId], references: [id])
+  amendments       SupplierContract[] @relation("ContractAmendments")
+
+  // Informações do contrato
+  title       String?
+  description String? @db.Text
+  value       Decimal? @db.Decimal(12, 2)
 
   templateId      String?
   templateVersion String?
@@ -1188,14 +1225,16 @@ model SupplierContract {
   terms           Json? // Termos específicos do contrato
 
   // Assinatura da marca
-  brandSignedAt    DateTime?
-  brandSignedById  String?
-  brandSignatureIp String?
+  brandSignedAt      DateTime?
+  brandSignedById    String?
+  brandSignatureIp   String?
+  brandSignerName    String? // Nome do assinante da marca
 
   // Assinatura da facção
-  supplierSignedAt    DateTime?
-  supplierSignedById  String?
-  supplierSignatureIp String?
+  supplierSignedAt      DateTime?
+  supplierSignedById    String?
+  supplierSignatureIp   String?
+  supplierSignerName    String? // Nome do assinante da facção
 
   // Integração com plataforma de assinatura externa
   externalSignatureId  String? // ID no DocuSign, Clicksign, etc
@@ -1203,21 +1242,62 @@ model SupplierContract {
   externalStatus       String?
 
   // Status e vigência
-  status     ContractStatus @default(DRAFT)
-  validFrom  DateTime?
-  validUntil DateTime?
+  status          ContractStatus @default(DRAFT)
+  validFrom       DateTime?
+  validUntil      DateTime?
+  renewalReminder Int?           @default(30) // Dias antes do vencimento para lembrete
+
+  // Controle
+  createdById String?
+  createdBy   User?    @relation("ContractsCreated", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relações
   relationship     SupplierBrandRelationship? @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
   credential       SupplierCredential?        @relation(fields: [credentialId], references: [id], onDelete: Cascade)
   supplier         Company?                   @relation("SupplierContracts", fields: [supplierId], references: [id])
   brand            Company?                   @relation("BrandContracts", fields: [brandId], references: [id])
   brandSignedBy    User?                      @relation("ContractBrandSignedBy", fields: [brandSignedById], references: [id])
   supplierSignedBy User?                      @relation("ContractSupplierSignedBy", fields: [supplierSignedById], references: [id])
+  revisions        ContractRevision[]
 
+  @@index([relationshipId])
+  @@index([brandId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([validUntil])
   @@map("supplier_contracts")
+}
+
+// Solicitações de revisão de contrato
+model ContractRevision {
+  id          String @id @default(uuid())
+  contractId  String
+
+  // Quem solicitou a revisão
+  requestedById String
+  requestedBy   User   @relation("RevisionsRequested", fields: [requestedById], references: [id])
+  message       String @db.Text
+
+  // Status da revisão
+  status ContractRevisionStatus @default(PENDING)
+
+  // Resposta à revisão
+  respondedById  String?
+  respondedBy    User?     @relation("RevisionsResponded", fields: [respondedById], references: [id])
+  respondedAt    DateTime?
+  responseNotes  String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contract SupplierContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([status])
+  @@map("contract_revisions")
 }
 
 // Relacionamento N:M entre Fornecedor e Marca
@@ -1259,7 +1339,7 @@ model SupplierBrandRelationship {
 
   initiatedByUser User @relation("RelationshipsInitiated", fields: [initiatedBy], references: [id])
 
-  contract            SupplierContract?
+  contracts           SupplierContract[]
   specificDocuments   BrandSpecificDocument[]
   statusHistory       RelationshipStatusHistory[]
   orders              Order[]                     @relation("RelationshipOrders")

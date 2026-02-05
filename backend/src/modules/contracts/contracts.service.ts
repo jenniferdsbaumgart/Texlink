@@ -3,9 +3,16 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SupplierCredentialStatus } from '@prisma/client';
+import {
+  SupplierCredentialStatus,
+  ContractStatus,
+  ContractType,
+  ContractRevisionStatus,
+  Prisma,
+} from '@prisma/client';
 import PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -15,6 +22,13 @@ import {
   DEFAULT_PAYMENT_TERMS,
   DEFAULT_PENALTY_RATE,
 } from './templates/default-contract.template';
+import {
+  CreateContractDto,
+  UploadContractDto,
+  ContractFilterDto,
+  RequestRevisionDto,
+  RespondRevisionDto,
+} from './dto';
 
 @Injectable()
 export class ContractsService {
@@ -32,8 +46,717 @@ export class ContractsService {
     }
   }
 
+  // ==================== CONTRACT MANAGEMENT METHODS ====================
+
+  /**
+   * Criar contrato a partir de template
+   */
+  async createContract(dto: CreateContractDto, userId: string) {
+    // Buscar relacionamento
+    const relationship = await this.prisma.supplierBrandRelationship.findUnique({
+      where: { id: dto.relationshipId },
+      include: {
+        supplier: true,
+        brand: true,
+      },
+    });
+
+    if (!relationship) {
+      throw new NotFoundException('Relacionamento não encontrado');
+    }
+
+    // Gerar displayId único
+    const displayId = await this.generateDisplayId();
+
+    // Preparar variáveis do template
+    const variables = {
+      brandName: relationship.brand.legalName || relationship.brand.tradeName,
+      brandCnpj: this.formatCNPJ(relationship.brand.document),
+      brandAddress: this.formatAddress(relationship.brand),
+      supplierName:
+        relationship.supplier.legalName || relationship.supplier.tradeName,
+      supplierCnpj: this.formatCNPJ(relationship.supplier.document),
+      supplierAddress: this.formatAddress(relationship.supplier),
+      date: new Date().toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }),
+      paymentTerms: dto.terms?.paymentTerms || DEFAULT_PAYMENT_TERMS,
+      penaltyRate: dto.terms?.penaltyRate || DEFAULT_PENALTY_RATE,
+      contractTitle: dto.title || 'Contrato de Prestação de Serviços',
+      contractValue: dto.value
+        ? new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+          }).format(dto.value)
+        : 'A definir por pedido',
+      validFrom: new Date(dto.validFrom).toLocaleDateString('pt-BR'),
+      validUntil: new Date(dto.validUntil).toLocaleDateString('pt-BR'),
+    };
+
+    // Substituir variáveis no template
+    let contractText = DEFAULT_CONTRACT_TEMPLATE;
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      contractText = contractText.replace(regex, String(value));
+    });
+
+    // Gerar PDF
+    const fileName = `${displayId}.pdf`;
+    const filePath = path.join(this.uploadsPath, fileName);
+
+    await this.generatePDF(contractText, filePath, dto.title);
+
+    // Calcular hash do documento
+    const documentHash = await this.calculateFileHash(filePath);
+
+    // Criar registro do contrato
+    const contract = await this.prisma.supplierContract.create({
+      data: {
+        displayId,
+        relationshipId: dto.relationshipId,
+        supplierId: relationship.supplierId,
+        brandId: relationship.brandId,
+        type: dto.type,
+        title: dto.title,
+        description: dto.description,
+        value: dto.value ? new Prisma.Decimal(dto.value) : null,
+        validFrom: new Date(dto.validFrom),
+        validUntil: new Date(dto.validUntil),
+        documentUrl: `/uploads/contracts/${fileName}`,
+        documentHash,
+        terms: dto.terms as any,
+        parentContractId: dto.parentContractId,
+        createdById: userId,
+        status: ContractStatus.DRAFT,
+      },
+      include: {
+        brand: { select: { tradeName: true, legalName: true } },
+        supplier: { select: { tradeName: true, legalName: true } },
+      },
+    });
+
+    this.logger.log(
+      `Contrato criado: ${displayId} para relationship ${dto.relationshipId}`,
+    );
+
+    return contract;
+  }
+
+  /**
+   * Upload de contrato PDF customizado
+   */
+  async uploadContract(
+    dto: UploadContractDto,
+    file: Express.Multer.File,
+    userId: string,
+  ) {
+    // Buscar relacionamento
+    const relationship = await this.prisma.supplierBrandRelationship.findUnique({
+      where: { id: dto.relationshipId },
+      include: {
+        supplier: true,
+        brand: true,
+      },
+    });
+
+    if (!relationship) {
+      throw new NotFoundException('Relacionamento não encontrado');
+    }
+
+    // Gerar displayId único
+    const displayId = await this.generateDisplayId();
+
+    // Salvar arquivo
+    const fileName = `${displayId}.pdf`;
+    const filePath = path.join(this.uploadsPath, fileName);
+    fs.writeFileSync(filePath, file.buffer);
+
+    // Calcular hash do documento
+    const documentHash = await this.calculateFileHash(filePath);
+
+    // Criar registro do contrato
+    const contract = await this.prisma.supplierContract.create({
+      data: {
+        displayId,
+        relationshipId: dto.relationshipId,
+        supplierId: relationship.supplierId,
+        brandId: relationship.brandId,
+        type: dto.type,
+        title: dto.title,
+        validFrom: new Date(dto.validFrom),
+        validUntil: new Date(dto.validUntil),
+        documentUrl: `/uploads/contracts/${fileName}`,
+        documentHash,
+        parentContractId: dto.parentContractId,
+        createdById: userId,
+        status: ContractStatus.DRAFT,
+      },
+      include: {
+        brand: { select: { tradeName: true, legalName: true } },
+        supplier: { select: { tradeName: true, legalName: true } },
+      },
+    });
+
+    this.logger.log(`Contrato uploaded: ${displayId}`);
+
+    return contract;
+  }
+
+  /**
+   * Enviar contrato para assinatura
+   */
+  async sendForSignature(contractId: string, userId: string, message?: string) {
+    const contract = await this.prisma.supplierContract.findUnique({
+      where: { id: contractId },
+      include: {
+        brand: true,
+        supplier: true,
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato não encontrado');
+    }
+
+    if (contract.status !== ContractStatus.DRAFT) {
+      throw new BadRequestException(
+        'Apenas contratos em rascunho podem ser enviados para assinatura',
+      );
+    }
+
+    // Atualizar status
+    const updated = await this.prisma.supplierContract.update({
+      where: { id: contractId },
+      data: {
+        status: ContractStatus.PENDING_SUPPLIER_SIGNATURE,
+      },
+      include: {
+        brand: { select: { tradeName: true, legalName: true } },
+        supplier: { select: { tradeName: true, legalName: true } },
+      },
+    });
+
+    this.logger.log(`Contrato ${contract.displayId} enviado para assinatura`);
+
+    // TODO: Disparar notificação para o fornecedor
+    // await this.notificationsService.create({
+    //   type: NotificationType.CONTRACT_SENT_FOR_SIGNATURE,
+    //   ...
+    // });
+
+    return updated;
+  }
+
+  /**
+   * Solicitar revisão de contrato (facção)
+   */
+  async requestRevision(dto: RequestRevisionDto, userId: string) {
+    const contract = await this.prisma.supplierContract.findUnique({
+      where: { id: dto.contractId },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato não encontrado');
+    }
+
+    if (contract.status !== ContractStatus.PENDING_SUPPLIER_SIGNATURE) {
+      throw new BadRequestException(
+        'Apenas contratos pendentes de assinatura podem ter revisão solicitada',
+      );
+    }
+
+    // Verificar se já existe revisão pendente
+    const existingPending = await this.prisma.contractRevision.findFirst({
+      where: {
+        contractId: dto.contractId,
+        status: ContractRevisionStatus.PENDING,
+      },
+    });
+
+    if (existingPending) {
+      throw new BadRequestException(
+        'Já existe uma solicitação de revisão pendente para este contrato',
+      );
+    }
+
+    // Criar solicitação de revisão
+    const revision = await this.prisma.contractRevision.create({
+      data: {
+        contractId: dto.contractId,
+        requestedById: userId,
+        message: dto.message,
+        status: ContractRevisionStatus.PENDING,
+      },
+      include: {
+        requestedBy: { select: { name: true, email: true } },
+      },
+    });
+
+    this.logger.log(
+      `Revisão solicitada para contrato ${contract.displayId} por ${userId}`,
+    );
+
+    // TODO: Disparar notificação para a marca
+
+    return revision;
+  }
+
+  /**
+   * Responder solicitação de revisão (marca)
+   */
+  async respondToRevision(dto: RespondRevisionDto, userId: string) {
+    const revision = await this.prisma.contractRevision.findUnique({
+      where: { id: dto.revisionId },
+      include: {
+        contract: true,
+      },
+    });
+
+    if (!revision) {
+      throw new NotFoundException('Solicitação de revisão não encontrada');
+    }
+
+    if (revision.status !== ContractRevisionStatus.PENDING) {
+      throw new BadRequestException(
+        'Esta solicitação de revisão já foi respondida',
+      );
+    }
+
+    // Atualizar revisão
+    const updated = await this.prisma.contractRevision.update({
+      where: { id: dto.revisionId },
+      data: {
+        status: dto.status,
+        respondedById: userId,
+        respondedAt: new Date(),
+        responseNotes: dto.responseNotes,
+      },
+      include: {
+        requestedBy: { select: { name: true, email: true } },
+        respondedBy: { select: { name: true, email: true } },
+        contract: { select: { displayId: true } },
+      },
+    });
+
+    this.logger.log(
+      `Revisão ${dto.revisionId} respondida com status ${dto.status}`,
+    );
+
+    // TODO: Disparar notificação para o fornecedor
+
+    return updated;
+  }
+
+  /**
+   * Assinar contrato como marca
+   */
+  async signAsBrand(
+    contractId: string,
+    userId: string,
+    signerName: string,
+    ipAddress: string,
+  ) {
+    const contract = await this.prisma.supplierContract.findUnique({
+      where: { id: contractId },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato não encontrado');
+    }
+
+    if (contract.brandSignedAt) {
+      throw new BadRequestException('Contrato já foi assinado pela marca');
+    }
+
+    // Atualizar assinatura
+    const updated = await this.prisma.supplierContract.update({
+      where: { id: contractId },
+      data: {
+        brandSignedAt: new Date(),
+        brandSignedById: userId,
+        brandSignerName: signerName,
+        brandSignatureIp: ipAddress,
+        status: contract.supplierSignedAt
+          ? ContractStatus.SIGNED
+          : ContractStatus.PENDING_SUPPLIER_SIGNATURE,
+      },
+      include: {
+        brand: { select: { tradeName: true, legalName: true } },
+        supplier: { select: { tradeName: true, legalName: true } },
+      },
+    });
+
+    this.logger.log(
+      `Contrato ${contract.displayId} assinado pela marca (${signerName})`,
+    );
+
+    return updated;
+  }
+
+  /**
+   * Assinar contrato como fornecedor
+   */
+  async signAsSupplier(
+    contractId: string,
+    userId: string,
+    signerName: string,
+    ipAddress: string,
+  ) {
+    const contract = await this.prisma.supplierContract.findUnique({
+      where: { id: contractId },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato não encontrado');
+    }
+
+    if (
+      contract.status !== ContractStatus.PENDING_SUPPLIER_SIGNATURE &&
+      contract.status !== ContractStatus.PENDING_BRAND_SIGNATURE
+    ) {
+      throw new BadRequestException(
+        'Este contrato não está aguardando assinatura',
+      );
+    }
+
+    if (contract.supplierSignedAt) {
+      throw new BadRequestException('Contrato já foi assinado pelo fornecedor');
+    }
+
+    // Verificar se há revisões pendentes
+    const pendingRevision = await this.prisma.contractRevision.findFirst({
+      where: {
+        contractId,
+        status: ContractRevisionStatus.PENDING,
+      },
+    });
+
+    if (pendingRevision) {
+      throw new BadRequestException(
+        'Existe uma solicitação de revisão pendente para este contrato',
+      );
+    }
+
+    // Atualizar assinatura
+    const updated = await this.prisma.supplierContract.update({
+      where: { id: contractId },
+      data: {
+        supplierSignedAt: new Date(),
+        supplierSignedById: userId,
+        supplierSignerName: signerName,
+        supplierSignatureIp: ipAddress,
+        status: contract.brandSignedAt
+          ? ContractStatus.SIGNED
+          : ContractStatus.PENDING_BRAND_SIGNATURE,
+      },
+      include: {
+        brand: { select: { tradeName: true, legalName: true } },
+        supplier: { select: { tradeName: true, legalName: true } },
+      },
+    });
+
+    this.logger.log(
+      `Contrato ${contract.displayId} assinado pelo fornecedor (${signerName})`,
+    );
+
+    // Se ambos assinaram, ativar relacionamento
+    if (updated.status === ContractStatus.SIGNED && updated.relationshipId) {
+      await this.prisma.supplierBrandRelationship.update({
+        where: { id: updated.relationshipId },
+        data: {
+          status: 'ACTIVE',
+          activatedAt: new Date(),
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  /**
+   * Cancelar contrato
+   */
+  async cancelContract(contractId: string, userId: string, reason?: string) {
+    const contract = await this.prisma.supplierContract.findUnique({
+      where: { id: contractId },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato não encontrado');
+    }
+
+    if (contract.status === ContractStatus.SIGNED) {
+      throw new BadRequestException(
+        'Contratos já assinados não podem ser cancelados diretamente',
+      );
+    }
+
+    if (contract.status === ContractStatus.CANCELLED) {
+      throw new BadRequestException('Contrato já está cancelado');
+    }
+
+    const updated = await this.prisma.supplierContract.update({
+      where: { id: contractId },
+      data: {
+        status: ContractStatus.CANCELLED,
+      },
+      include: {
+        brand: { select: { tradeName: true, legalName: true } },
+        supplier: { select: { tradeName: true, legalName: true } },
+      },
+    });
+
+    this.logger.log(`Contrato ${contract.displayId} cancelado por ${userId}`);
+
+    return updated;
+  }
+
+  /**
+   * Listar contratos de uma marca
+   */
+  async findByBrand(brandId: string, filters: ContractFilterDto) {
+    const where: Prisma.SupplierContractWhereInput = {
+      brandId,
+      ...(filters.type && { type: filters.type }),
+      ...(filters.status && { status: filters.status }),
+      ...(filters.supplierId && { supplierId: filters.supplierId }),
+      ...(filters.relationshipId && { relationshipId: filters.relationshipId }),
+      ...(filters.search && {
+        OR: [
+          { displayId: { contains: filters.search, mode: 'insensitive' } },
+          { title: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const [contracts, total] = await Promise.all([
+      this.prisma.supplierContract.findMany({
+        where,
+        include: {
+          supplier: { select: { tradeName: true, legalName: true, document: true } },
+          brand: { select: { tradeName: true, legalName: true } },
+          revisions: {
+            where: { status: ContractRevisionStatus.PENDING },
+            take: 1,
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: ((filters.page || 1) - 1) * (filters.limit || 10),
+        take: filters.limit || 10,
+      }),
+      this.prisma.supplierContract.count({ where }),
+    ]);
+
+    return {
+      data: contracts,
+      meta: {
+        total,
+        page: filters.page || 1,
+        limit: filters.limit || 10,
+        totalPages: Math.ceil(total / (filters.limit || 10)),
+      },
+    };
+  }
+
+  /**
+   * Listar contratos de um fornecedor
+   */
+  async findBySupplier(supplierId: string, filters: ContractFilterDto) {
+    const where: Prisma.SupplierContractWhereInput = {
+      supplierId,
+      ...(filters.type && { type: filters.type }),
+      ...(filters.status && { status: filters.status }),
+      ...(filters.brandId && { brandId: filters.brandId }),
+      ...(filters.relationshipId && { relationshipId: filters.relationshipId }),
+      ...(filters.search && {
+        OR: [
+          { displayId: { contains: filters.search, mode: 'insensitive' } },
+          { title: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const [contracts, total] = await Promise.all([
+      this.prisma.supplierContract.findMany({
+        where,
+        include: {
+          brand: { select: { tradeName: true, legalName: true, document: true } },
+          supplier: { select: { tradeName: true, legalName: true } },
+          revisions: {
+            where: { status: ContractRevisionStatus.PENDING },
+            take: 1,
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: ((filters.page || 1) - 1) * (filters.limit || 10),
+        take: filters.limit || 10,
+      }),
+      this.prisma.supplierContract.count({ where }),
+    ]);
+
+    return {
+      data: contracts,
+      meta: {
+        total,
+        page: filters.page || 1,
+        limit: filters.limit || 10,
+        totalPages: Math.ceil(total / (filters.limit || 10)),
+      },
+    };
+  }
+
+  /**
+   * Buscar contrato por ID
+   */
+  async findById(contractId: string) {
+    const contract = await this.prisma.supplierContract.findUnique({
+      where: { id: contractId },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            tradeName: true,
+            legalName: true,
+            document: true,
+            city: true,
+            state: true,
+          },
+        },
+        supplier: {
+          select: {
+            id: true,
+            tradeName: true,
+            legalName: true,
+            document: true,
+            city: true,
+            state: true,
+          },
+        },
+        brandSignedBy: { select: { name: true, email: true } },
+        supplierSignedBy: { select: { name: true, email: true } },
+        createdBy: { select: { name: true, email: true } },
+        revisions: {
+          include: {
+            requestedBy: { select: { name: true, email: true } },
+            respondedBy: { select: { name: true, email: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+        amendments: {
+          select: {
+            id: true,
+            displayId: true,
+            title: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+        parentContract: {
+          select: {
+            id: true,
+            displayId: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato não encontrado');
+    }
+
+    return contract;
+  }
+
+  /**
+   * Buscar contratos vencendo em X dias
+   */
+  async getExpiringContracts(days: number) {
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + days);
+
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return this.prisma.supplierContract.findMany({
+      where: {
+        status: ContractStatus.SIGNED,
+        validUntil: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      include: {
+        brand: { select: { tradeName: true, legalName: true } },
+        supplier: { select: { tradeName: true, legalName: true } },
+      },
+    });
+  }
+
+  /**
+   * Marcar contratos expirados
+   */
+  async markExpiredContracts() {
+    const now = new Date();
+
+    const result = await this.prisma.supplierContract.updateMany({
+      where: {
+        status: ContractStatus.SIGNED,
+        validUntil: {
+          lt: now,
+        },
+      },
+      data: {
+        status: ContractStatus.EXPIRED,
+      },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`${result.count} contratos marcados como expirados`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Gerar ID amigável único (CTR-YYYYMMDD-XXXX)
+   */
+  async generateDisplayId(): Promise<string> {
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+    const prefix = `CTR-${dateStr}`;
+
+    // Buscar último contrato do dia
+    const lastContract = await this.prisma.supplierContract.findFirst({
+      where: {
+        displayId: {
+          startsWith: prefix,
+        },
+      },
+      orderBy: {
+        displayId: 'desc',
+      },
+    });
+
+    let sequence = 1;
+    if (lastContract) {
+      const lastSequence = parseInt(lastContract.displayId.split('-')[2], 10);
+      sequence = lastSequence + 1;
+    }
+
+    return `${prefix}-${sequence.toString().padStart(4, '0')}`;
+  }
+
+  // ==================== LEGACY METHODS (Credential-based) ====================
+
   /**
    * Gera contrato em PDF para um credenciamento
+   * @deprecated Use createContract() para novos contratos
    */
   async generateContract(credentialId: string, terms?: Record<string, any>) {
     // Buscar credential com dados necessários
@@ -60,6 +783,9 @@ export class ContractsService {
       return existingContract;
     }
 
+    // Gerar displayId
+    const displayId = await this.generateDisplayId();
+
     // Preparar variáveis do template
     const variables = {
       brandName: credential.brand.legalName || credential.brand.tradeName,
@@ -85,7 +811,7 @@ export class ContractsService {
     });
 
     // Gerar PDF
-    const fileName = `${credentialId}.pdf`;
+    const fileName = `${displayId}.pdf`;
     const filePath = path.join(this.uploadsPath, fileName);
 
     await this.generatePDF(contractText, filePath);
@@ -96,6 +822,7 @@ export class ContractsService {
     // Criar registro do contrato
     const contract = await this.prisma.supplierContract.create({
       data: {
+        displayId,
         credentialId,
         templateId: 'default',
         templateVersion: '1.0',
@@ -124,7 +851,8 @@ export class ContractsService {
   }
 
   /**
-   * Assinatura do contrato pela facção
+   * Assinatura do contrato pela facção (fluxo de credential)
+   * @deprecated Use signAsSupplier() para novos contratos
    */
   async signContract(
     credentialId: string,
@@ -157,6 +885,7 @@ export class ContractsService {
         supplierSignedAt: new Date(),
         supplierSignedById: supplierId,
         supplierSignatureIp: ipAddress,
+        status: ContractStatus.SIGNED,
       },
     });
 
@@ -182,6 +911,7 @@ export class ContractsService {
 
   /**
    * Buscar contrato por credentialId
+   * @deprecated Use findById() para novos contratos
    */
   async getContract(credentialId: string) {
     const contract = await this.prisma.supplierContract.findUnique({
@@ -213,6 +943,7 @@ export class ContractsService {
   /**
    * Gera contrato para um relacionamento marca-facção
    * (Arquitetura N:M)
+   * @deprecated Use createContract() com relationshipId
    */
   async generateContractForRelationship(
     relationshipId: string,
@@ -233,9 +964,12 @@ export class ContractsService {
       throw new NotFoundException('Relacionamento não encontrado');
     }
 
-    // Verificar se já existe contrato para este relacionamento
-    const existingContract = await this.prisma.supplierContract.findUnique({
-      where: { relationshipId },
+    // Verificar se já existe contrato SERVICE_AGREEMENT para este relacionamento
+    const existingContract = await this.prisma.supplierContract.findFirst({
+      where: {
+        relationshipId,
+        type: ContractType.SERVICE_AGREEMENT,
+      },
     });
 
     if (existingContract) {
@@ -244,6 +978,9 @@ export class ContractsService {
       );
       return existingContract;
     }
+
+    // Gerar displayId
+    const displayId = await this.generateDisplayId();
 
     // Preparar variáveis do template
     const variables = {
@@ -271,7 +1008,7 @@ export class ContractsService {
     });
 
     // Gerar PDF
-    const fileName = `contract-${relationshipId}.pdf`;
+    const fileName = `contract-${displayId}.pdf`;
     const filePath = path.join(this.uploadsPath, fileName);
 
     await this.generatePDF(contractText, filePath);
@@ -288,9 +1025,11 @@ export class ContractsService {
     // Criar registro do contrato
     const contract = await this.prisma.supplierContract.create({
       data: {
+        displayId,
         relationshipId,
         supplierId: relationship.supplierId,
         brandId: relationship.brandId,
+        type: ContractType.SERVICE_AGREEMENT,
         documentUrl,
         documentHash,
         terms: terms as any,
@@ -306,6 +1045,7 @@ export class ContractsService {
 
   /**
    * Assinar contrato de um relacionamento
+   * @deprecated Use signAsSupplier() para novos contratos
    */
   async signContractForRelationship(
     relationshipId: string,
@@ -313,8 +1053,11 @@ export class ContractsService {
     ipAddress: string,
   ) {
     // Buscar contrato
-    const contract = await this.prisma.supplierContract.findUnique({
-      where: { relationshipId },
+    const contract = await this.prisma.supplierContract.findFirst({
+      where: {
+        relationshipId,
+        type: ContractType.SERVICE_AGREEMENT,
+      },
     });
 
     if (!contract) {
@@ -335,6 +1078,7 @@ export class ContractsService {
         supplierSignedAt: new Date(),
         supplierSignedById: supplierId,
         supplierSignatureIp: ipAddress,
+        status: ContractStatus.SIGNED,
       },
     });
 
@@ -366,10 +1110,14 @@ export class ContractsService {
 
   /**
    * Buscar contrato por relacionamento
+   * @deprecated Use findById() para novos contratos
    */
   async getContractByRelationship(relationshipId: string) {
-    const contract = await this.prisma.supplierContract.findUnique({
-      where: { relationshipId },
+    const contract = await this.prisma.supplierContract.findFirst({
+      where: {
+        relationshipId,
+        type: ContractType.SERVICE_AGREEMENT,
+      },
       include: {
         relationship: {
           include: {
@@ -404,7 +1152,11 @@ export class ContractsService {
   /**
    * Gera PDF usando PDFKit
    */
-  private async generatePDF(text: string, outputPath: string): Promise<void> {
+  private async generatePDF(
+    text: string,
+    outputPath: string,
+    title?: string,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -425,7 +1177,7 @@ export class ContractsService {
         doc
           .fontSize(16)
           .font('Helvetica-Bold')
-          .text('CONTRATO DE PRESTAÇÃO DE SERVIÇOS', { align: 'center' })
+          .text(title || 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS', { align: 'center' })
           .moveDown();
 
         // Corpo do contrato

@@ -14,11 +14,13 @@ import { PaymentEventsHandler } from './handlers/payment-events.handler';
 import { TicketEventsHandler } from './handlers/ticket-events.handler';
 import { DocumentEventsHandler } from './handlers/document-events.handler';
 import { PartnershipRequestEventsHandler } from './handlers/partnership-request-events.handler';
+import { ContractEventsHandler } from './handlers/contract-events.handler';
 // Scheduled jobs
 import { DeadlineReminderJob } from './jobs/deadline-reminder.job';
 import { DocumentExpirationJob } from './jobs/document-expiration.job';
 import { PaymentOverdueJob } from './jobs/payment-overdue.job';
 import { NotificationCleanupJob } from './jobs/notification-cleanup.job';
+import { ContractExpirationJob } from './jobs/contract-expiration.job';
 
 /**
  * NotificationsModule
@@ -60,11 +62,13 @@ import { NotificationCleanupJob } from './jobs/notification-cleanup.job';
     TicketEventsHandler,
     DocumentEventsHandler,
     PartnershipRequestEventsHandler,
+    ContractEventsHandler,
     // Scheduled jobs
     DeadlineReminderJob,
     DocumentExpirationJob,
     PaymentOverdueJob,
     NotificationCleanupJob,
+    ContractExpirationJob,
   ],
   exports: [NotificationsService, NotificationsGateway],
 })

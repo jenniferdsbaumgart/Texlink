@@ -172,7 +172,7 @@ export class RelationshipsService {
             },
           },
         },
-        contract: true,
+        contracts: true,
         statusHistory: {
           orderBy: { createdAt: 'desc' },
           take: 5,
@@ -206,7 +206,7 @@ export class RelationshipsService {
       where: { supplierId },
       include: {
         brand: true,
-        contract: true,
+        contracts: true,
         statusHistory: {
           orderBy: { createdAt: 'desc' },
           take: 5,
@@ -286,7 +286,7 @@ export class RelationshipsService {
             },
           },
           brand: true,
-          contract: true,
+          contracts: true,
           specificDocuments: true,
           statusHistory: {
             include: {
@@ -364,7 +364,7 @@ export class RelationshipsService {
           },
         },
         brand: true,
-        contract: true,
+        contracts: true,
       },
     });
   }
@@ -381,7 +381,7 @@ export class RelationshipsService {
       {
         where: { id: relationshipId },
         include: {
-          contract: true,
+          contracts: true,
           supplier: {
             include: {
               supplierProfile: true,
@@ -404,8 +404,11 @@ export class RelationshipsService {
       throw new ForbiddenException();
     }
 
-    // Verificar que contrato foi assinado
-    if (!relationship.contract?.supplierSignedAt) {
+    // Verificar que ao menos um contrato foi assinado
+    const hasSignedContract = relationship.contracts?.some(
+      (c) => c.supplierSignedAt != null,
+    );
+    if (!hasSignedContract) {
       throw new BadRequestException(
         'Contrato ainda não foi assinado pelo fornecedor',
       );
@@ -430,7 +433,7 @@ export class RelationshipsService {
           },
         },
         brand: true,
-        contract: true,
+        contracts: true,
       },
     });
 
@@ -487,7 +490,7 @@ export class RelationshipsService {
           },
         },
         brand: true,
-        contract: true,
+        contracts: true,
       },
     });
 
@@ -538,7 +541,7 @@ export class RelationshipsService {
           },
         },
         brand: true,
-        contract: true,
+        contracts: true,
       },
     });
 
@@ -590,7 +593,7 @@ export class RelationshipsService {
           },
         },
         brand: true,
-        contract: true,
+        contracts: true,
       },
     });
 

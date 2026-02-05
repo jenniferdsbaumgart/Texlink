@@ -65,6 +65,17 @@ export const CODE_OF_CONDUCT_UPDATED = 'code.of.conduct.updated';
 export const CODE_OF_CONDUCT_ACCEPTED = 'code.of.conduct.accepted';
 export const CODE_OF_CONDUCT_REMINDER = 'code.of.conduct.reminder';
 
+// Contract Events
+export const CONTRACT_CREATED = 'contract.created';
+export const CONTRACT_SENT_FOR_SIGNATURE = 'contract.sent.for.signature';
+export const CONTRACT_REVISION_REQUESTED = 'contract.revision.requested';
+export const CONTRACT_REVISION_RESPONDED = 'contract.revision.responded';
+export const CONTRACT_SIGNED = 'contract.signed';
+export const CONTRACT_FULLY_SIGNED = 'contract.fully.signed';
+export const CONTRACT_EXPIRING = 'contract.expiring';
+export const CONTRACT_EXPIRED = 'contract.expired';
+export const CONTRACT_CANCELLED = 'contract.cancelled';
+
 // Event Payload Interfaces
 export interface OrderCreatedEvent {
   orderId: string;
@@ -402,4 +413,114 @@ export interface CodeOfConductReminderEvent {
   relationshipId: string;
   supplierId: string;
   supplierName: string;
+}
+
+// Contract Event Interfaces
+export interface ContractCreatedEvent {
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  title?: string;
+  type: string;
+  createdById: string;
+  createdByName: string;
+}
+
+export interface ContractSentForSignatureEvent {
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  title?: string;
+  sentById: string;
+  sentByName: string;
+  message?: string;
+}
+
+export interface ContractRevisionRequestedEvent {
+  revisionId: string;
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  requestedById: string;
+  requestedByName: string;
+  message: string;
+}
+
+export interface ContractRevisionRespondedEvent {
+  revisionId: string;
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  supplierId: string;
+  supplierName: string;
+  respondedById: string;
+  respondedByName: string;
+  status: 'ACCEPTED' | 'REJECTED';
+  responseNotes?: string;
+}
+
+export interface ContractSignedEvent {
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  signedBy: 'BRAND' | 'SUPPLIER';
+  signerName: string;
+  signerId: string;
+}
+
+export interface ContractFullySignedEvent {
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  title?: string;
+}
+
+export interface ContractExpiringEvent {
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  title?: string;
+  validUntil: Date;
+  daysRemaining: number;
+}
+
+export interface ContractExpiredEvent {
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  title?: string;
+  expiredAt: Date;
+}
+
+export interface ContractCancelledEvent {
+  contractId: string;
+  displayId: string;
+  brandId: string;
+  brandName: string;
+  supplierId: string;
+  supplierName: string;
+  cancelledById: string;
+  cancelledByName: string;
+  reason?: string;
 }
