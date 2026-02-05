@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CompanyType } from '@prisma/client';
@@ -15,18 +16,18 @@ import {
   ChangePasswordDto,
   CreateSuggestionDto,
 } from './dto';
-import { LocalStorageProvider, UploadedFile } from '../upload/storage.provider';
+import type { StorageProvider } from '../upload/storage.provider';
+import { UploadedFile, STORAGE_PROVIDER } from '../upload/storage.provider';
 
 const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2MB
 
 @Injectable()
 export class SettingsService {
-  private readonly storage: LocalStorageProvider;
-
-  constructor(private readonly prisma: PrismaService) {
-    this.storage = new LocalStorageProvider();
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+  ) {}
 
   // Get company for any user (BRAND or SUPPLIER)
   private async getUserCompanyId(userId: string): Promise<string> {

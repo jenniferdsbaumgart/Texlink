@@ -2,13 +2,11 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  LocalStorageProvider,
-  StorageProvider,
-  UploadedFile,
-} from './storage.provider';
+import type { StorageProvider } from './storage.provider';
+import { UploadedFile, STORAGE_PROVIDER } from './storage.provider';
 import { AttachmentType } from '@prisma/client';
 
 const ALLOWED_MIME_TYPES = [
@@ -30,12 +28,10 @@ const getMaxFileSize = (mimetype: string): number => {
 
 @Injectable()
 export class UploadService {
-  private readonly storage: StorageProvider;
-
-  constructor(private readonly prisma: PrismaService) {
-    // Use LocalStorage by default, can switch to S3 via env
-    this.storage = new LocalStorageProvider();
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+  ) {}
 
   async uploadOrderAttachment(
     orderId: string,

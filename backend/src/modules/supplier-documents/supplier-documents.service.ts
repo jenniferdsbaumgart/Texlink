@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSupplierDocumentDto, UpdateSupplierDocumentDto } from './dto';
@@ -12,7 +13,8 @@ import {
   CompanyType,
   RelationshipStatus,
 } from '@prisma/client';
-import { LocalStorageProvider, UploadedFile } from '../upload/storage.provider';
+import type { StorageProvider } from '../upload/storage.provider';
+import { UploadedFile, STORAGE_PROVIDER } from '../upload/storage.provider';
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -47,11 +49,10 @@ const MONTHLY_DOCUMENTS: SupplierDocumentType[] = [
 
 @Injectable()
 export class SupplierDocumentsService {
-  private readonly storage: LocalStorageProvider;
-
-  constructor(private readonly prisma: PrismaService) {
-    this.storage = new LocalStorageProvider();
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+  ) {}
 
   // Calculate document status based on expiration date
   private calculateStatus(expiresAt: Date | null): SupplierDocumentStatus {
