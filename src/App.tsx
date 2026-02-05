@@ -70,6 +70,9 @@ const BrandContractDetailsPage = React.lazy(() => import('./pages/brand/contract
 const BrandCreateContractPage = React.lazy(() => import('./pages/brand/contracts/CreateContractPage'));
 const SupplierContractsListPage = React.lazy(() => import('./pages/supplier/contracts/ContractsListPage'));
 const SupplierContractDetailsPage = React.lazy(() => import('./pages/supplier/contracts/ContractDetailsPage'));
+const SupplierProfile = React.lazy(() => import('./pages/supplier/ProfilePage'));
+const BrandSettings = React.lazy(() => import('./pages/brand/BrandSettingsPage'));
+const BrandProfile = React.lazy(() => import('./pages/brand/ProfilePage'));
 
 const AdminLayout = React.lazy(() => import('./components/admin/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'));
@@ -183,6 +186,7 @@ const App: React.FC = () => {
                                                 {/* Configurações */}
                                                 <Route path="equipe" element={<TeamPage />} />
                                                 <Route path="configuracoes" element={<SupplierSettings />} />
+                                                <Route path="perfil" element={<SupplierProfile />} />
                                                 <Route path="notificacoes" element={<NotificationsPage />} />
                                             </Route>
 
@@ -240,6 +244,8 @@ const App: React.FC = () => {
                                                 <Route path="contratos/:id" element={<BrandContractDetailsPage />} />
                                                 {/* Configurações */}
                                                 <Route path="equipe" element={<TeamPage />} />
+                                                <Route path="configuracoes" element={<BrandSettings />} />
+                                                <Route path="perfil" element={<BrandProfile />} />
                                                 <Route path="notificacoes" element={<NotificationsPage />} />
                                             </Route>
 
