@@ -178,11 +178,11 @@ const OrderDetailsPage: React.FC = () => {
                                 )}
 
                                 {isProtected && (
-                                    <div className="flex items-center gap-3 p-3 bg-amber-900/30 border border-amber-800/50 rounded-xl">
-                                        <Lock className="w-5 h-5 text-amber-400" />
+                                    <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800/50 rounded-xl">
+                                        <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                                         <div>
-                                            <p className="text-sm font-medium text-amber-300">Informações protegidas</p>
-                                            <p className="text-xs text-amber-400/80">A ficha técnica e detalhes serão liberados após aceitar o pedido</p>
+                                            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Informações protegidas</p>
+                                            <p className="text-xs text-amber-700 dark:text-amber-400/80">A ficha técnica e detalhes serão liberados após aceitar o pedido</p>
                                         </div>
                                     </div>
                                 )}
