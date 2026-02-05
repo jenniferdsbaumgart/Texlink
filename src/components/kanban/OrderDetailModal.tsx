@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Order, OrderStatus } from '../../types';
 import { ChatInterface } from './ChatInterface';
-import { X, CheckCircle, AlertOctagon, FileText, Truck, MapPin, DollarSign, Calendar, Scissors, Box, Clock, MessageCircle, Video, Image as ImageIcon, Download, ChevronRight, CreditCard, Play, PackageCheck, AlertTriangle, Copy } from 'lucide-react';
+import { OrderReviewModal } from '../orders/OrderReviewModal';
+import { OrderReview } from '../../services/orders.service';
+import { X, CheckCircle, AlertOctagon, FileText, Truck, MapPin, DollarSign, Calendar, Scissors, Box, Clock, MessageCircle, Video, Image as ImageIcon, Download, ChevronRight, CreditCard, Play, PackageCheck, AlertTriangle, Copy, ClipboardCheck } from 'lucide-react';
 
 interface OrderDetailModalProps {
     order: Order;
@@ -63,9 +65,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClo
             [OrderStatus.TRANSIT_TO_BRAND]: [
                 { targetStatus: OrderStatus.IN_REVIEW, label: 'Confirmar Recebimento', icon: 'receipt', color: 'bg-indigo-600 hover:bg-indigo-700', confirmTitle: 'Confirmar Recebimento?', confirmMsg: 'Confirma que o pedido foi recebido e deseja iniciar a revisão de qualidade?' },
             ],
-            [OrderStatus.IN_REVIEW]: [
-                { targetStatus: OrderStatus.FINALIZED, label: 'Aprovar Totalmente', icon: 'advance', color: 'bg-green-600 hover:bg-green-700', confirmTitle: 'Aprovar Pedido?', confirmMsg: 'Confirma a aprovação total do pedido? O pedido será finalizado.' },
-            ],
+            [OrderStatus.IN_REVIEW]: [], // Handled by OrderReviewModal
         },
         SUPPLIER: {
             [OrderStatus.NEW]: [
@@ -113,7 +113,9 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClo
         },
     };
 
-    const waitingMessage = currentActions.length === 0 ? (WAITING_MESSAGES[userRole]?.[order.status] || null) : null;
+    // Brand IN_REVIEW → opens OrderReviewModal instead of simple confirmation
+    const isReviewStatus = userRole === 'BRAND' && order.status === OrderStatus.IN_REVIEW;
+    const waitingMessage = !isReviewStatus && currentActions.length === 0 ? (WAITING_MESSAGES[userRole]?.[order.status] || null) : null;
     const isTerminal = [OrderStatus.FINALIZED, OrderStatus.PARTIALLY_APPROVED, OrderStatus.DISAPPROVED, OrderStatus.REJECTED].includes(order.status);
 
     // State for selected action for confirmation
@@ -121,6 +123,24 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClo
 
     // Supplier-specific reject action
     const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+
+    // Review modal state
+    const [showReviewModal, setShowReviewModal] = useState(false);
+
+    const REVIEW_RESULT_TO_STATUS: Record<string, OrderStatus> = {
+        APPROVED: OrderStatus.FINALIZED,
+        PARTIAL: OrderStatus.PARTIALLY_APPROVED,
+        REJECTED: OrderStatus.DISAPPROVED,
+    };
+
+    const handleReviewComplete = (review: OrderReview, childOrderCreated?: boolean) => {
+        const newStatus = REVIEW_RESULT_TO_STATUS[review.result];
+        if (newStatus) {
+            onStatusChange(order.id, newStatus);
+        }
+        setShowReviewModal(false);
+        onClose();
+    };
 
     const executeAction = () => {
         if (pendingAction) {
@@ -425,6 +445,14 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClo
                                                     <span>{order.status === OrderStatus.FINALIZED ? 'Pedido Finalizado' : order.status === OrderStatus.REJECTED ? 'Pedido Recusado' : order.status === OrderStatus.PARTIALLY_APPROVED ? 'Parcialmente Aprovado' : 'Reprovado'}</span>
                                                 </div>
                                             </div>
+                                        ) : isReviewStatus ? (
+                                            <button
+                                                onClick={() => setShowReviewModal(true)}
+                                                className="w-full flex justify-center items-center gap-2 px-4 py-3 text-white text-sm font-bold rounded-lg shadow-sm transition-all transform active:scale-95 bg-orange-600 hover:bg-orange-700"
+                                            >
+                                                <ClipboardCheck className="h-4 w-4" />
+                                                Revisar Qualidade
+                                            </button>
                                         ) : currentActions.length > 0 ? (
                                             <>
                                                 {/* Action buttons */}
@@ -543,6 +571,14 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClo
             )}
 
             {isChatOpen && <ChatInterface order={order} onClose={() => setIsChatOpen(false)} />}
+
+            {/* Quality Review Modal */}
+            <OrderReviewModal
+                order={order as any}
+                isOpen={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                onReviewComplete={handleReviewComplete}
+            />
         </>
     );
 };
