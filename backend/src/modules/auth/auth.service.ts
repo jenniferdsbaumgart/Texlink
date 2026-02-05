@@ -198,7 +198,21 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    return user;
+    // Extract primary company info for convenience
+    const companyUser = user.companyUsers?.[0];
+    const companyId = companyUser?.company?.id;
+    const companyName = companyUser?.company?.tradeName || companyUser?.company?.legalName;
+    const companyType = companyUser?.company?.type;
+
+    return {
+      ...user,
+      companyId,
+      companyName,
+      companyType,
+      // Convenience aliases for frontend
+      ...(companyType === 'SUPPLIER' && { supplierId: companyId }),
+      ...(companyType === 'BRAND' && { brandId: companyId }),
+    };
   }
 
   private generateToken(userId: string, email: string, role: string): string {

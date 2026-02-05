@@ -18,12 +18,14 @@ import {
 import { relationshipsService } from '../../services';
 import { brandDocumentsService, type DocumentWithAcceptance } from '../../services/brandDocuments.service';
 import { AcceptCodeOfConductModal } from '../../components/documents/AcceptCodeOfConductModal';
+import { useAuth } from '../../contexts/AuthContext';
 import type {
     SupplierBrandRelationship,
     RelationshipStatus,
 } from '../../types/relationships';
 
 const BrandsPage: React.FC = () => {
+    const { user } = useAuth();
     const [relationships, setRelationships] = useState<SupplierBrandRelationship[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -37,9 +39,8 @@ const BrandsPage: React.FC = () => {
     } | null>(null);
     const [showAcceptModal, setShowAcceptModal] = useState(false);
 
-    // Get current user's supplierId from localStorage
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const supplierId = user.supplierId || user.companyId;
+    // Get supplierId from auth context - check multiple possible locations
+    const supplierId = (user as any)?.supplierId || (user as any)?.companyId || (user as any)?.companyUsers?.[0]?.company?.id;
 
     const loadPendingDocs = useCallback(async (rels: SupplierBrandRelationship[]) => {
         const docsMap: Record<string, DocumentWithAcceptance[]> = {};
@@ -60,10 +61,21 @@ const BrandsPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        loadRelationships();
+        if (supplierId) {
+            loadRelationships();
+        } else {
+            setIsLoading(false);
+            setError('Não foi possível identificar sua empresa. Faça logout e login novamente.');
+        }
     }, [supplierId]);
 
     const loadRelationships = async () => {
+        if (!supplierId) {
+            setError('Não foi possível identificar sua empresa. Faça logout e login novamente.');
+            setIsLoading(false);
+            return;
+        }
+
         try {
             setIsLoading(true);
             setError(null);

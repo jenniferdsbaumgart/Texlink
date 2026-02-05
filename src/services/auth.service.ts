@@ -158,6 +158,8 @@ export const authService = {
         }
 
         const response = await api.get<User>('/auth/me');
+        // Update localStorage with fresh profile data (includes companyId)
+        localStorage.setItem('user', JSON.stringify(response.data));
         return response.data;
     },
 
