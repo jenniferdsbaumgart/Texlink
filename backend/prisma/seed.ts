@@ -180,7 +180,7 @@ async function main() {
         const company = await prisma.company.upsert({
             where: { document: data.company.document },
             update: {},
-            create: { ...data.company, type: CompanyType.SUPPLIER, status: CompanyStatus.ACTIVE, avgRating: (Math.random() * 1.5 + 3.5).toFixed(1) as any },
+            create: { ...data.company, type: CompanyType.SUPPLIER, status: CompanyStatus.ACTIVE, avgRating: parseFloat((Math.random() * 1.5 + 3.5).toFixed(1)) },
         });
 
         await prisma.companyUser.upsert({
