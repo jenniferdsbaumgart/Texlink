@@ -88,7 +88,7 @@ export const RequestPartnershipModal: React.FC<RequestPartnershipModalProps> = (
                     {supplier.avgRating !== undefined && supplier.avgRating > 0 && (
                       <span className="flex items-center gap-1">
                         <Star className="w-3.5 h-3.5 text-yellow-500" />
-                        {supplier.avgRating.toFixed(1)}
+                        {Number(supplier.avgRating).toFixed(1)}
                       </span>
                     )}
                   </div>

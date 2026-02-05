@@ -593,9 +593,7 @@ const AddSupplierPage: React.FC = () => {
                                                     <div className="flex items-center gap-1">
                                                         <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                                                         <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                            {supplier.supplierProfile.avgRating.toFixed(
-                                                                1
-                                                            )}
+                                                            {Number(supplier.supplierProfile.avgRating).toFixed(1)}
                                                         </span>
                                                     </div>
                                                 )}

@@ -220,7 +220,7 @@ const OrderDetailsPage: React.FC = () => {
                                 <div>
                                     <p className="text-white font-medium">{order.brand?.tradeName}</p>
                                     {order.brand?.avgRating && (
-                                        <p className="text-sm text-brand-400">⭐ {order.brand.avgRating.toFixed(1)}</p>
+                                        <p className="text-sm text-brand-400">⭐ {Number(order.brand.avgRating).toFixed(1)}</p>
                                     )}
                                 </div>
                             </div>

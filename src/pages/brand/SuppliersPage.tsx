@@ -138,7 +138,7 @@ const SuppliersPage: React.FC = () => {
                                     </div>
                                     <div className="flex items-center gap-1 text-amber-500">
                                         <Star className="w-4 h-4 fill-current" />
-                                        <span className="text-sm font-medium">{supplier.avgRating?.toFixed(1) || 'N/A'}</span>
+                                        <span className="text-sm font-medium">{supplier.avgRating ? Number(supplier.avgRating).toFixed(1) : 'N/A'}</span>
                                     </div>
                                 </div>
 

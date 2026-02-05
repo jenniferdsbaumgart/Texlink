@@ -119,7 +119,7 @@ const SupplierProfilePage: React.FC = () => {
                         </span>
                         <span className="flex items-center gap-1 text-sm text-amber-500">
                             <Star className="w-4 h-4 fill-current" />
-                            {supplier.avgRating?.toFixed(1) || 'N/A'}
+                            {supplier.avgRating ? Number(supplier.avgRating).toFixed(1) : 'N/A'}
                         </span>
                     </div>
                 </div>
@@ -190,7 +190,7 @@ const SupplierProfilePage: React.FC = () => {
                         <StatCard
                             icon={<Star className="h-5 w-5" />}
                             label="Avaliação"
-                            value={supplier.avgRating?.toFixed(1) || 'N/A'}
+                            value={supplier.avgRating ? Number(supplier.avgRating).toFixed(1) : 'N/A'}
                             color="amber"
                         />
                     </div>

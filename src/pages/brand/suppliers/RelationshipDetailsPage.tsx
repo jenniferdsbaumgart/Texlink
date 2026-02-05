@@ -311,9 +311,7 @@ const RelationshipDetailsPage: React.FC = () => {
                                             Avaliação
                                         </p>
                                         <p className="text-gray-900 dark:text-white">
-                                            {relationship.supplier.supplierProfile.avgRating.toFixed(
-                                                1
-                                            )}
+                                            {Number(relationship.supplier.supplierProfile.avgRating).toFixed(1)}
                                         </p>
                                     </div>
                                 </div>

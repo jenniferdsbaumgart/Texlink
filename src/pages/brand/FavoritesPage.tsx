@@ -286,7 +286,7 @@ const FavoritesPage: React.FC = () => {
                                                     <div className="flex items-center gap-2 mt-1">
                                                         <div className="flex items-center text-xs text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-500/10 px-1.5 py-0.5 rounded">
                                                             <Star className="w-3 h-3 fill-current mr-1" />
-                                                            {favorite.supplier.avgRating?.toFixed(1) || 'N/A'}
+                                                            {favorite.supplier.avgRating ? Number(favorite.supplier.avgRating).toFixed(1) : 'N/A'}
                                                         </div>
                                                         {favorite.supplier.city && (
                                                             <span className="text-xs text-gray-500">

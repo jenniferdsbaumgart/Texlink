@@ -105,7 +105,7 @@ const PartnersPage: React.FC = () => {
                                         </h3>
                                         <div className="flex items-center gap-1 text-amber-500 text-sm">
                                             <Star className="w-4 h-4 fill-current" />
-                                            <span>{partner.avgRating?.toFixed(1) || 'N/A'}</span>
+                                            <span>{partner.avgRating ? Number(partner.avgRating).toFixed(1) : 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
