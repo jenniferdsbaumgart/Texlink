@@ -29,6 +29,7 @@ async function bootstrap() {
   const corsOrigins = configService.get<string[]>('cors.origins') || [
     'http://localhost:5173',
   ];
+  logger.log(`CORS origins configured: ${JSON.stringify(corsOrigins)}`);
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
