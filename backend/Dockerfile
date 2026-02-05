@@ -61,8 +61,8 @@ ENV PORT=3000
 EXPOSE ${PORT}
 
 # Health check - Railway uses this automatically
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT}/api/health || exit 1
 
 # Start the application with Prisma migrations
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "echo 'Starting migrations...' && npx prisma migrate deploy && echo 'Migrations done. Starting app...' && node dist/main.js"]
