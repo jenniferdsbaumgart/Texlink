@@ -48,11 +48,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Extract companyId from companyUsers for easier access in controllers
     const companyId = user.companyUsers?.[0]?.companyId || null;
     const company = user.companyUsers?.[0]?.company || null;
+    const companyType = company?.type;
 
     return {
       ...user,
       companyId,
       company,
+      // Add role-specific aliases for compatibility with services
+      ...(companyType === 'SUPPLIER' && { supplierId: companyId }),
+      ...(companyType === 'BRAND' && { brandId: companyId }),
     };
   }
 }
