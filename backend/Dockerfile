@@ -51,6 +51,8 @@ COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nestjs:nodejs /app/prisma.config.ts ./
+COPY --from=builder --chown=nestjs:nodejs /app/start.sh ./
+RUN chmod +x start.sh
 
 # Switch to non-root user
 USER nestjs
@@ -66,5 +68,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT}/api/health || exit 1
 
 # Start the application with Prisma migrations
-# Use --url flag to pass DATABASE_URL directly (bypasses config file issues in production)
-CMD ["sh", "-c", "echo 'Running migrations...' && npx prisma migrate deploy --schema=./prisma/schema.prisma --url=\"$DATABASE_URL\" && echo 'Starting app...' && node dist/main.js"]
+CMD ["./start.sh"]
