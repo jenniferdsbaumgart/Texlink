@@ -314,7 +314,7 @@ export class PortalService {
         SELECT
           DATE_TRUNC('week', "updatedAt") as week,
           COALESCE(SUM("totalValue"), 0)::float as value
-        FROM "Order"
+        FROM "orders"
         WHERE "supplierId" = ${company.id}
           AND "status" = 'FINALIZADO'
           AND "updatedAt" >= ${start}
@@ -396,7 +396,7 @@ export class PortalService {
         DATE_TRUNC('month', "updatedAt") as month,
         COALESCE(SUM("totalValue"), 0)::float as revenue,
         COUNT(*)::int as orders
-      FROM "Order"
+      FROM "orders"
       WHERE "supplierId" = ${company.id}
         AND "status" = 'FINALIZADO'
         AND "updatedAt" >= ${startDate}

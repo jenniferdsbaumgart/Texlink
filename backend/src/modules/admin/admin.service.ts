@@ -280,7 +280,7 @@ export class AdminService {
           DATE_TRUNC('month', "updatedAt") as month,
           COALESCE(SUM("totalValue"), 0)::float as revenue,
           COUNT(*)::int as orders
-        FROM "Order"
+        FROM "orders"
         WHERE "status" = 'FINALIZADO'
           AND "updatedAt" >= ${startDate}
         GROUP BY DATE_TRUNC('month', "updatedAt")
@@ -289,7 +289,7 @@ export class AdminService {
         SELECT
           DATE_TRUNC('month', "updatedAt" + INTERVAL '${months} months') as month,
           COALESCE(SUM("totalValue"), 0)::float as previous_revenue
-        FROM "Order"
+        FROM "orders"
         WHERE "status" = 'FINALIZADO'
           AND "updatedAt" >= ${startDate} - INTERVAL '${months} months'
           AND "updatedAt" < ${startDate}
@@ -339,7 +339,7 @@ export class AdminService {
           DATE_TRUNC('month', "createdAt") as month,
           COUNT(*)::int as total,
           COALESCE(SUM("totalValue"), 0)::float as value
-        FROM "Order"
+        FROM "orders"
         WHERE "createdAt" >= ${startDate}
         GROUP BY DATE_TRUNC('month', "createdAt")
         ORDER BY month ASC
