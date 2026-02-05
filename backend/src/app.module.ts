@@ -45,7 +45,7 @@ import configuration from './config/configuration';
 import { BullConfigService, QUEUE_NAMES } from './config/bull.config';
 
 /**
- * Conditionally import ServeStaticModule only when using local storage
+ * Conditionally import modules based on environment
  */
 const conditionalImports: any[] = [];
 
@@ -57,6 +57,25 @@ if (process.env.STORAGE_TYPE !== 's3') {
       serveRoot: '/uploads',
     }),
   );
+}
+
+// Only use Bull queues when Redis is available
+if (process.env.REDIS_URL) {
+  conditionalImports.push(
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useClass: BullConfigService,
+    }),
+    BullModule.registerQueue(
+      { name: QUEUE_NAMES.NOTIFICATIONS },
+      { name: QUEUE_NAMES.DOCUMENT_EXPIRATION },
+      { name: QUEUE_NAMES.PAYMENT_OVERDUE },
+      { name: QUEUE_NAMES.CLEANUP },
+      { name: QUEUE_NAMES.CREDIT_ANALYSIS },
+    ),
+  );
+} else {
+  console.warn('[App] REDIS_URL not configured - Bull queues disabled, using in-memory scheduling');
 }
 
 @Module({
@@ -84,21 +103,8 @@ if (process.env.STORAGE_TYPE !== 's3') {
       verboseMemoryLeak: false,
       ignoreErrors: false,
     }),
-    // Scheduled jobs for reminders (fallback when Redis not available)
+    // Scheduled jobs for reminders
     ScheduleModule.forRoot(),
-    // Bull queues for background jobs (uses Redis when available)
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useClass: BullConfigService,
-    }),
-    // Register individual queues
-    BullModule.registerQueue(
-      { name: QUEUE_NAMES.NOTIFICATIONS },
-      { name: QUEUE_NAMES.DOCUMENT_EXPIRATION },
-      { name: QUEUE_NAMES.PAYMENT_OVERDUE },
-      { name: QUEUE_NAMES.CLEANUP },
-      { name: QUEUE_NAMES.CREDIT_ANALYSIS },
-    ),
     PrismaModule,
     HealthModule,
     CommonModule,

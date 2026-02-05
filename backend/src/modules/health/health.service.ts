@@ -31,11 +31,12 @@ export class HealthService implements OnModuleDestroy {
 
   /**
    * Initialize Redis client for health checks
+   * Only initializes if REDIS_URL is explicitly set
    */
   private initializeRedisClient(): void {
     const redisUrl = process.env.REDIS_URL;
     if (!redisUrl) {
-      this.logger.debug('REDIS_URL not configured, Redis health check will be skipped');
+      this.logger.log('REDIS_URL not configured, Redis health check disabled');
       return;
     }
 
@@ -45,10 +46,12 @@ export class HealthService implements OnModuleDestroy {
         connectTimeout: 5000,
         lazyConnect: true,
         enableReadyCheck: false,
+        retryStrategy: () => null, // Don't retry on failure
       });
 
-      this.redisClient.on('error', (err) => {
-        this.logger.debug(`Redis client error: ${err.message}`);
+      // Suppress connection errors - they'll be reported via health checks
+      this.redisClient.on('error', () => {
+        // Silently ignore - health check will report status
       });
 
       this.logger.log('Redis health check client initialized');

@@ -36,7 +36,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Cache bust - change this to force rebuild
-ARG CACHEBUST=3
+ARG CACHEBUST=4
 
 # Set production environment
 ENV NODE_ENV=production
