@@ -134,7 +134,9 @@ export interface MessageSentEvent {
   orderId: string;
   senderId: string;
   senderName: string;
-  recipientId: string;
+  recipientId?: string;
+  brandId: string;
+  supplierId?: string;
   type: 'TEXT' | 'PROPOSAL';
   content?: string;
 }
@@ -144,7 +146,9 @@ export interface ProposalSentEvent {
   orderId: string;
   senderId: string;
   senderName: string;
-  recipientId: string;
+  recipientId?: string;
+  brandId: string;
+  supplierId?: string;
   proposedPrice?: number;
   proposedQuantity?: number;
   proposedDeadline?: Date;

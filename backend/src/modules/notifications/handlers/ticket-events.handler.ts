@@ -47,7 +47,7 @@ export class TicketEventsHandler {
         });
       }
     } catch (error) {
-      this.logger.error(`Error handling ticket.created: ${error.message}`);
+      this.logger.error(`Error handling ticket.created: ${error.message}`, error.stack);
     }
   }
 
@@ -63,106 +63,73 @@ export class TicketEventsHandler {
     );
 
     try {
-      // Get ticket details including company info
+      // Get ticket details with separate queries (more robust than nested includes)
       const ticket = await this.prisma.supportTicket.findUnique({
         where: { id: event.ticketId },
-        include: {
-          company: {
-            select: {
-              type: true,
-              companyUsers: {
-                select: { userId: true },
-              },
-            },
-          },
+        select: {
+          title: true,
+          companyId: true,
+          company: { select: { type: true } },
         },
       });
 
       if (!ticket) return;
 
-      // If message is from support, notify all users of the company
-      if (event.isFromSupport && ticket.company) {
-        const companyType = ticket.company.type;
-        // Set correct action URL based on company type
+      if (event.isFromSupport) {
+        // Query direct - notify all users of the company (excluding sender)
+        const companyUsers = await this.prisma.companyUser.findMany({
+          where: {
+            companyId: ticket.companyId,
+            userId: { not: event.senderId },
+          },
+          select: { userId: true },
+        });
+
         const actionUrl =
-          companyType === 'SUPPLIER'
+          ticket.company.type === 'SUPPLIER'
             ? `/supplier/chamados/${event.ticketId}`
             : `/brand/suporte/${event.ticketId}`;
 
-        this.logger.log(
-          `Notifying ${ticket.company.companyUsers.length} company users. Company type: ${companyType}`,
-        );
-
-        for (const companyUser of ticket.company.companyUsers) {
-          // Skip if this is the sender
-          if (companyUser.userId === event.senderId) {
-            this.logger.log(`Skipping sender ${companyUser.userId}`);
-            continue;
-          }
-
-          this.logger.log(`Sending notification to user ${companyUser.userId}`);
-
-          try {
-            await this.notificationsService.notifyTicketUpdate(
-              companyUser.userId,
-              {
-                ticketId: event.ticketId,
-                displayId: event.displayId,
-                title: ticket.title,
-                type: 'message',
-                senderName: event.senderName,
-                actionUrl,
-              },
-            );
-            this.logger.log(
-              `Successfully notified user ${companyUser.userId}`,
-            );
-          } catch (err) {
-            this.logger.error(
-              `Failed to notify user ${companyUser.userId}: ${err.message}`,
-            );
-          }
+        for (const cu of companyUsers) {
+          await this.notificationsService.notifyTicketUpdate(cu.userId, {
+            ticketId: event.ticketId,
+            displayId: event.displayId,
+            title: ticket.title,
+            type: 'message',
+            senderName: event.senderName,
+            actionUrl,
+          });
         }
 
         this.logger.log(
-          `Finished notifying ${ticket.company.companyUsers.length} users from company ${ticket.companyId}`,
+          `Sent ${companyUsers.length} ticket notifications to company ${ticket.companyId}`,
         );
       } else {
-        // Message from user, notify all admin users
+        // Message from user - notify all admin users
         const adminUsers = await this.prisma.user.findMany({
           where: { role: 'ADMIN', isActive: true },
           select: { id: true },
         });
 
-        this.logger.log(`Notifying ${adminUsers.length} admin users`);
-
         for (const admin of adminUsers) {
-          this.logger.log(`Sending notification to admin ${admin.id}`);
-
-          try {
-            await this.notificationsService.notifyTicketUpdate(admin.id, {
-              ticketId: event.ticketId,
-              displayId: event.displayId,
-              title: ticket.title,
-              type: 'message',
-              senderName: event.senderName,
-              actionUrl: `/admin/suporte/${event.ticketId}`,
-            });
-            this.logger.log(`Successfully notified admin ${admin.id}`);
-          } catch (err) {
-            this.logger.error(
-              `Failed to notify admin ${admin.id}: ${err.message}`,
-            );
-          }
+          await this.notificationsService.notifyTicketUpdate(admin.id, {
+            ticketId: event.ticketId,
+            displayId: event.displayId,
+            title: ticket.title,
+            type: 'message',
+            senderName: event.senderName,
+            actionUrl: `/admin/suporte/${event.ticketId}`,
+          });
         }
 
         this.logger.log(
-          `Finished notifying ${adminUsers.length} admin users about ticket message`,
+          `Sent ${adminUsers.length} ticket notifications to admins`,
         );
       }
     } catch (error) {
       this.logger.error(
         `Error handling ticket.message.added: ${error.message}`,
+        error.stack,
       );
     }
   }
@@ -208,6 +175,7 @@ export class TicketEventsHandler {
     } catch (error) {
       this.logger.error(
         `Error handling ticket.status.changed: ${error.message}`,
+        error.stack,
       );
     }
   }

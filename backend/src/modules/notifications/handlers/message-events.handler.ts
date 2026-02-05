@@ -27,8 +27,51 @@ export class MessageEventsHandler {
   ) {}
 
   /**
+   * Resolve all users from the opposite company (excluding sender).
+   * Uses direct companyUser queries like the working order-events handler.
+   */
+  private async resolveRecipientUserIds(
+    brandId: string,
+    supplierId: string | undefined,
+    senderId: string,
+  ): Promise<string[]> {
+    // Determine which company the sender belongs to
+    const senderCompanyUser = await this.prisma.companyUser.findFirst({
+      where: {
+        userId: senderId,
+        companyId: { in: [brandId, ...(supplierId ? [supplierId] : [])] },
+      },
+      select: { companyId: true },
+    });
+
+    if (!senderCompanyUser) {
+      this.logger.warn(`Could not determine sender company for user ${senderId}`);
+      return [];
+    }
+
+    // Recipient company is the other one
+    const recipientCompanyId =
+      senderCompanyUser.companyId === brandId ? supplierId : brandId;
+
+    if (!recipientCompanyId) {
+      this.logger.warn(`No recipient company found (supplierId may be null)`);
+      return [];
+    }
+
+    const recipientUsers = await this.prisma.companyUser.findMany({
+      where: {
+        companyId: recipientCompanyId,
+        userId: { not: senderId },
+      },
+      select: { userId: true },
+    });
+
+    return recipientUsers.map((u) => u.userId);
+  }
+
+  /**
    * Handle message sent event
-   * Notify the recipient about the new message
+   * Notify ALL users of the opposite company about the new message
    */
   @OnEvent(MESSAGE_SENT)
   async handleMessageSent(payload: Record<string, unknown>) {
@@ -39,19 +82,31 @@ export class MessageEventsHandler {
       // Only notify for text messages, proposals have their own handler
       if (event.type !== 'TEXT') return;
 
-      await this.notificationsService.notifyNewMessage(event.recipientId, {
-        orderId: event.orderId,
-        senderName: event.senderName,
-        messagePreview: event.content || '',
-      });
+      const recipientUserIds = await this.resolveRecipientUserIds(
+        event.brandId,
+        event.supplierId,
+        event.senderId,
+      );
+
+      for (const userId of recipientUserIds) {
+        await this.notificationsService.notifyNewMessage(userId, {
+          orderId: event.orderId,
+          senderName: event.senderName,
+          messagePreview: event.content || '',
+        });
+      }
+
+      this.logger.log(
+        `Sent ${recipientUserIds.length} chat notifications for order ${event.orderId}`,
+      );
     } catch (error) {
-      this.logger.error(`Error handling message.sent: ${error.message}`);
+      this.logger.error(`Error handling message.sent: ${error.message}`, error.stack);
     }
   }
 
   /**
    * Handle proposal sent event
-   * Notify the recipient about the new proposal
+   * Notify ALL users of the opposite company about the new proposal
    */
   @OnEvent(PROPOSAL_SENT)
   async handleProposalSent(payload: Record<string, unknown>) {
@@ -59,7 +114,6 @@ export class MessageEventsHandler {
     this.logger.log(`Handling proposal.sent event for order ${event.orderId}`);
 
     try {
-      // Get order display ID
       const order = await this.prisma.order.findUnique({
         where: { id: event.orderId },
         select: { displayId: true },
@@ -67,18 +121,27 @@ export class MessageEventsHandler {
 
       if (!order) return;
 
-      await this.notificationsService.notifyProposalReceived(
-        event.recipientId,
-        {
+      const recipientUserIds = await this.resolveRecipientUserIds(
+        event.brandId,
+        event.supplierId,
+        event.senderId,
+      );
+
+      for (const userId of recipientUserIds) {
+        await this.notificationsService.notifyProposalReceived(userId, {
           orderId: event.orderId,
           displayId: order.displayId,
           senderName: event.senderName,
           proposedPrice: event.proposedPrice,
           proposedDeadline: event.proposedDeadline?.toISOString(),
-        },
+        });
+      }
+
+      this.logger.log(
+        `Sent ${recipientUserIds.length} proposal notifications for order ${event.orderId}`,
       );
     } catch (error) {
-      this.logger.error(`Error handling proposal.sent: ${error.message}`);
+      this.logger.error(`Error handling proposal.sent: ${error.message}`, error.stack);
     }
   }
 
@@ -117,7 +180,7 @@ export class MessageEventsHandler {
         entityId: event.orderId,
       });
     } catch (error) {
-      this.logger.error(`Error handling proposal.responded: ${error.message}`);
+      this.logger.error(`Error handling proposal.responded: ${error.message}`, error.stack);
     }
   }
 }

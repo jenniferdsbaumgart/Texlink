@@ -117,6 +117,14 @@ export class ChatService {
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
+      select: {
+        id: true,
+        brandId: true,
+        supplierId: true,
+        pricePerUnit: true,
+        quantity: true,
+        deliveryDeadline: true,
+      },
     });
 
     if (!order) {
@@ -187,73 +195,40 @@ export class ChatService {
       },
     });
 
-    // Find recipient (the other party in the order)
-    const recipientId = await this.getRecipientId(orderId, userId);
-
-    if (recipientId) {
-      if (dto.type === MessageType.PROPOSAL) {
-        // Emit proposal sent event
-        const proposalData = message.proposalData as any;
-        const event: ProposalSentEvent = {
-          messageId: message.id,
-          orderId,
-          senderId: userId,
-          senderName: message.sender.name,
-          recipientId,
-          proposedPrice: proposalData?.newValues?.pricePerUnit,
-          proposedQuantity: proposalData?.newValues?.quantity,
-          proposedDeadline: proposalData?.newValues?.deliveryDeadline
-            ? new Date(proposalData.newValues.deliveryDeadline)
-            : undefined,
-        };
-        this.eventEmitter.emit(PROPOSAL_SENT, event);
-        this.logger.log(`Emitted proposal.sent event for order ${orderId}`);
-      } else {
-        // Emit message sent event
-        const event: MessageSentEvent = {
-          messageId: message.id,
-          orderId,
-          senderId: userId,
-          senderName: message.sender.name,
-          recipientId,
-          type: dto.type,
-          content: dto.content,
-        };
-        this.eventEmitter.emit(MESSAGE_SENT, event);
-        this.logger.log(`Emitted message.sent event for order ${orderId}`);
-      }
+    // Emit events - handler resolves all recipients via brandId/supplierId
+    if (dto.type === MessageType.PROPOSAL) {
+      const proposalData = message.proposalData as any;
+      const event: ProposalSentEvent = {
+        messageId: message.id,
+        orderId,
+        senderId: userId,
+        senderName: message.sender.name,
+        brandId: order.brandId,
+        supplierId: order.supplierId ?? undefined,
+        proposedPrice: proposalData?.newValues?.pricePerUnit,
+        proposedQuantity: proposalData?.newValues?.quantity,
+        proposedDeadline: proposalData?.newValues?.deliveryDeadline
+          ? new Date(proposalData.newValues.deliveryDeadline)
+          : undefined,
+      };
+      this.eventEmitter.emit(PROPOSAL_SENT, event);
+      this.logger.log(`Emitted proposal.sent event for order ${orderId}`);
+    } else {
+      const event: MessageSentEvent = {
+        messageId: message.id,
+        orderId,
+        senderId: userId,
+        senderName: message.sender.name,
+        brandId: order.brandId,
+        supplierId: order.supplierId ?? undefined,
+        type: dto.type,
+        content: dto.content,
+      };
+      this.eventEmitter.emit(MESSAGE_SENT, event);
+      this.logger.log(`Emitted message.sent event for order ${orderId}`);
     }
 
     return message;
-  }
-
-  // Helper to get the recipient ID for a message
-  private async getRecipientId(
-    orderId: string,
-    senderId: string,
-  ): Promise<string | null> {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        brand: { include: { companyUsers: { take: 1 } } },
-        supplier: { include: { companyUsers: { take: 1 } } },
-      },
-    });
-
-    if (!order) return null;
-
-    // If sender is from brand, recipient is supplier (and vice versa)
-    const senderIsBrand = order.brand.companyUsers.some(
-      (cu) => cu.userId === senderId,
-    );
-
-    if (senderIsBrand && order.supplier?.companyUsers[0]) {
-      return order.supplier.companyUsers[0].userId;
-    } else if (!senderIsBrand && order.brand.companyUsers[0]) {
-      return order.brand.companyUsers[0].userId;
-    }
-
-    return null;
   }
 
   // Accept a proposal
