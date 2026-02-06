@@ -940,7 +940,8 @@ input:-webkit-autofill:focus {
 }
 
 .table-premium td {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
   border-bottom: 1px solid var(--border-subtle);
   transition: background 0.15s ease;
 }
