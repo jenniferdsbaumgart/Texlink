@@ -359,7 +359,9 @@ export class AdminService {
     const previousStartDate = new Date(startDate);
     previousStartDate.setMonth(previousStartDate.getMonth() - months);
 
-    const monthsInterval = `${Math.floor(Math.abs(months))} months`;
+    // Compute the offset in days (JS) to avoid passing an interval string to PG
+    const offsetMs = startDate.getTime() - previousStartDate.getTime();
+    const offsetDays = Math.round(offsetMs / (1000 * 60 * 60 * 24));
 
     const monthlyData = await this.prisma.$queryRaw<
       { month: Date; revenue: number; orders: number; previousRevenue: number }[]
@@ -376,13 +378,13 @@ export class AdminService {
       ),
       previous_period AS (
         SELECT
-          DATE_TRUNC('month', "updatedAt" + ${monthsInterval}::interval) as month,
+          DATE_TRUNC('month', "updatedAt" + make_interval(days => ${offsetDays})) as month,
           COALESCE(SUM("totalValue"), 0)::float as previous_revenue
         FROM "orders"
         WHERE "status" = 'FINALIZADO'
           AND "updatedAt" >= ${previousStartDate}
           AND "updatedAt" < ${startDate}
-        GROUP BY DATE_TRUNC('month', "updatedAt" + ${monthsInterval}::interval)
+        GROUP BY DATE_TRUNC('month', "updatedAt" + make_interval(days => ${offsetDays}))
       )
       SELECT
         c.month,
