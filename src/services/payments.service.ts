@@ -99,7 +99,7 @@ export const paymentsService = {
             return generateMockFinancialDashboard();
         }
 
-        const response = await api.get<FinancialDashboard>('/payments/dashboard');
+        const response = await api.get<FinancialDashboard>('/payments/summary');
         return response.data;
     },
 

@@ -134,7 +134,7 @@ export class PaymentsService {
     });
   }
 
-  // Get financial summary for a supplier
+  // Get financial dashboard for a supplier
   async getSupplierFinancialSummary(userId: string) {
     const companyUser = await this.prisma.companyUser.findFirst({
       where: {
@@ -147,62 +147,119 @@ export class PaymentsService {
       throw new NotFoundException('Supplier company not found');
     }
 
-    const [pending, paid, overdue, total] = await Promise.all([
+    const supplierId = companyUser.companyId;
+    const paymentOrderInclude = {
+      order: {
+        select: {
+          displayId: true,
+          productName: true,
+          brand: { select: { tradeName: true } },
+        },
+      },
+    };
+
+    const [
+      pendingAgg,
+      paidAgg,
+      overdueAgg,
+      totalAgg,
+      pendingPayments,
+      overduePayments,
+      recentPayments,
+      monthlyData,
+    ] = await Promise.all([
       this.prisma.payment.aggregate({
         where: {
-          order: { supplierId: companyUser.companyId },
+          order: { supplierId },
           status: PaymentStatus.PENDENTE,
         },
         _sum: { amount: true },
       }),
       this.prisma.payment.aggregate({
         where: {
-          order: { supplierId: companyUser.companyId },
+          order: { supplierId },
           status: PaymentStatus.PAGO,
         },
         _sum: { amount: true },
       }),
       this.prisma.payment.aggregate({
         where: {
-          order: { supplierId: companyUser.companyId },
+          order: { supplierId },
           status: PaymentStatus.ATRASADO,
         },
         _sum: { amount: true },
       }),
       this.prisma.payment.aggregate({
         where: {
-          order: { supplierId: companyUser.companyId },
+          order: { supplierId },
         },
         _sum: { amount: true },
       }),
+      // Pending payments list
+      this.prisma.payment.findMany({
+        where: {
+          order: { supplierId },
+          status: PaymentStatus.PENDENTE,
+        },
+        include: paymentOrderInclude,
+        orderBy: { dueDate: 'asc' },
+        take: 20,
+      }),
+      // Overdue payments list
+      this.prisma.payment.findMany({
+        where: {
+          order: { supplierId },
+          status: PaymentStatus.ATRASADO,
+        },
+        include: paymentOrderInclude,
+        orderBy: { dueDate: 'asc' },
+        take: 20,
+      }),
+      // Recent paid payments
+      this.prisma.payment.findMany({
+        where: {
+          order: { supplierId },
+          status: PaymentStatus.PAGO,
+        },
+        include: paymentOrderInclude,
+        orderBy: { paidDate: 'desc' },
+        take: 10,
+      }),
+      // Monthly aggregation (last 5 months)
+      this.prisma.$queryRaw<
+        { month: Date; received: number; pending: number }[]
+      >`
+        SELECT
+          DATE_TRUNC('month', p."dueDate") as month,
+          COALESCE(SUM(CASE WHEN p."status" = 'PAGO' THEN p."amount" ELSE 0 END), 0)::float as received,
+          COALESCE(SUM(CASE WHEN p."status" IN ('PENDENTE', 'ATRASADO') THEN p."amount" ELSE 0 END), 0)::float as pending
+        FROM "payments" p
+        JOIN "orders" o ON p."orderId" = o."id"
+        WHERE o."supplierId" = ${supplierId}
+          AND p."dueDate" >= NOW() - INTERVAL '5 months'
+        GROUP BY DATE_TRUNC('month', p."dueDate")
+        ORDER BY month ASC
+      `,
     ]);
 
-    // Get recent payments
-    const recentPayments = await this.prisma.payment.findMany({
-      where: {
-        order: { supplierId: companyUser.companyId },
-      },
-      include: {
-        order: {
-          select: {
-            displayId: true,
-            productName: true,
-            brand: { select: { tradeName: true } },
-          },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: 10,
-    });
+    const monthNames = [
+      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+    ];
 
     return {
-      summary: {
-        pending: pending._sum.amount || 0,
-        paid: paid._sum.amount || 0,
-        overdue: overdue._sum.amount || 0,
-        total: total._sum.amount || 0,
-      },
+      totalReceivable: Number(totalAgg._sum.amount) || 0,
+      totalReceived: Number(paidAgg._sum.amount) || 0,
+      totalPending: Number(pendingAgg._sum.amount) || 0,
+      totalOverdue: Number(overdueAgg._sum.amount) || 0,
+      pendingPayments,
+      overduePayments,
       recentPayments,
+      monthlyData: monthlyData.map((m) => ({
+        month: monthNames[m.month.getMonth()],
+        received: Number(m.received) || 0,
+        pending: Number(m.pending) || 0,
+      })),
     };
   }
 }
