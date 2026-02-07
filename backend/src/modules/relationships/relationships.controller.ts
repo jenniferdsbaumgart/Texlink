@@ -8,6 +8,7 @@ import {
   UseGuards,
   Ip,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { RelationshipsService } from './relationships.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { CreateRelationshipDto } from './dto/create-relationship.dto';
@@ -26,6 +27,8 @@ interface AuthUser {
   supplierId?: string;
 }
 
+@ApiTags('Relacionamentos')
+@ApiBearerAuth()
 @Controller('relationships')
 @UseGuards(JwtAuthGuard)
 export class RelationshipsController {

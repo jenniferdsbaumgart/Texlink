@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto, UpdateCompanyDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -16,6 +17,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CompanyType, UserRole } from '@prisma/client';
 
+@ApiTags('Empresas')
+@ApiBearerAuth()
 @Controller('companies')
 @UseGuards(JwtAuthGuard)
 export class CompaniesController {

@@ -14,9 +14,12 @@ import {
   Req,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { UploadService } from './upload.service';
 
+@ApiTags('Upload')
+@ApiBearerAuth()
 @Controller('orders/:orderId/attachments')
 @UseGuards(JwtAuthGuard)
 export class UploadController {

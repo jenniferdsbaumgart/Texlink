@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Param, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { CapacityReportsService } from './capacity-reports.service';
 import { RejectionReportFiltersDto, CapacityReportFiltersDto } from './dto';
@@ -10,6 +11,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
+@ApiTags('Relatórios')
+@ApiBearerAuth()
 @Controller('reports')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.BRAND)

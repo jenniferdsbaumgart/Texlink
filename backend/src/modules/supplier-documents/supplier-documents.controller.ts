@@ -12,6 +12,7 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SupplierDocumentsService } from './supplier-documents.service';
 import { CreateSupplierDocumentDto, UpdateSupplierDocumentDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -24,6 +25,8 @@ import {
   SupplierDocumentStatus,
 } from '@prisma/client';
 
+@ApiTags('Documentos Fornecedor')
+@ApiBearerAuth()
 @Controller('supplier-documents')
 @UseGuards(JwtAuthGuard)
 export class SupplierDocumentsController {

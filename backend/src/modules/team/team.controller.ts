@@ -9,6 +9,7 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/permissions.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -23,6 +24,8 @@ import {
   UpdateMemberPermissionsDto,
 } from './dto';
 
+@ApiTags('Equipe')
+@ApiBearerAuth()
 @Controller()
 export class TeamController {
   constructor(

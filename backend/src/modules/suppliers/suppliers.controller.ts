@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SuppliersService } from './suppliers.service';
 import { ConsentService } from './services/consent.service';
 import type { RevokeConsentDto } from './services/consent.service';
@@ -33,6 +34,8 @@ interface AuthUser {
   companyId: string;
 }
 
+@ApiTags('Fornecedores')
+@ApiBearerAuth()
 @Controller('suppliers')
 export class SuppliersController {
   constructor(

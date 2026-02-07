@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import {
   CreateOrderDto,
@@ -22,6 +23,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole, OrderStatus } from '@prisma/client';
 
+@ApiTags('Pedidos')
+@ApiBearerAuth()
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrdersController {

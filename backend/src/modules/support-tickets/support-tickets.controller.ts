@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SupportTicketsService } from './support-tickets.service';
 import { CreateTicketDto, SendMessageDto, UpdateTicketDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -22,6 +23,8 @@ import {
   CompanyType,
 } from '@prisma/client';
 
+@ApiTags('Suporte')
+@ApiBearerAuth()
 @Controller('support-tickets')
 @UseGuards(JwtAuthGuard)
 export class SupportTicketsController {

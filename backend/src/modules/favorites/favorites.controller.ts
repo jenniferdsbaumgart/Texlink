@@ -8,6 +8,7 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { FavoritesService } from './favorites.service';
 import {
   CreateTemplateDto,
@@ -23,6 +24,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 
+@ApiTags('Favoritos')
+@ApiBearerAuth()
 @Controller('favorites')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.BRAND)

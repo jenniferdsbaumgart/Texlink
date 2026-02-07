@@ -8,11 +8,14 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
+@ApiTags('Chat')
+@ApiBearerAuth()
 @Controller('orders/:orderId/chat')
 @UseGuards(JwtAuthGuard)
 export class ChatController {

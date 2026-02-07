@@ -1,5 +1,5 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { PortalService } from './portal.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -9,6 +9,7 @@ import { UserRole } from '@prisma/client';
 import { ThrottleApi } from '../../common/decorators/throttle.decorator';
 
 @ApiTags('Portal do Fornecedor')
+@ApiBearerAuth()
 @Controller('portal')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPPLIER)

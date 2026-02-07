@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { BrandDocumentsService } from './brand-documents.service';
 import {
   UploadBrandDocumentDto,
@@ -30,6 +31,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { UploadedFile as StorageFile } from '../upload/storage.provider';
 
+@ApiTags('Documentos Marca')
+@ApiBearerAuth()
 @Controller('brand-documents')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BrandDocumentsController {

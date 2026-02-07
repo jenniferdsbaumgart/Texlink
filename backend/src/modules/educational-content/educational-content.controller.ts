@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { EducationalContentService } from './educational-content.service';
 import {
   CreateEducationalContentDto,
@@ -23,6 +24,8 @@ import {
   EducationalContentCategory,
 } from '@prisma/client';
 
+@ApiTags('Conteúdo Educacional')
+@ApiBearerAuth()
 @Controller('educational-content')
 export class EducationalContentController {
   constructor(

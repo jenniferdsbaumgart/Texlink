@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { PartnersService } from './partners.service';
 import { CreatePartnerDto, UpdatePartnerDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -16,6 +17,8 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole, PartnerCategory } from '@prisma/client';
 
+@ApiTags('Parceiros')
+@ApiBearerAuth()
 @Controller('partners')
 export class PartnersController {
   constructor(private readonly partnersService: PartnersService) {}

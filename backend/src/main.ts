@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as Sentry from '@sentry/nestjs';
 import { AppModule } from './app.module';
@@ -64,6 +65,16 @@ async function bootstrap() {
 
   // API prefix
   app.setGlobalPrefix('api');
+
+  // Swagger / OpenAPI documentation
+  const config = new DocumentBuilder()
+    .setTitle('Texlink API')
+    .setDescription('B2B textile supply chain management platform')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = configService.get<number>('port') || 3000;
   await app.listen(port, '0.0.0.0');

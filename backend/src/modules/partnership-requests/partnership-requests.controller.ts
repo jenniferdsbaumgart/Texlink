@@ -10,6 +10,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { PartnershipRequestsService } from './partnership-requests.service';
 import {
   CreatePartnershipRequestDto,
@@ -22,6 +23,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 
+@ApiTags('Solicitações de Parceria')
+@ApiBearerAuth()
 @Controller('partnership-requests')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PartnershipRequestsController {

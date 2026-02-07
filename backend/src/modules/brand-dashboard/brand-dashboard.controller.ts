@@ -1,4 +1,5 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { BrandDashboardService } from './brand-dashboard.service';
 import { DashboardFiltersDto, SupplierRankingFiltersDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -8,6 +9,8 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
+@ApiTags('Dashboard Marca')
+@ApiBearerAuth()
 @Controller('dashboard/brand')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.BRAND)

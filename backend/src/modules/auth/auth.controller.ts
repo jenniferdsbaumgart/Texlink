@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, UpdateProfileDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -17,6 +18,7 @@ import {
   ThrottleRead,
 } from '../../common/decorators/throttle.decorator';
 
+@ApiTags('Autenticação')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

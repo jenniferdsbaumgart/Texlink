@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { HealthService, HealthStatus } from './health.service';
 import { ThrottleSkip } from '../../common/decorators/throttle.decorator';
 
+@ApiTags('Health')
 @Controller('health')
 @ThrottleSkip() // Health checks should not be rate limited
 export class HealthController {
