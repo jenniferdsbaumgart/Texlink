@@ -1,7 +1,11 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { HealthService, HealthStatus } from './health.service';
 import { ThrottleSkip } from '../../common/decorators/throttle.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('Health')
 @Controller('health')
@@ -20,9 +24,12 @@ export class HealthController {
 
   /**
    * Detailed health check - returns status of all dependencies
-   * Useful for debugging and monitoring dashboards
+   * Protected: only accessible by ADMIN users
    */
   @Get('detailed')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async detailedCheck(): Promise<HealthStatus> {
     return this.healthService.check();
   }

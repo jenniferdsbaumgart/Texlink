@@ -82,6 +82,8 @@ export class OrdersController {
   // ========== COMMON ENDPOINTS ==========
 
   @Get(':id/transitions')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND, UserRole.SUPPLIER)
   async getTransitions(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
@@ -90,11 +92,15 @@ export class OrdersController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND, UserRole.SUPPLIER, UserRole.ADMIN)
   async getById(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.ordersService.getById(id, userId);
   }
 
   @Patch(':id/status')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND, UserRole.SUPPLIER)
   async updateStatus(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
@@ -116,6 +122,8 @@ export class OrdersController {
 
   // Create a review for an order
   @Post(':id/reviews')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND, UserRole.SUPPLIER)
   async createReview(
     @Param('id') orderId: string,
     @CurrentUser('id') userId: string,
@@ -126,12 +134,16 @@ export class OrdersController {
 
   // Get all reviews for an order
   @Get(':id/reviews')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND, UserRole.SUPPLIER, UserRole.ADMIN)
   async getOrderReviews(@Param('id') orderId: string) {
     return this.ordersService.getOrderReviews(orderId);
   }
 
   // Create child order for rework
   @Post(':id/child-orders')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND)
   async createChildOrder(
     @Param('id') parentOrderId: string,
     @CurrentUser('id') userId: string,
@@ -142,6 +154,8 @@ export class OrdersController {
 
   // Get order hierarchy (parent + children)
   @Get(':id/hierarchy')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND, UserRole.SUPPLIER, UserRole.ADMIN)
   async getOrderHierarchy(
     @Param('id') orderId: string,
     @CurrentUser('id') userId: string,
@@ -151,6 +165,8 @@ export class OrdersController {
 
   // Add second quality items
   @Post(':id/second-quality')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPPLIER)
   async addSecondQualityItems(
     @Param('id') orderId: string,
     @CurrentUser('id') userId: string,
@@ -161,6 +177,8 @@ export class OrdersController {
 
   // Get second quality items
   @Get(':id/second-quality')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BRAND, UserRole.SUPPLIER, UserRole.ADMIN)
   async getSecondQualityItems(@Param('id') orderId: string) {
     return this.ordersService.getSecondQualityItems(orderId);
   }

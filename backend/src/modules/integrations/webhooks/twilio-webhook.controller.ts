@@ -47,11 +47,13 @@ export class TwilioWebhookController {
     @Headers('x-twilio-signature') signature?: string,
   ) {
     try {
-      // Valida a assinatura do webhook
-      if (signature) {
-        const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-        this.signatureService.validateSignature(url, event, signature);
+      // Valida a assinatura do webhook (rejeita se ausente)
+      if (!signature) {
+        this.logger.warn('Twilio webhook received without signature header');
+        return { success: false, error: 'Missing signature' };
       }
+      const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+      this.signatureService.validateSignature(url, event, signature);
 
       await this.processEvent(event);
       return { success: true };
