@@ -25,7 +25,8 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
         className={`
           max-w-7xl mx-auto
           px-4 sm:px-6 lg:px-8
-          py-6 lg:py-8
+          pt-16 lg:pt-8
+          pb-6 lg:pb-8
           space-y-6
           ${className}
         `}

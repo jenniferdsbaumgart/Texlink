@@ -201,7 +201,8 @@ const DocumentsPage: React.FC = () => {
                                 </p>
                             </div>
                         ) : (
-                            <table className="w-full text-left border-collapse">
+                            <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[700px]">
                                 <thead>
                                     <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-gray-100 dark:border-white/[0.06]">
                                         <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Facção</th>
@@ -289,6 +290,7 @@ const DocumentsPage: React.FC = () => {
                                     })}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
                 </div>

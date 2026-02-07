@@ -163,7 +163,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ order, onClose }) 
       ></div>
 
       {/* Chat Window */}
-      <div className="relative bg-white dark:bg-gray-800 w-full max-w-md h-[650px] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-white dark:bg-gray-800 w-full max-w-md h-[min(650px,calc(100vh-2rem))] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
         {/* Chat Header */}
         <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 p-4 flex items-center justify-between shadow-sm z-10">
           <div className="flex items-center gap-3">

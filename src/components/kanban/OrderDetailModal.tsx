@@ -255,13 +255,13 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClo
                     <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
                     {/* Modal Panel */}
-                    <div className="relative inline-block align-bottom bg-gray-50 dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl w-full border border-gray-200 dark:border-gray-700">
+                    <div className="relative inline-block align-bottom bg-gray-50 dark:bg-gray-900 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl w-[calc(100%-1rem)] sm:w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
 
                         {/* Header Compacto */}
-                        <div className="bg-white dark:bg-gray-800 px-6 py-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
+                        <div className="bg-white dark:bg-gray-800 px-4 sm:px-6 py-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
                             <div className="flex items-center gap-4">
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <h2 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white flex flex-wrap items-center gap-2">
                                         Pedido {order.displayId}
                                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${getBadgeStyle(order.status)}`}>
                                             {order.status}
@@ -285,7 +285,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClo
                             </div>
                         </div>
 
-                        <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
 
                             {/* --- COLUNA ESQUERDA (PRINCIPAL) --- */}
                             <div className="lg:col-span-8 space-y-6">

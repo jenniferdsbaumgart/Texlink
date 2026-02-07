@@ -278,7 +278,7 @@ const BrandKanbanDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col font-sans text-gray-900 dark:text-gray-100">
             <main className="flex-1 overflow-hidden flex flex-col relative">
-                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6 lg:px-8 shadow-sm z-30">
+                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pl-14 pr-4 py-3 sm:px-6 lg:px-8 shadow-sm z-30">
                     <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                             {/* Search Bar */}
@@ -341,11 +341,11 @@ const BrandKanbanDashboard: React.FC = () => {
                         <StatsOverview orders={orders} />
                         <div className="h-full flex-1">
                             {viewMode === 'kanban' ? (
-                                <div className="flex gap-4 overflow-x-auto pb-4 h-full items-start kanban-scroll">
+                                <div className="flex gap-4 overflow-x-auto pb-4 h-full items-start kanban-scroll snap-x snap-mandatory md:snap-none">
                                     {STATUS_COLUMNS.map(col => (
                                         <div
                                             key={col.id}
-                                            className="min-w-[300px] w-[300px] flex flex-col h-full bg-gray-100/50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-700 flex-shrink-0"
+                                            className="min-w-[280px] w-[280px] md:min-w-[300px] md:w-[300px] flex flex-col h-full bg-gray-100/50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-700 flex-shrink-0 snap-start"
                                         >
                                             <div className="p-3 rounded-t-xl border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex justify-between items-center sticky top-0 z-10">
                                                 <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-200">{col.label}</h3>
