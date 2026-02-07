@@ -24,6 +24,19 @@ export interface PortalSummary {
   alerts: PortalAlert[];
 }
 
+export interface TrendPoint {
+  date: string;
+  label: string;
+  value: number;
+}
+
+export interface PlatformAverage {
+  onTimeDeliveryRate: number;
+  qualityScore: number;
+  rejectionRate: number;
+  avgLeadTime: number;
+}
+
 export interface PerformanceData {
   completedOrders: number;
   acceptanceRate: number;
@@ -33,6 +46,10 @@ export interface PerformanceData {
   chartData: { date: string; value: number }[];
   byStatus: { status: string; count: number; value: number }[];
   byBrand: { brand: string; count: number; value: number }[];
+  onTimeDeliveryTrend: TrendPoint[];
+  qualityScoreTrend: TrendPoint[];
+  rejectionRateTrend: TrendPoint[];
+  platformAverage: PlatformAverage;
 }
 
 @Injectable()
@@ -256,6 +273,13 @@ export class PortalService {
       ordersByBrand,
       revenueByWeek,
       avgLeadTimeResult,
+      onTimeByWeek,
+      qualityByWeek,
+      rejectionByWeek,
+      platformOnTime,
+      platformQuality,
+      platformRejection,
+      platformLeadTime,
     ] = await Promise.all([
       // Completed orders
       this.prisma.order.count({
@@ -323,7 +347,7 @@ export class PortalService {
         GROUP BY DATE_TRUNC('week', "updatedAt")
         ORDER BY week ASC
       `,
-      // Average lead time in days (acceptedAt → updatedAt for FINALIZADO orders)
+      // Average lead time in days (acceptedAt -> updatedAt for FINALIZADO orders)
       this.prisma.$queryRaw<{ avg_days: number }[]>`
         SELECT COALESCE(
           AVG(EXTRACT(EPOCH FROM ("updatedAt" - "acceptedAt")) / 86400),
@@ -332,6 +356,99 @@ export class PortalService {
         FROM "orders"
         WHERE "supplierId" = ${company.id}
           AND "status" = 'FINALIZADO'
+          AND "acceptedAt" IS NOT NULL
+          AND "updatedAt" >= ${start}
+          AND "updatedAt" <= ${end}
+      `,
+      // On-time delivery rate by week (supplier)
+      this.prisma.$queryRaw<
+        { week: Date; total: number; on_time: number }[]
+      >`
+        SELECT
+          DATE_TRUNC('week', "updatedAt") as week,
+          COUNT(*)::int as total,
+          COUNT(*) FILTER (WHERE "updatedAt" <= "deliveryDeadline")::int as on_time
+        FROM "orders"
+        WHERE "supplierId" = ${company.id}
+          AND "status" = 'FINALIZADO'
+          AND "updatedAt" >= ${start}
+          AND "updatedAt" <= ${end}
+        GROUP BY DATE_TRUNC('week', "updatedAt")
+        ORDER BY week ASC
+      `,
+      // Quality score by week (supplier - from reviews)
+      this.prisma.$queryRaw<
+        { week: Date; total_qty: number; approved_qty: number }[]
+      >`
+        SELECT
+          DATE_TRUNC('week', r."reviewedAt") as week,
+          COALESCE(SUM(r."approvedQuantity" + r."rejectedQuantity" + r."secondQualityQuantity"), 0)::int as total_qty,
+          COALESCE(SUM(r."approvedQuantity"), 0)::int as approved_qty
+        FROM "order_reviews" r
+        INNER JOIN "orders" o ON o.id = r."orderId"
+        WHERE o."supplierId" = ${company.id}
+          AND r."reviewedAt" >= ${start}
+          AND r."reviewedAt" <= ${end}
+        GROUP BY DATE_TRUNC('week', r."reviewedAt")
+        ORDER BY week ASC
+      `,
+      // Rejection rate by week (supplier)
+      this.prisma.$queryRaw<
+        { week: Date; total: number; rejected: number }[]
+      >`
+        SELECT
+          DATE_TRUNC('week', "updatedAt") as week,
+          COUNT(*)::int as total,
+          COUNT(*) FILTER (WHERE "status" = 'RECUSADO_PELA_FACCAO')::int as rejected
+        FROM "orders"
+        WHERE "supplierId" = ${company.id}
+          AND "updatedAt" >= ${start}
+          AND "updatedAt" <= ${end}
+          AND "status" IN ('FINALIZADO', 'RECUSADO_PELA_FACCAO')
+        GROUP BY DATE_TRUNC('week', "updatedAt")
+        ORDER BY week ASC
+      `,
+      // Platform average: on-time delivery rate (all suppliers)
+      this.prisma.$queryRaw<{ rate: number }[]>`
+        SELECT CASE
+          WHEN COUNT(*) = 0 THEN 0
+          ELSE (COUNT(*) FILTER (WHERE "updatedAt" <= "deliveryDeadline")::float / COUNT(*)::float * 100)
+        END as rate
+        FROM "orders"
+        WHERE "status" = 'FINALIZADO'
+          AND "updatedAt" >= ${start}
+          AND "updatedAt" <= ${end}
+      `,
+      // Platform average: quality score (all suppliers)
+      this.prisma.$queryRaw<{ rate: number }[]>`
+        SELECT CASE
+          WHEN COALESCE(SUM("approvedQuantity" + "rejectedQuantity" + "secondQualityQuantity"), 0) = 0 THEN 0
+          ELSE (SUM("approvedQuantity")::float / SUM("approvedQuantity" + "rejectedQuantity" + "secondQualityQuantity")::float * 100)
+        END as rate
+        FROM "order_reviews" r
+        INNER JOIN "orders" o ON o.id = r."orderId"
+        WHERE r."reviewedAt" >= ${start}
+          AND r."reviewedAt" <= ${end}
+      `,
+      // Platform average: rejection rate (all suppliers)
+      this.prisma.$queryRaw<{ rate: number }[]>`
+        SELECT CASE
+          WHEN COUNT(*) = 0 THEN 0
+          ELSE (COUNT(*) FILTER (WHERE "status" = 'RECUSADO_PELA_FACCAO')::float / COUNT(*)::float * 100)
+        END as rate
+        FROM "orders"
+        WHERE "updatedAt" >= ${start}
+          AND "updatedAt" <= ${end}
+          AND "status" IN ('FINALIZADO', 'RECUSADO_PELA_FACCAO')
+      `,
+      // Platform average: lead time (all suppliers)
+      this.prisma.$queryRaw<{ avg_days: number }[]>`
+        SELECT COALESCE(
+          AVG(EXTRACT(EPOCH FROM ("updatedAt" - "acceptedAt")) / 86400),
+          0
+        )::float as avg_days
+        FROM "orders"
+        WHERE "status" = 'FINALIZADO'
           AND "acceptedAt" IS NOT NULL
           AND "updatedAt" >= ${start}
           AND "updatedAt" <= ${end}
@@ -363,6 +480,46 @@ export class PortalService {
       EM_TRANSITO_PARA_MARCA: 'Em Trânsito',
     };
 
+    // Helper to format week dates as labels
+    const formatWeekLabel = (d: Date) =>
+      d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+
+    // Build trend arrays
+    const onTimeDeliveryTrend: TrendPoint[] = onTimeByWeek.map((w) => ({
+      date: w.week.toISOString().split('T')[0],
+      label: formatWeekLabel(new Date(w.week)),
+      value: w.total > 0 ? Math.round((w.on_time / w.total) * 1000) / 10 : 0,
+    }));
+
+    const qualityScoreTrend: TrendPoint[] = qualityByWeek.map((w) => ({
+      date: w.week.toISOString().split('T')[0],
+      label: formatWeekLabel(new Date(w.week)),
+      value:
+        w.total_qty > 0
+          ? Math.round((w.approved_qty / w.total_qty) * 1000) / 10
+          : 0,
+    }));
+
+    const rejectionRateTrend: TrendPoint[] = rejectionByWeek.map((w) => ({
+      date: w.week.toISOString().split('T')[0],
+      label: formatWeekLabel(new Date(w.week)),
+      value:
+        w.total > 0
+          ? Math.round((w.rejected / w.total) * 1000) / 10
+          : 0,
+    }));
+
+    const platformAverageData: PlatformAverage = {
+      onTimeDeliveryRate:
+        Math.round((platformOnTime[0]?.rate || 0) * 10) / 10,
+      qualityScore:
+        Math.round((platformQuality[0]?.rate || 0) * 10) / 10,
+      rejectionRate:
+        Math.round((platformRejection[0]?.rate || 0) * 10) / 10,
+      avgLeadTime:
+        Math.round((platformLeadTime[0]?.avg_days || 0) * 10) / 10,
+    };
+
     return {
       completedOrders,
       acceptanceRate: Math.round(acceptanceRate),
@@ -386,6 +543,10 @@ export class PortalService {
         }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5),
+      onTimeDeliveryTrend,
+      qualityScoreTrend,
+      rejectionRateTrend,
+      platformAverage: platformAverageData,
     };
   }
 

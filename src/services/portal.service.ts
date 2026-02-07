@@ -19,6 +19,19 @@ export interface PortalAlert {
     actionPath?: string;
 }
 
+export interface TrendPoint {
+    date: string;
+    label: string;
+    value: number;
+}
+
+export interface PlatformAverage {
+    onTimeDeliveryRate: number;
+    qualityScore: number;
+    rejectionRate: number;
+    avgLeadTime: number;
+}
+
 export interface PerformanceData {
     completedOrders: number;
     acceptanceRate: number;
@@ -28,6 +41,10 @@ export interface PerformanceData {
     chartData: { date: string; value: number }[];
     byStatus: { status: string; count: number; value: number }[];
     byBrand: { brand: string; count: number; value: number }[];
+    onTimeDeliveryTrend?: TrendPoint[];
+    qualityScoreTrend?: TrendPoint[];
+    rejectionRateTrend?: TrendPoint[];
+    platformAverage?: PlatformAverage;
 }
 
 export interface RevenueHistoryItem {
@@ -92,8 +109,8 @@ const generateMockPerformance = (): PerformanceData => ({
         { date: '2026-01-29', value: 32000 },
     ],
     byStatus: [
-        { status: 'Concluído', count: 45, value: 95000 },
-        { status: 'Em Produção', count: 8, value: 20000 },
+        { status: 'Concluido', count: 45, value: 95000 },
+        { status: 'Em Producao', count: 8, value: 20000 },
         { status: 'Aguardando', count: 4, value: 10000 },
     ],
     byBrand: [
@@ -101,6 +118,33 @@ const generateMockPerformance = (): PerformanceData => ({
         { brand: 'TrendWear', count: 15, value: 40000 },
         { brand: 'StyleCo', count: 10, value: 35000 },
     ],
+    onTimeDeliveryTrend: [
+        { date: '2026-01-01', label: '01 jan.', value: 88 },
+        { date: '2026-01-08', label: '08 jan.', value: 91 },
+        { date: '2026-01-15', label: '15 jan.', value: 85 },
+        { date: '2026-01-22', label: '22 jan.', value: 94 },
+        { date: '2026-01-29', label: '29 jan.', value: 96 },
+    ],
+    qualityScoreTrend: [
+        { date: '2026-01-01', label: '01 jan.', value: 92 },
+        { date: '2026-01-08', label: '08 jan.', value: 94 },
+        { date: '2026-01-15', label: '15 jan.', value: 90 },
+        { date: '2026-01-22', label: '22 jan.', value: 95 },
+        { date: '2026-01-29', label: '29 jan.', value: 97 },
+    ],
+    rejectionRateTrend: [
+        { date: '2026-01-01', label: '01 jan.', value: 5.2 },
+        { date: '2026-01-08', label: '08 jan.', value: 3.8 },
+        { date: '2026-01-15', label: '15 jan.', value: 4.1 },
+        { date: '2026-01-22', label: '22 jan.', value: 2.9 },
+        { date: '2026-01-29', label: '29 jan.', value: 2.3 },
+    ],
+    platformAverage: {
+        onTimeDeliveryRate: 87,
+        qualityScore: 89,
+        rejectionRate: 4.5,
+        avgLeadTime: 9,
+    },
 });
 
 export const portalService = {
