@@ -264,7 +264,7 @@ const FavoritesPage: React.FC = () => {
                                         title="Nenhum fornecedor favorito"
                                         description="Adicione fornecedores aos favoritos na página de busca de facções."
                                         actionLabel="Buscar Facções"
-                                        actionLink="/brand/faccoes"
+                                        actionLink="/brand/fornecedores"
                                     />
                                 ) : (
                                     <div className="space-y-3">

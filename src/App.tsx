@@ -43,10 +43,7 @@ const BrandKanbanDashboard = React.lazy(() => import('./pages/brand/KanbanDashbo
 const BrandOrdersList = React.lazy(() => import('./pages/brand/OrdersListPage'));
 const BrandCreateOrder = React.lazy(() => import('./pages/brand/CreateOrderPage'));
 const BrandOrderDetails = React.lazy(() => import('./pages/brand/OrderDetailsPage'));
-const BrandSuppliers = React.lazy(() => import('./pages/brand/SuppliersPage'));
 const BrandSuppliersPage = React.lazy(() => import('./pages/brand/BrandSuppliersPage'));
-const BrandSupplierProfile = React.lazy(() => import('./pages/brand/SupplierProfilePage'));
-const BrandPartners = React.lazy(() => import('./pages/brand/PartnersPage'));
 const BrandMessages = React.lazy(() => import('./pages/brand/MessagesPage'));
 const BrandPayments = React.lazy(() => import('./pages/brand/PaymentsPage'));
 const BrandPaymentHistory = React.lazy(() => import('./pages/brand/PaymentHistoryPage'));
@@ -202,10 +199,10 @@ const App: React.FC = () => {
                                                 <Route path="pedidos/lista" element={<BrandOrdersList />} />
                                                 <Route path="pedidos/novo" element={<BrandCreateOrder />} />
                                                 <Route path="pedidos/:id" element={<BrandOrderDetails />} />
-                                                {/* Facções */}
-                                                <Route path="faccoes" element={<BrandSuppliers />} />
-                                                <Route path="faccoes/parceiros" element={<BrandPartners />} />
-                                                <Route path="faccoes/:id" element={<BrandSupplierProfile />} />
+                                                {/* Facções → redirect to Fornecedores (V3) */}
+                                                <Route path="faccoes" element={<Navigate to="/brand/fornecedores" replace />} />
+                                                <Route path="faccoes/parceiros" element={<Navigate to="/brand/fornecedores" replace />} />
+                                                <Route path="faccoes/:id" element={<Navigate to="/brand/fornecedores" replace />} />
                                                 {/* Fornecedores (V3 N:M Relationships) */}
                                                 <Route path="fornecedores" element={<BrandSuppliersPage />} />
                                                 <Route path="fornecedores/solicitacoes" element={<BrandPartnershipRequestsPage />} />
@@ -247,7 +244,7 @@ const App: React.FC = () => {
                                             {/* Legacy brand routes - redirect to new portal */}
                                             <Route path="/brand/orders" element={<Navigate to="/brand/pedidos/lista" replace />} />
                                             <Route path="/brand/orders/new" element={<Navigate to="/brand/pedidos/novo" replace />} />
-                                            <Route path="/brand/suppliers" element={<Navigate to="/brand/faccoes" replace />} />
+                                            <Route path="/brand/suppliers" element={<Navigate to="/brand/fornecedores" replace />} />
 
                                             {/* Admin routes */}
                                             <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminLayout /></ProtectedRoute>}>

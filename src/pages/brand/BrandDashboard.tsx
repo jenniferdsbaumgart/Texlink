@@ -138,7 +138,7 @@ const BrandDashboard: React.FC = () => {
             label: 'Buscar Facções',
             description: 'Encontrar fornecedores',
             icon: <Factory className="h-6 w-6" />,
-            href: '/brand/faccoes',
+            href: '/brand/fornecedores',
             color: 'purple',
         },
         {

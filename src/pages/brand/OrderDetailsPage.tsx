@@ -194,7 +194,7 @@ const OrderDetailsPage: React.FC = () => {
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Facção</h2>
                             {order.supplier ? (
                                 <Link
-                                    to={`/brand/faccoes/${order.supplierId}`}
+                                    to={`/brand/fornecedores/${order.supplierId}`}
                                     className="flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 -m-2 rounded-xl transition-colors"
                                 >
                                     <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-600 rounded-full flex items-center justify-center">
