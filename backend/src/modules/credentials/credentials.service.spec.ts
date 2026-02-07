@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CredentialsService } from './credentials.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../../common/services/cache.service';
 import { SupplierCredentialStatus } from '@prisma/client';
 
 describe('CredentialsService', () => {
@@ -52,6 +53,13 @@ describe('CredentialsService', () => {
     brandId: 'brand-123',
   };
 
+  const mockCacheService = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    delByPrefix: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -59,6 +67,10 @@ describe('CredentialsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
         },
       ],
     }).compile();

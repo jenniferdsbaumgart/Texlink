@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SupplierCredentialStatus } from '@prisma/client';
+import { CacheService } from '../../common/services/cache.service';
 import {
   CreateCredentialDto,
   UpdateCredentialDto,
@@ -49,7 +50,10 @@ export class CredentialsService {
     SupplierCredentialStatus.INVITATION_EXPIRED,
   ];
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   // ==================== CREATE ====================
 
@@ -446,6 +450,10 @@ export class CredentialsService {
    * - Taxa de conversão (ACTIVE / total)
    */
   async getStats(companyId: string) {
+    const cacheKey = `cred:stats:${companyId}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached) return cached;
+
     // Contagem por status
     const byStatus = await this.prisma.supplierCredential.groupBy({
       by: ['status'],
@@ -523,7 +531,7 @@ export class CredentialsService {
     // Taxa de conversão
     const conversionRate = total > 0 ? (activeCount / total) * 100 : 0;
 
-    return {
+    const result = {
       total,
       byStatus: statusCounts,
       thisMonth: {
@@ -535,6 +543,8 @@ export class CredentialsService {
       activeCount,
       conversionRate: Math.round(conversionRate * 100) / 100, // 2 casas decimais
     };
+    await this.cache.set(cacheKey, result, 5 * 60); // 5 min TTL
+    return result;
   }
 
   // ==================== STATUS MANAGEMENT ====================
@@ -550,7 +560,7 @@ export class CredentialsService {
   ) {
     const credential = await this.prisma.supplierCredential.findUnique({
       where: { id },
-      select: { status: true },
+      select: { status: true, brandId: true },
     });
 
     if (!credential) {
@@ -574,10 +584,15 @@ export class CredentialsService {
       updateData.completedAt = new Date();
     }
 
-    return this.prisma.supplierCredential.update({
+    const updated = await this.prisma.supplierCredential.update({
       where: { id },
       data: updateData,
     });
+
+    // Invalidate cached stats for this brand
+    await this.cache.del(`cred:stats:${credential.brandId}`);
+
+    return updated;
   }
 
   // ==================== DOCUMENT VALIDATION ====================

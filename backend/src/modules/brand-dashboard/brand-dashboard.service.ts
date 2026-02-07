@@ -1,6 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrderStatus } from '@prisma/client';
+import { CacheService } from '../../common/services/cache.service';
+import {
+  ORDER_CREATED,
+  ORDER_STATUS_CHANGED,
+  ORDER_FINALIZED,
+} from '../notifications/events/notification.events';
 import {
   DashboardFiltersDto,
   SupplierRankingFiltersDto,
@@ -19,9 +26,43 @@ import {
   AlertSeverity,
 } from './dto';
 
+// Cache TTLs in seconds
+const CACHE_TTL = {
+  SUMMARY: 5 * 60, // 5 minutes
+  RANKING: 10 * 60, // 10 minutes
+  TIMELINE: 10 * 60, // 10 minutes
+  ALERTS: 3 * 60, // 3 minutes (more volatile)
+};
+
 @Injectable()
 export class BrandDashboardService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(BrandDashboardService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
+
+  /**
+   * Build a cache key from brand ID and filters
+   */
+  private buildCacheKey(
+    prefix: string,
+    brandId: string,
+    filters: DashboardFiltersDto,
+  ): string {
+    const parts = [
+      prefix,
+      brandId,
+      filters.period || '30d',
+      filters.supplierId || '_',
+      filters.productType || '_',
+    ];
+    if (filters.period === PeriodFilter.CUSTOM) {
+      parts.push(filters.startDate || '_', filters.endDate || '_');
+    }
+    return parts.join(':');
+  }
 
   /**
    * Calculate date range based on filters
@@ -387,6 +428,10 @@ export class BrandDashboardService {
     brandId: string,
     filters: DashboardFiltersDto,
   ): Promise<DashboardSummaryResponse> {
+    const cacheKey = this.buildCacheKey('dash:summary', brandId, filters);
+    const cached = await this.cache.get<DashboardSummaryResponse>(cacheKey);
+    if (cached) return cached;
+
     const { startDate, endDate } = this.calculateDateRange(filters);
 
     const [orders, deadline, quality, cost] = await Promise.all([
@@ -396,7 +441,9 @@ export class BrandDashboardService {
       this.getCostKpi(brandId, startDate, endDate, filters),
     ]);
 
-    return { orders, deadline, quality, cost };
+    const result = { orders, deadline, quality, cost };
+    await this.cache.set(cacheKey, result, CACHE_TTL.SUMMARY);
+    return result;
   }
 
   /**
@@ -406,6 +453,11 @@ export class BrandDashboardService {
     brandId: string,
     filters: SupplierRankingFiltersDto,
   ): Promise<SuppliersRankingResponse> {
+    const sortPart = `${filters.sortBy || '_'}:${filters.sortOrder || '_'}`;
+    const cacheKey = `${this.buildCacheKey('dash:ranking', brandId, filters)}:${sortPart}`;
+    const cached = await this.cache.get<SuppliersRankingResponse>(cacheKey);
+    if (cached) return cached;
+
     const { startDate, endDate } = this.calculateDateRange(filters);
 
     // Get suppliers with active relationship to this brand
@@ -556,10 +608,12 @@ export class BrandDashboardService {
       };
     });
 
-    return {
+    const result = {
       suppliers: rankedSuppliers,
       totalSuppliers: rankedSuppliers.length,
     };
+    await this.cache.set(cacheKey, result, CACHE_TTL.RANKING);
+    return result;
   }
 
   /**
@@ -569,6 +623,10 @@ export class BrandDashboardService {
     brandId: string,
     filters: DashboardFiltersDto,
   ): Promise<TimelineDataResponse> {
+    const cacheKey = this.buildCacheKey('dash:timeline', brandId, filters);
+    const cached = await this.cache.get<TimelineDataResponse>(cacheKey);
+    if (cached) return cached;
+
     const { startDate, endDate } = this.calculateDateRange(filters);
     const baseWhere = this.buildOrdersWhereClause(brandId, startDate, endDate, filters);
 
@@ -678,18 +736,24 @@ export class BrandDashboardService {
       actualCost: Math.round(costs.actual),
     }));
 
-    return {
+    const result = {
       deliveryEvolution,
       qualityBySupplier,
       productionVolume,
       costComparison,
     };
+    await this.cache.set(cacheKey, result, CACHE_TTL.TIMELINE);
+    return result;
   }
 
   /**
    * Get active alerts
    */
   async getAlerts(brandId: string, filters: DashboardFiltersDto): Promise<AlertsResponse> {
+    const cacheKey = this.buildCacheKey('dash:alerts', brandId, filters);
+    const cached = await this.cache.get<AlertsResponse>(cacheKey);
+    if (cached) return cached;
+
     const { startDate, endDate } = this.calculateDateRange(filters);
     const today = new Date();
     const sevenDaysFromNow = new Date();
@@ -820,13 +884,29 @@ export class BrandDashboardService {
     const warningCount = alerts.filter((a) => a.severity === 'warning').length;
     const infoCount = alerts.filter((a) => a.severity === 'info').length;
 
-    return {
+    const result = {
       alerts,
       criticalCount,
       warningCount,
       infoCount,
       totalCount: alerts.length,
     };
+    await this.cache.set(cacheKey, result, CACHE_TTL.ALERTS);
+    return result;
+  }
+
+  // ==================== CACHE INVALIDATION ====================
+
+  @OnEvent(ORDER_CREATED)
+  @OnEvent(ORDER_STATUS_CHANGED)
+  @OnEvent(ORDER_FINALIZED)
+  async invalidateDashboardCache(event: { brandId: string }) {
+    if (!event?.brandId) return;
+    await this.cache.delByPrefix(`dash:summary:${event.brandId}`);
+    await this.cache.delByPrefix(`dash:ranking:${event.brandId}`);
+    await this.cache.delByPrefix(`dash:timeline:${event.brandId}`);
+    await this.cache.delByPrefix(`dash:alerts:${event.brandId}`);
+    this.logger.debug(`Dashboard cache invalidated for brand ${event.brandId}`);
   }
 
   // Helper methods
