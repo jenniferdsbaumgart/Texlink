@@ -419,7 +419,7 @@ describe('ChatService', () => {
 
       const result = await service.rejectProposal('msg-1', 'user-1');
 
-      expect(result.proposalData.status).toBe(ProposalStatus.REJECTED);
+      expect((result.proposalData as Record<string, unknown>)?.status).toBe(ProposalStatus.REJECTED);
       expect(mockPrisma.message.update).toHaveBeenCalled();
     });
   });

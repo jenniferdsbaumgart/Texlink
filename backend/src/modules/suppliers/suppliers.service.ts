@@ -1339,6 +1339,6 @@ export class SuppliersService {
       recent.getRow(1).font = { bold: true };
     }
 
-    return (await workbook.xlsx.writeBuffer()) as Buffer;
+    return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 }

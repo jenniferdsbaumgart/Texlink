@@ -344,6 +344,7 @@ describe('Relationships V3 N:M (e2e)', () => {
     it('should create contract for relationship A', async () => {
       const contract = await prisma.supplierContract.create({
         data: {
+          displayId: `CTR-TEST-A-${Date.now()}`,
           relationshipId: relationshipAId,
           supplierId: supplierId,
           brandId: brandAId,
@@ -399,6 +400,7 @@ describe('Relationships V3 N:M (e2e)', () => {
     it('should create contract for relationship B', async () => {
       const contract = await prisma.supplierContract.create({
         data: {
+          displayId: `CTR-TEST-B-${Date.now()}`,
           relationshipId: relationshipBId,
           supplierId: supplierId,
           brandId: brandBId,
@@ -428,9 +430,12 @@ describe('Relationships V3 N:M (e2e)', () => {
 
   describe('Scenario 4: Supplier signs both contracts', () => {
     it('should sign contract with Brand A', async () => {
+      const existingContract = await prisma.supplierContract.findFirst({
+        where: { relationshipId: relationshipAId },
+      });
       const contract = await prisma.supplierContract.update({
         where: {
-          relationshipId: relationshipAId,
+          id: existingContract!.id,
         },
         data: {
           supplierSignedAt: new Date(),
@@ -454,9 +459,12 @@ describe('Relationships V3 N:M (e2e)', () => {
     });
 
     it('should sign contract with Brand B', async () => {
+      const existingContract = await prisma.supplierContract.findFirst({
+        where: { relationshipId: relationshipBId },
+      });
       const contract = await prisma.supplierContract.update({
         where: {
-          relationshipId: relationshipBId,
+          id: existingContract!.id,
         },
         data: {
           supplierSignedAt: new Date(),
@@ -679,7 +687,7 @@ describe('Relationships V3 N:M (e2e)', () => {
           data: {
             supplierId: supplierId,
             brandId: brandAId,
-            status: 'PENDING_SUPPLIER_SIGNATURE',
+            status: 'PENDING',
             initiatedBy: 'test-user-id',
             initiatedByRole: 'BRAND',
           },

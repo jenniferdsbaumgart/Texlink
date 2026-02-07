@@ -102,8 +102,8 @@ describe('CredentialsService', () => {
       // Mock successful creation
       const mockCreated = {
         id: 'cred-123',
-        cnpj: '12345678000190',
         ...validDto,
+        cnpj: '12345678000190',
         status: SupplierCredentialStatus.DRAFT,
         brand: { id: 'brand-123', tradeName: 'Marca Teste' },
         createdBy: { id: 'user-123', name: 'User Test' },
@@ -301,7 +301,12 @@ describe('CredentialsService', () => {
         .mockResolvedValueOnce(5) // pendingAction
         .mockResolvedValueOnce(7); // awaitingResponse
 
-      const stats = await service.getStats('brand-123');
+      const stats = await service.getStats('brand-123') as {
+        total: number;
+        activeCount: number;
+        byStatus: Record<string, number>;
+        conversionRate: number;
+      };
 
       expect(stats.total).toBe(15);
       expect(stats.activeCount).toBe(10);

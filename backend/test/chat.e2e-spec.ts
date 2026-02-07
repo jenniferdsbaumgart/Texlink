@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -55,7 +55,7 @@ describe('Chat E2E Tests', () => {
     // Find an existing order from demo data
     const existingOrder = await prisma.order.findFirst({
       where: {
-        status: { not: 'CONCLUIDO' },
+        status: { not: 'FINALIZADO' },
       },
     });
 

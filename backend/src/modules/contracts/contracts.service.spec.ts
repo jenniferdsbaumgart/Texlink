@@ -151,8 +151,8 @@ describe('ContractsService', () => {
       title: 'Test Contract',
       description: 'Test description',
       value: 10000,
-      validFrom: new Date('2026-01-01'),
-      validUntil: new Date('2026-12-31'),
+      validFrom: '2026-01-01',
+      validUntil: '2026-12-31',
       terms: {
         paymentTerms: '30 dias',
         penaltyRate: '2%',
@@ -275,8 +275,8 @@ describe('ContractsService', () => {
       relationshipId: 'relationship-1',
       type: ContractType.NDA,
       title: 'NDA Contract',
-      validFrom: new Date('2026-01-01'),
-      validUntil: new Date('2026-12-31'),
+      validFrom: '2026-01-01',
+      validUntil: '2026-12-31',
     };
 
     const mockFile = {

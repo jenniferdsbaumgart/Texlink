@@ -574,7 +574,7 @@ describe('OrdersService', () => {
       });
 
       const result = await service.createReview('order-1', 'user-1', {
-        type: 'FINAL',
+        type: 'FINAL_REVIEW',
         totalQuantity: 100,
         approvedQuantity: 100,
         rejectedQuantity: 0,
@@ -607,7 +607,7 @@ describe('OrdersService', () => {
       });
 
       const result = await service.createReview('order-1', 'user-1', {
-        type: 'FINAL',
+        type: 'FINAL_REVIEW',
         totalQuantity: 100,
         approvedQuantity: 70,
         rejectedQuantity: 20,
@@ -640,7 +640,7 @@ describe('OrdersService', () => {
       });
 
       const result = await service.createReview('order-1', 'user-1', {
-        type: 'FINAL',
+        type: 'FINAL_REVIEW',
         totalQuantity: 100,
         approvedQuantity: 0,
         rejectedQuantity: 100,
@@ -661,7 +661,7 @@ describe('OrdersService', () => {
 
       await expect(
         service.createReview('order-1', 'user-1', {
-          type: 'FINAL',
+          type: 'FINAL_REVIEW',
           totalQuantity: 100,
           approvedQuantity: 50,
           rejectedQuantity: 30,
@@ -683,7 +683,7 @@ describe('OrdersService', () => {
       mockPrisma.order.update.mockResolvedValue(mockOrder);
 
       await service.createReview('order-1', 'user-1', {
-        type: 'FINAL',
+        type: 'FINAL_REVIEW',
         totalQuantity: 100,
         approvedQuantity: 80,
         rejectedQuantity: 20,
@@ -728,7 +728,7 @@ describe('OrdersService', () => {
       mockPrisma.order.update.mockResolvedValue(mockOrder);
 
       await service.createReview('order-1', 'user-1', {
-        type: 'FINAL',
+        type: 'FINAL_REVIEW',
         totalQuantity: 100,
         approvedQuantity: 90,
         rejectedQuantity: 0,

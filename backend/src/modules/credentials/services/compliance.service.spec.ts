@@ -452,8 +452,7 @@ describe('ComplianceService', () => {
         where: { credentialId: 'cred-123' },
         data: expect.objectContaining({
           manualReviewStatus: ManualReviewStatus.REJECTED,
-          manualReviewNotes: expect.stringContaining(reason),
-          manualReviewNotes: expect.stringContaining(notes),
+          manualReviewNotes: expect.stringMatching(new RegExp(`(?=.*${reason})(?=.*${notes})`)),
         }),
       });
 
