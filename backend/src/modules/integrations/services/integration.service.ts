@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InvitationType, RiskLevel } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../../../common/services/cache.service';
 
 // CNPJ Providers
 import {
@@ -43,12 +44,6 @@ import {
 import { SendGridProvider } from '../providers/notification/sendgrid.provider';
 import { TwilioWhatsappProvider } from '../providers/notification/twilio-whatsapp.provider';
 
-// Cache for credit analysis (in-memory, will use Redis if available)
-interface CreditCacheEntry {
-  result: CreditAnalysisResult;
-  expiresAt: Date;
-}
-
 // Cache for legal analysis
 interface LegalCacheEntry {
   result: LegalAnalysisResult;
@@ -59,6 +54,12 @@ interface LegalCacheEntry {
 interface RestrictionsCacheEntry {
   result: RestrictionsAnalysisResult;
   expiresAt: Date;
+}
+
+// Circuit breaker state per provider
+interface CircuitBreakerState {
+  consecutiveFailures: number;
+  openUntil: Date | null;
 }
 
 /**
@@ -75,9 +76,8 @@ export class IntegrationService {
   private readonly legalProviders: ILegalProvider[];
   private readonly restrictionsProviders: IRestrictionsProvider[];
 
-  // Credit analysis cache (30 days)
-  private readonly creditCache: Map<string, CreditCacheEntry> = new Map();
-  private readonly CREDIT_CACHE_TTL_DAYS = 30;
+  // Credit analysis cache TTL (30 days in seconds)
+  private readonly CREDIT_CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
 
   // Legal analysis cache (7 days)
   private readonly legalCache: Map<string, LegalCacheEntry> = new Map();
@@ -88,8 +88,18 @@ export class IntegrationService {
     new Map();
   private readonly RESTRICTIONS_CACHE_TTL_DAYS = 1;
 
+  // Rate limiting: 100 calls per hour per provider
+  private readonly RATE_LIMIT_MAX_CALLS = 100;
+  private readonly RATE_LIMIT_WINDOW_SECONDS = 3600;
+
+  // Circuit breaker: 5 consecutive failures → open for 5 minutes
+  private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
+  private readonly CIRCUIT_BREAKER_RESET_MS = 5 * 60 * 1000;
+  private readonly circuitBreakers: Map<string, CircuitBreakerState> = new Map();
+
   constructor(
     private readonly configService: ConfigService,
+    private readonly cacheService: CacheService,
     // CNPJ Providers
     private readonly brasilApiProvider: BrasilApiProvider,
     private readonly receitaWsProvider: ReceitaWsProvider,
@@ -228,10 +238,12 @@ export class IntegrationService {
    * Analisa o crédito de uma empresa pelo CNPJ
    *
    * Flow:
-   * 1. Check cache (30 days)
-   * 2. Try configured provider (CREDIT_PROVIDER env)
-   * 3. Fallback: Serasa → SPC → Mock
-   * 4. Cache result
+   * 1. Check cache via CacheService (30 days TTL)
+   * 2. Check rate limit for provider
+   * 3. Check circuit breaker state
+   * 4. Try configured provider (CREDIT_PROVIDER env)
+   * 5. Fallback: Serasa → SPC → Mock
+   * 6. Cache result via CacheService
    */
   async analyzeCredit(
     cnpj: string,
@@ -246,7 +258,7 @@ export class IntegrationService {
 
     // Check cache first (unless force refresh)
     if (!forceRefresh) {
-      const cached = this.getCachedCreditAnalysis(cleanCnpj);
+      const cached = await this.getCachedCreditAnalysis(cleanCnpj);
       if (cached) {
         this.logger.log(
           `Credit analysis for ${this.maskCnpj(cleanCnpj)} retrieved from cache`,
@@ -273,21 +285,45 @@ export class IntegrationService {
         continue;
       }
 
+      // Check circuit breaker
+      if (this.isCircuitOpen(provider.name)) {
+        this.logger.warn(
+          `Circuit breaker OPEN for ${provider.name}, skipping`,
+        );
+        continue;
+      }
+
+      // Check rate limit
+      const withinLimit = await this.checkRateLimit(provider.name);
+      if (!withinLimit) {
+        this.logger.warn(
+          `Rate limit exceeded for ${provider.name}, skipping`,
+        );
+        continue;
+      }
+
       this.logger.log(`Analyzing credit via ${provider.name}`);
 
       try {
+        // Increment rate limit counter
+        await this.incrementRateLimit(provider.name);
+
         const result = await provider.analyze(cleanCnpj);
 
-        // If successful (no error), cache and return
+        // If successful (no error), reset circuit breaker, cache and return
         if (!result.error) {
-          this.cacheCreditAnalysis(cleanCnpj, result);
+          this.resetCircuitBreaker(provider.name);
+          await this.cacheCreditAnalysis(cleanCnpj, result);
           return result;
         }
 
+        // Provider returned an error in the result (not an exception)
+        this.recordCircuitBreakerFailure(provider.name);
         this.logger.warn(
           `Provider ${provider.name} returned error: ${result.error}`,
         );
       } catch (error) {
+        this.recordCircuitBreakerFailure(provider.name);
         this.logger.error(
           `Error from credit provider ${provider.name}: ${error.message}`,
         );
@@ -323,48 +359,106 @@ export class IntegrationService {
   }
 
   /**
-   * Get cached credit analysis if still valid
+   * Get cached credit analysis via CacheService
    */
-  private getCachedCreditAnalysis(
+  private async getCachedCreditAnalysis(
     cnpj: string,
-  ): CreditAnalysisResult | null {
+  ): Promise<CreditAnalysisResult | null> {
     const cacheKey = `credit_analysis:${cnpj}`;
-    const cached = this.creditCache.get(cacheKey);
+    const cached = await this.cacheService.get<CreditAnalysisResult>(cacheKey);
 
     if (!cached) {
       return null;
     }
 
-    if (new Date() > cached.expiresAt) {
-      this.creditCache.delete(cacheKey);
-      return null;
-    }
-
     return {
-      ...cached.result,
-      source: `${cached.result.source}_CACHED`,
+      ...cached,
+      source: `${cached.source}_CACHED`,
     };
   }
 
   /**
-   * Cache credit analysis result
+   * Cache credit analysis result via CacheService (30-day TTL)
    */
-  private cacheCreditAnalysis(
+  private async cacheCreditAnalysis(
     cnpj: string,
     result: CreditAnalysisResult,
-  ): void {
+  ): Promise<void> {
     const cacheKey = `credit_analysis:${cnpj}`;
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + this.CREDIT_CACHE_TTL_DAYS);
-
-    this.creditCache.set(cacheKey, {
-      result,
-      expiresAt,
-    });
+    await this.cacheService.set(cacheKey, result, this.CREDIT_CACHE_TTL_SECONDS);
 
     this.logger.debug(
-      `Cached credit analysis for ${this.maskCnpj(cnpj)} until ${expiresAt.toISOString()}`,
+      `Cached credit analysis for ${this.maskCnpj(cnpj)} (TTL: ${this.CREDIT_CACHE_TTL_SECONDS}s)`,
     );
+  }
+
+  // ==================== RATE LIMITING ====================
+
+  /**
+   * Check if a provider is within its rate limit (100 calls/hour)
+   */
+  private async checkRateLimit(providerName: string): Promise<boolean> {
+    const key = `rate_limit:credit:${providerName}`;
+    const count = await this.cacheService.get<number>(key);
+    return (count ?? 0) < this.RATE_LIMIT_MAX_CALLS;
+  }
+
+  /**
+   * Increment the rate limit counter for a provider
+   */
+  private async incrementRateLimit(providerName: string): Promise<void> {
+    const key = `rate_limit:credit:${providerName}`;
+    const current = (await this.cacheService.get<number>(key)) ?? 0;
+    await this.cacheService.set(key, current + 1, this.RATE_LIMIT_WINDOW_SECONDS);
+  }
+
+  // ==================== CIRCUIT BREAKER ====================
+
+  /**
+   * Check if the circuit breaker is open (provider marked unavailable)
+   */
+  private isCircuitOpen(providerName: string): boolean {
+    const state = this.circuitBreakers.get(providerName);
+    if (!state || !state.openUntil) {
+      return false;
+    }
+    if (new Date() > state.openUntil) {
+      // Reset — allow half-open attempt
+      state.openUntil = null;
+      state.consecutiveFailures = 0;
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Record a failure for the circuit breaker
+   */
+  private recordCircuitBreakerFailure(providerName: string): void {
+    let state = this.circuitBreakers.get(providerName);
+    if (!state) {
+      state = { consecutiveFailures: 0, openUntil: null };
+      this.circuitBreakers.set(providerName, state);
+    }
+    state.consecutiveFailures++;
+
+    if (state.consecutiveFailures >= this.CIRCUIT_BREAKER_THRESHOLD) {
+      state.openUntil = new Date(Date.now() + this.CIRCUIT_BREAKER_RESET_MS);
+      this.logger.warn(
+        `Circuit breaker OPENED for ${providerName} after ${state.consecutiveFailures} consecutive failures. Will retry after ${state.openUntil.toISOString()}`,
+      );
+    }
+  }
+
+  /**
+   * Reset circuit breaker on successful call
+   */
+  private resetCircuitBreaker(providerName: string): void {
+    const state = this.circuitBreakers.get(providerName);
+    if (state) {
+      state.consecutiveFailures = 0;
+      state.openUntil = null;
+    }
   }
 
   /**

@@ -68,17 +68,17 @@ export class SerasaCreditProvider implements ICreditProvider {
 
       this.logger.log(`Analyzing credit for CNPJ: ${this.maskCnpj(cleanCnpj)}`);
 
-      // Make API request to Serasa
-      // NOTE: This is a placeholder structure. Actual endpoint and payload
-      // will depend on the specific Serasa product/plan contracted.
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.apiUrl}/consulta/cnpj/${cleanCnpj}`, {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }),
-      );
+      // Make API request to Serasa with retry logic
+      const response = await this.executeWithRetry(async () => {
+        return firstValueFrom(
+          this.httpService.get(`${this.apiUrl}/consulta/cnpj/${cleanCnpj}`, {
+            headers: {
+              Authorization: `Bearer ${this.accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          }),
+        );
+      });
 
       return this.parseSerasaResponse(response.data, cleanCnpj);
     } catch (error) {
@@ -258,6 +258,36 @@ export class SerasaCreditProvider implements ICreditProvider {
     }
 
     return recommendations;
+  }
+
+  /**
+   * Execute an async function with exponential backoff retry.
+   * Max 2 retries, starting at 1s delay.
+   */
+  private async executeWithRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries = 2,
+    baseDelayMs = 1000,
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error as Error;
+
+        if (attempt < maxRetries) {
+          const delay = baseDelayMs * Math.pow(2, attempt);
+          this.logger.warn(
+            `Serasa API attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError;
   }
 
   private maskCnpj(cnpj: string): string {
