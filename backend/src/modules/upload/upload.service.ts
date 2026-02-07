@@ -26,6 +26,33 @@ const getMaxFileSize = (mimetype: string): number => {
   return mimetype.startsWith('video/') ? MAX_VIDEO_SIZE : MAX_IMAGE_PDF_SIZE;
 };
 
+// Magic byte signatures for file type validation
+const MAGIC_BYTES: Record<string, number[][]> = {
+  'image/jpeg': [[0xff, 0xd8, 0xff]],
+  'image/png': [[0x89, 0x50, 0x4e, 0x47]],
+  'image/webp': [[0x52, 0x49, 0x46, 0x46]], // RIFF header
+  'application/pdf': [[0x25, 0x50, 0x44, 0x46]], // %PDF
+  'video/mp4': [
+    [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70], // ftyp at offset 4
+    [0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70],
+    [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70],
+  ],
+  'video/webm': [[0x1a, 0x45, 0xdf, 0xa3]], // EBML header
+  'video/quicktime': [
+    [0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70],
+    [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70],
+    [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70],
+  ],
+};
+
+const validateMagicBytes = (buffer: Buffer, mimetype: string): boolean => {
+  const signatures = MAGIC_BYTES[mimetype];
+  if (!signatures) return true; // No signature to check, allow
+  return signatures.some((sig) =>
+    sig.every((byte, i) => buffer.length > i && buffer[i] === byte),
+  );
+};
+
 @Injectable()
 export class UploadService {
   constructor(
@@ -38,10 +65,17 @@ export class UploadService {
     file: UploadedFile,
     userId: string,
   ) {
-    // Validate file
+    // Validate MIME type
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       throw new BadRequestException(
         `Tipo de arquivo não permitido. Permitidos: ${ALLOWED_MIME_TYPES.join(', ')}`,
+      );
+    }
+
+    // Validate magic bytes to prevent MIME type spoofing
+    if (!validateMagicBytes(file.buffer, file.mimetype)) {
+      throw new BadRequestException(
+        'O conteúdo do arquivo não corresponde ao tipo declarado',
       );
     }
 

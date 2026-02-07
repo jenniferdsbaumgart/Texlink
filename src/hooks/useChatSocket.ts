@@ -130,7 +130,7 @@ export function useChatSocket(
 
     // Get auth token
     const getToken = useCallback(() => {
-        return localStorage.getItem('token');
+        return sessionStorage.getItem('token');
     }, []);
 
     // Initialize socket connection

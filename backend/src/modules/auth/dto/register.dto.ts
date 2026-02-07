@@ -5,7 +5,7 @@ import {
   MinLength,
   MaxLength,
   Matches,
-  IsEnum,
+  IsIn,
   IsOptional,
 } from 'class-validator';
 import { UserRole } from '@prisma/client';
@@ -27,7 +27,9 @@ export class RegisterDto {
   @IsNotEmpty()
   name: string;
 
-  @IsEnum(UserRole)
+  @IsIn([UserRole.BRAND, UserRole.SUPPLIER], {
+    message: 'Role deve ser BRAND ou SUPPLIER',
+  })
   role: UserRole;
 
   // Company fields (required for SUPPLIER)

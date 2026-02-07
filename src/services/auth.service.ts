@@ -106,14 +106,14 @@ export const authService = {
     async login(data: LoginDto): Promise<AuthResponse> {
         if (MOCK_MODE) {
             const response = await mockLogin(data);
-            localStorage.setItem('token', response.accessToken);
+            sessionStorage.setItem('token', response.accessToken);
             localStorage.setItem('user', JSON.stringify(response.user));
             return response;
         }
 
         const response = await api.post<AuthResponse>('/auth/login', data);
         const { accessToken, user } = response.data;
-        localStorage.setItem('token', accessToken);
+        sessionStorage.setItem('token', accessToken);
         localStorage.setItem('user', JSON.stringify(user));
         return response.data;
     },
@@ -132,7 +132,7 @@ export const authService = {
             const mockToken = `mock-token-${data.role.toLowerCase()}-${Date.now()}`;
 
             // Store in localStorage (same as login flow)
-            localStorage.setItem('token', mockToken);
+            sessionStorage.setItem('token', mockToken);
             localStorage.setItem('user', JSON.stringify(mockUser));
 
             return {
@@ -148,7 +148,7 @@ export const authService = {
 
         const response = await api.post<AuthResponse>('/auth/register', data);
         const { accessToken, user } = response.data;
-        localStorage.setItem('token', accessToken);
+        sessionStorage.setItem('token', accessToken);
         localStorage.setItem('user', JSON.stringify(user));
         return response.data;
     },
@@ -165,7 +165,7 @@ export const authService = {
     },
 
     logout() {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';
     },
@@ -176,7 +176,7 @@ export const authService = {
     },
 
     getToken(): string | null {
-        return localStorage.getItem('token');
+        return sessionStorage.getItem('token');
     },
 
     isAuthenticated(): boolean {

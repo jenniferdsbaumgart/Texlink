@@ -12,7 +12,7 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,7 +25,7 @@ api.interceptors.response.use(
     (error) => {
         // In mock mode, don't redirect on 401 - let services handle with mock data
         if (error.response?.status === 401 && !MOCK_MODE) {
-            localStorage.removeItem('token');
+            sessionStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
         }
