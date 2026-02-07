@@ -39,6 +39,33 @@ export interface OrdersMonthlyStats {
     byBrand: { brand: string; count: number; value: number }[];
 }
 
+export interface AdminAction {
+    id: string;
+    companyId: string;
+    adminId: string;
+    action: string;
+    reason: string | null;
+    previousStatus: string | null;
+    newStatus: string | null;
+    createdAt: string;
+    company: { id: string; tradeName: string | null; legalName: string };
+    admin: { id: string; name: string };
+}
+
+export interface SupplierDocument {
+    id: string;
+    companyId: string;
+    type: string;
+    status: string;
+    fileName: string | null;
+    fileUrl: string | null;
+    fileKey: string | null;
+    expiresAt: string | null;
+    notes: string | null;
+    createdAt: string;
+    uploadedBy?: { id: string; name: string } | null;
+}
+
 export interface PendingApproval {
     id: string;
     legalName: string;
@@ -125,14 +152,14 @@ export const adminService = {
         return response.data;
     },
 
-    async updateSupplierStatus(id: string, status: 'ACTIVE' | 'SUSPENDED') {
+    async updateSupplierStatus(id: string, status: 'ACTIVE' | 'SUSPENDED', reason?: string) {
         if (MOCK_MODE) {
             await simulateDelay(600);
-            console.log(`[MOCK] Supplier ${id} status updated to ${status}`);
+            console.log(`[MOCK] Supplier ${id} status updated to ${status}, reason: ${reason}`);
             return { success: true, message: `Status atualizado para ${status} (modo demo)` };
         }
 
-        const response = await api.patch(`/admin/suppliers/${id}/status`, { status });
+        const response = await api.patch(`/admin/suppliers/${id}/status`, { status, reason });
         return response.data;
     },
 
@@ -230,6 +257,51 @@ export const adminService = {
             console.error('[adminService.getRevenueHistory] API error:', error);
             return [];
         }
+    },
+
+    async getSupplierDocuments(supplierId: string) {
+        if (MOCK_MODE) {
+            await simulateDelay(400);
+            return [];
+        }
+
+        const response = await api.get(`/admin/suppliers/${supplierId}/documents`);
+        return response.data;
+    },
+
+    async getAdminActions(limit = 50): Promise<AdminAction[]> {
+        if (MOCK_MODE) {
+            await simulateDelay(400);
+            return [
+                {
+                    id: 'mock-1',
+                    companyId: 'company-1',
+                    adminId: 'admin-1',
+                    action: 'APPROVED',
+                    reason: 'Documentacao completa',
+                    previousStatus: 'PENDING',
+                    newStatus: 'ACTIVE',
+                    createdAt: new Date(Date.now() - 86400000).toISOString(),
+                    company: { id: 'company-1', tradeName: 'Faccao Demo', legalName: 'Demo LTDA' },
+                    admin: { id: 'admin-1', name: 'Admin Demo' },
+                },
+                {
+                    id: 'mock-2',
+                    companyId: 'company-2',
+                    adminId: 'admin-1',
+                    action: 'REJECTED',
+                    reason: 'Documentacao incompleta',
+                    previousStatus: 'PENDING',
+                    newStatus: 'SUSPENDED',
+                    createdAt: new Date(Date.now() - 172800000).toISOString(),
+                    company: { id: 'company-2', tradeName: 'Faccao Teste', legalName: 'Teste ME' },
+                    admin: { id: 'admin-1', name: 'Admin Demo' },
+                },
+            ];
+        }
+
+        const response = await api.get<AdminAction[]>('/admin/actions', { params: { limit } });
+        return response.data;
     },
 
     async getOrdersMonthlyStats(months = 6): Promise<OrdersMonthlyStats | null> {

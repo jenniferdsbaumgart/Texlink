@@ -1,10 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrderStatus, CompanyStatus, CompanyType, SupplierDocumentType, SupplierDocumentStatus } from '@prisma/client';
+import { SUPPLIER_STATUS_CHANGED } from '../notifications/events/notification.events';
+import type { SupplierStatusChangedEvent } from '../notifications/events/notification.events';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AdminService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   // Get dashboard metrics
   async getDashboard() {
@@ -87,11 +95,87 @@ export class AdminService {
     });
   }
 
-  // Approve or suspend a supplier
-  async updateSupplierStatus(companyId: string, status: CompanyStatus) {
-    return this.prisma.company.update({
+  // Approve or suspend a supplier with reason and audit trail
+  async updateSupplierStatus(
+    companyId: string,
+    status: CompanyStatus,
+    adminId: string,
+    reason?: string,
+  ) {
+    // Get current company data for audit trail
+    const company = await this.prisma.company.findUniqueOrThrow({
       where: { id: companyId },
-      data: { status },
+      select: {
+        status: true,
+        tradeName: true,
+        legalName: true,
+        companyUsers: {
+          include: { user: { select: { id: true, name: true } } },
+        },
+      },
+    });
+
+    const previousStatus = company.status;
+    const companyName = company.tradeName || company.legalName;
+
+    // Get admin name
+    const admin = await this.prisma.user.findUnique({
+      where: { id: adminId },
+      select: { name: true },
+    });
+
+    // Update company status with reason
+    const updated = await this.prisma.company.update({
+      where: { id: companyId },
+      data: {
+        status,
+        statusReason: reason || null,
+        statusChangedAt: new Date(),
+        statusChangedById: adminId,
+      },
+    });
+
+    // Create audit trail record
+    const actionLabel = status === CompanyStatus.ACTIVE ? 'APPROVED' : 'REJECTED';
+    await this.prisma.adminAction.create({
+      data: {
+        companyId,
+        adminId,
+        action: actionLabel,
+        reason: reason || null,
+        previousStatus,
+        newStatus: status,
+      },
+    });
+
+    // Emit notification event
+    const event: SupplierStatusChangedEvent = {
+      companyId,
+      companyName,
+      previousStatus,
+      newStatus: status,
+      reason,
+      adminId,
+      adminName: admin?.name || 'Admin',
+    };
+    this.eventEmitter.emit(SUPPLIER_STATUS_CHANGED, event);
+
+    this.logger.log(
+      `Supplier ${companyId} status changed from ${previousStatus} to ${status} by admin ${adminId}`,
+    );
+
+    return updated;
+  }
+
+  // Get admin actions for audit trail
+  async getAdminActions(limit = 50) {
+    return this.prisma.adminAction.findMany({
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        company: { select: { id: true, tradeName: true, legalName: true } },
+        admin: { select: { id: true, name: true } },
+      },
     });
   }
 

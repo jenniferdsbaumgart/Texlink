@@ -12,6 +12,7 @@ import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole, CompanyStatus, OrderStatus, SupplierDocumentType, SupplierDocumentStatus } from '@prisma/client';
 
 @ApiTags('Admin')
@@ -36,8 +37,15 @@ export class AdminController {
   async updateSupplierStatus(
     @Param('id') id: string,
     @Body('status') status: CompanyStatus,
+    @Body('reason') reason: string,
+    @CurrentUser() user: any,
   ) {
-    return this.adminService.updateSupplierStatus(id, status);
+    return this.adminService.updateSupplierStatus(id, status, user.id, reason);
+  }
+
+  @Get('actions')
+  async getAdminActions(@Query('limit') limit?: string) {
+    return this.adminService.getAdminActions(limit ? parseInt(limit, 10) : 50);
   }
 
   @Get('suppliers')

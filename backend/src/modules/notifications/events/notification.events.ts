@@ -56,6 +56,9 @@ export const PARTNERSHIP_REQUEST_CANCELLED = 'partnership.request.cancelled';
 // Rating Events
 export const RATING_RECEIVED = 'rating.received';
 
+// Supplier Approval Events
+export const SUPPLIER_STATUS_CHANGED = 'supplier.status.changed';
+
 // System Events
 export const SYSTEM_ANNOUNCEMENT = 'system.announcement';
 
@@ -292,6 +295,16 @@ export interface RatingReceivedEvent {
   toCompanyId: string;
   score: number;
   comment?: string;
+}
+
+export interface SupplierStatusChangedEvent {
+  companyId: string;
+  companyName: string;
+  previousStatus: string;
+  newStatus: string;
+  reason?: string;
+  adminId: string;
+  adminName: string;
 }
 
 export interface SystemAnnouncementEvent {

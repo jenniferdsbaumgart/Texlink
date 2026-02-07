@@ -15,6 +15,7 @@ import { TicketEventsHandler } from './handlers/ticket-events.handler';
 import { DocumentEventsHandler } from './handlers/document-events.handler';
 import { PartnershipRequestEventsHandler } from './handlers/partnership-request-events.handler';
 import { ContractEventsHandler } from './handlers/contract-events.handler';
+import { SupplierEventsHandler } from './handlers/supplier-events.handler';
 // Scheduled jobs
 import { DeadlineReminderJob } from './jobs/deadline-reminder.job';
 import { DocumentExpirationJob } from './jobs/document-expiration.job';
@@ -63,6 +64,7 @@ import { ContractExpirationJob } from './jobs/contract-expiration.job';
     DocumentEventsHandler,
     PartnershipRequestEventsHandler,
     ContractEventsHandler,
+    SupplierEventsHandler,
     // Scheduled jobs
     DeadlineReminderJob,
     DocumentExpirationJob,
