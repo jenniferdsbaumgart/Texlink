@@ -498,6 +498,39 @@ export const credentialsService = {
     },
 
     /**
+     * Listar credenciamentos com documentos pendentes de validação
+     */
+    async getPendingDocuments(): Promise<any[]> {
+        if (MOCK_MODE) {
+            await simulateDelay(800);
+            return [];
+        }
+
+        const response = await api.get('/credentials/pending-documents');
+        return response.data;
+    },
+
+    /**
+     * Validar ou rejeitar documento de onboarding
+     */
+    async validateDocument(
+        credentialId: string,
+        documentId: string,
+        data: { isValid: boolean; validationNotes?: string }
+    ): Promise<any> {
+        if (MOCK_MODE) {
+            await simulateDelay(500);
+            return { isValid: data.isValid, validationNotes: data.validationNotes };
+        }
+
+        const response = await api.patch(
+            `/credentials/${credentialId}/documents/${documentId}`,
+            data,
+        );
+        return response.data;
+    },
+
+    /**
      * Buscar histórico de status
      */
     async getHistory(id: string): Promise<CredentialStatusHistory[]> {

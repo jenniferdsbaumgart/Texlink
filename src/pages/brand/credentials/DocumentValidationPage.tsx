@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileCheck, AlertCircle, CheckCircle, XCircle, Eye, Loader2 } from 'lucide-react';
 import { DocumentReviewModal } from './DocumentReviewModal';
 import { useToast } from '../../../contexts/ToastContext';
+import { credentialsService } from '../../../services/credentials.service';
 
 interface OnboardingDocument {
   id: string;
@@ -56,90 +57,8 @@ export function DocumentValidationPage() {
       setIsLoading(true);
       setError('');
 
-      // TODO: Integrar com API real
-      // const response = await credentialsService.getCredentialsWithPendingDocuments();
-
-      // Mock data
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const mockData: SupplierCredential[] = [
-        {
-          id: 'cred-001',
-          tradeName: 'Facção Exemplo 1',
-          legalName: 'Facção Exemplo 1 Ltda',
-          cnpj: '12.345.678/0001-90',
-          contactName: 'João Silva',
-          contactEmail: 'joao@faccao1.com',
-          status: 'ONBOARDING_IN_PROGRESS',
-          onboarding: {
-            id: 'onb-001',
-            currentStep: 4,
-            documents: [
-              {
-                id: 'doc-001',
-                type: 'alvara_funcionamento',
-                name: 'Alvará de Funcionamento',
-                fileName: 'alvara-2024.pdf',
-                fileUrl: '/uploads/onboarding/cred-001/alvara-2024.pdf',
-                fileSize: 245000,
-                mimeType: 'application/pdf',
-                isValid: null,
-                createdAt: new Date().toISOString(),
-              },
-              {
-                id: 'doc-002',
-                type: 'certificado_bombeiros',
-                name: 'Certificado do Corpo de Bombeiros',
-                fileName: 'bombeiros-2024.pdf',
-                fileUrl: '/uploads/onboarding/cred-001/bombeiros-2024.pdf',
-                fileSize: 180000,
-                mimeType: 'application/pdf',
-                isValid: null,
-                createdAt: new Date().toISOString(),
-              },
-              {
-                id: 'doc-003',
-                type: 'certidao_fiscal',
-                name: 'Certidão Fiscal',
-                fileName: 'fiscal-2024.pdf',
-                fileUrl: '/uploads/onboarding/cred-001/fiscal-2024.pdf',
-                fileSize: 120000,
-                mimeType: 'application/pdf',
-                isValid: true,
-                validatedAt: new Date(Date.now() - 86400000).toISOString(),
-                createdAt: new Date(Date.now() - 172800000).toISOString(),
-              },
-            ],
-          },
-        },
-        {
-          id: 'cred-002',
-          tradeName: 'Facção Exemplo 2',
-          cnpj: '98.765.432/0001-10',
-          contactName: 'Maria Santos',
-          contactEmail: 'maria@faccao2.com',
-          status: 'ONBOARDING_IN_PROGRESS',
-          onboarding: {
-            id: 'onb-002',
-            currentStep: 4,
-            documents: [
-              {
-                id: 'doc-004',
-                type: 'alvara_funcionamento',
-                name: 'Alvará de Funcionamento',
-                fileName: 'alvara.pdf',
-                fileUrl: '/uploads/onboarding/cred-002/alvara.pdf',
-                fileSize: 320000,
-                mimeType: 'application/pdf',
-                isValid: null,
-                createdAt: new Date().toISOString(),
-              },
-            ],
-          },
-        },
-      ];
-
-      setCredentials(mockData);
+      const data = await credentialsService.getPendingDocuments();
+      setCredentials(data);
     } catch (err: any) {
       console.error('Erro ao carregar credenciais:', err);
       setError('Erro ao carregar credenciais com documentos pendentes');
@@ -155,11 +74,10 @@ export function DocumentValidationPage() {
     notes?: string
   ) => {
     try {
-      // TODO: Integrar com API real
-      // await credentialsService.validateDocument(credentialId, documentId, { isValid, validationNotes: notes });
-
-      // Simular delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await credentialsService.validateDocument(credentialId, documentId, {
+        isValid,
+        validationNotes: notes,
+      });
 
       // Atualizar estado local
       setCredentials(prev =>
