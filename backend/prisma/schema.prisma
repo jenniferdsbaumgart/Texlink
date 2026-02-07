@@ -150,6 +150,7 @@ enum OrderAssignmentType {
 
 enum OrderTargetStatus {
   PENDING
+  INTERESTED
   ACCEPTED
   REJECTED
 }
@@ -393,6 +394,7 @@ enum NotificationType {
   CONTRACT_EXPIRING
   CONTRACT_EXPIRED
   CONTRACT_CANCELLED
+  SUPPLIER_STATUS_CHANGED
 }
 
 enum NotificationPriority {
@@ -472,6 +474,9 @@ model User {
   brandDocumentsUploaded BrandDocument[]           @relation("BrandDocumentsUploaded")
   acceptedBrandDocuments BrandDocumentAcceptance[] @relation("AcceptedBrandDocuments")
 
+  // Admin actions
+  adminActionsPerformed AdminAction[] @relation("AdminActionsPerformed")
+
   // Performance indexes
   @@index([email])
   @@index([role])
@@ -492,7 +497,10 @@ model Company {
   email     String?
   logoUrl   String?
   avgRating Decimal       @default(0) @db.Decimal(2, 1)
-  status    CompanyStatus @default(PENDING)
+  status           CompanyStatus @default(PENDING)
+  statusReason     String?       @db.Text
+  statusChangedAt  DateTime?
+  statusChangedById String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
@@ -546,6 +554,9 @@ model Company {
 
   // Brand documents (compliance/conduct)
   brandDocuments BrandDocument[] @relation("BrandDocuments")
+
+  // Admin actions
+  adminActions AdminAction[] @relation("CompanyAdminActions")
 
   // Settings
   bankAccount          BankAccount?
@@ -723,6 +734,7 @@ model OrderTargetSupplier {
   orderId     String
   supplierId  String
   status      OrderTargetStatus @default(PENDING)
+  message     String?           // Optional message when expressing interest
   respondedAt DateTime?
   createdAt   DateTime          @default(now())
 
@@ -1907,4 +1919,24 @@ model BrandDocumentAcceptance {
   @@index([documentId])
   @@index([relationshipId])
   @@map("brand_document_acceptances")
+}
+
+// Admin audit trail for company status changes
+model AdminAction {
+  id        String @id @default(uuid())
+  companyId String
+  adminId   String
+  action    String // APPROVED, REJECTED, SUSPENDED, etc.
+  reason    String? @db.Text
+  previousStatus String?
+  newStatus      String?
+  createdAt DateTime @default(now())
+
+  company Company @relation("CompanyAdminActions", fields: [companyId], references: [id], onDelete: Cascade)
+  admin   User    @relation("AdminActionsPerformed", fields: [adminId], references: [id])
+
+  @@index([companyId])
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("admin_actions")
 }

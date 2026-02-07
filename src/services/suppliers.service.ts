@@ -165,13 +165,40 @@ export const suppliersService = {
         return response.data;
     },
 
-    async getOpportunities() {
+    async getOpportunities(filters?: {
+        search?: string;
+        category?: string;
+        minValue?: number;
+        maxValue?: number;
+        deadlineFrom?: string;
+        deadlineTo?: string;
+        sort?: string;
+    }) {
         if (MOCK_MODE) {
             await simulateDelay(400);
             return MOCK_OPPORTUNITIES;
         }
 
-        const response = await api.get('/suppliers/opportunities');
+        const params: Record<string, string> = {};
+        if (filters?.search) params.search = filters.search;
+        if (filters?.category) params.category = filters.category;
+        if (filters?.minValue !== undefined) params.minValue = String(filters.minValue);
+        if (filters?.maxValue !== undefined) params.maxValue = String(filters.maxValue);
+        if (filters?.deadlineFrom) params.deadlineFrom = filters.deadlineFrom;
+        if (filters?.deadlineTo) params.deadlineTo = filters.deadlineTo;
+        if (filters?.sort) params.sort = filters.sort;
+
+        const response = await api.get('/suppliers/opportunities', { params });
+        return response.data;
+    },
+
+    async expressInterest(orderId: string, message?: string): Promise<{ success: boolean; message: string }> {
+        if (MOCK_MODE) {
+            await simulateDelay(600);
+            return { success: true, message: 'Interesse demonstrado com sucesso.' };
+        }
+
+        const response = await api.post(`/suppliers/opportunities/${orderId}/interest`, { message });
         return response.data;
     },
 

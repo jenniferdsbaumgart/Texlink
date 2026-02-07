@@ -166,8 +166,36 @@ export class SuppliersController {
   @Get('opportunities')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPPLIER)
-  async getOpportunities(@CurrentUser('id') userId: string) {
-    return this.suppliersService.getOpportunities(userId);
+  async getOpportunities(
+    @CurrentUser('id') userId: string,
+    @Query('search') search?: string,
+    @Query('category') category?: string,
+    @Query('minValue') minValue?: string,
+    @Query('maxValue') maxValue?: string,
+    @Query('deadlineFrom') deadlineFrom?: string,
+    @Query('deadlineTo') deadlineTo?: string,
+    @Query('sort') sort?: string,
+  ) {
+    return this.suppliersService.getOpportunities(userId, {
+      search,
+      category,
+      minValue: minValue ? parseFloat(minValue) : undefined,
+      maxValue: maxValue ? parseFloat(maxValue) : undefined,
+      deadlineFrom,
+      deadlineTo,
+      sort,
+    });
+  }
+
+  @Post('opportunities/:orderId/interest')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPPLIER)
+  async expressInterest(
+    @CurrentUser('id') userId: string,
+    @Param('orderId') orderId: string,
+    @Body('message') message?: string,
+  ) {
+    return this.suppliersService.expressInterest(userId, orderId, message);
   }
 
   // ========== BRAND INVITATION ENDPOINTS ==========

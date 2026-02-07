@@ -9,7 +9,7 @@ import {
   OnboardingPhase3Dto,
   SupplierFilterDto,
 } from './dto';
-import { CompanyType, CompanyStatus, OrderStatus } from '@prisma/client';
+import { CompanyType, CompanyStatus, OrderStatus, OrderTargetStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { InvitationNotificationService } from './services/invitation-notification.service';
 
@@ -332,31 +332,94 @@ export class SuppliersService {
   }
 
   // Get available opportunities (orders waiting for acceptance)
-  async getOpportunities(userId: string) {
+  async getOpportunities(
+    userId: string,
+    filters?: {
+      search?: string;
+      category?: string;
+      minValue?: number;
+      maxValue?: number;
+      deadlineFrom?: string;
+      deadlineTo?: string;
+      sort?: string;
+    },
+  ) {
     const company = await this.getMyProfile(userId);
+
+    // Build additional filters
+    const additionalWhere: Prisma.OrderWhereInput = {};
+
+    if (filters?.search) {
+      const searchTerm = filters.search;
+      additionalWhere.OR = [
+        { productName: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+        { productCategory: { contains: searchTerm, mode: 'insensitive' } },
+        { productType: { contains: searchTerm, mode: 'insensitive' } },
+        { brand: { tradeName: { contains: searchTerm, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (filters?.category) {
+      additionalWhere.productCategory = { contains: filters.category, mode: 'insensitive' };
+    }
+
+    if (filters?.minValue !== undefined || filters?.maxValue !== undefined) {
+      additionalWhere.totalValue = {};
+      if (filters?.minValue !== undefined) {
+        additionalWhere.totalValue.gte = filters.minValue;
+      }
+      if (filters?.maxValue !== undefined) {
+        additionalWhere.totalValue.lte = filters.maxValue;
+      }
+    }
+
+    if (filters?.deadlineFrom || filters?.deadlineTo) {
+      additionalWhere.deliveryDeadline = {};
+      if (filters?.deadlineFrom) {
+        additionalWhere.deliveryDeadline.gte = new Date(filters.deadlineFrom);
+      }
+      if (filters?.deadlineTo) {
+        additionalWhere.deliveryDeadline.lte = new Date(filters.deadlineTo);
+      }
+    }
+
+    // Determine sort order
+    let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: 'desc' };
+    if (filters?.sort === 'highest_value') {
+      orderBy = { totalValue: 'desc' };
+    } else if (filters?.sort === 'closest_deadline') {
+      orderBy = { deliveryDeadline: 'asc' };
+    }
+    // 'newest' is default (createdAt desc)
 
     return this.prisma.order.findMany({
       where: {
-        OR: [
-          // Direct orders to this supplier
+        AND: [
           {
-            supplierId: company.id,
-            status: OrderStatus.LANCADO_PELA_MARCA,
-          },
-          // Bidding orders where this supplier is targeted
-          {
-            targetSuppliers: {
-              some: {
+            OR: [
+              // Direct orders to this supplier
+              {
                 supplierId: company.id,
-                status: 'PENDING',
+                status: OrderStatus.LANCADO_PELA_MARCA,
               },
-            },
-            status: OrderStatus.LANCADO_PELA_MARCA,
+              // Bidding orders where this supplier is targeted
+              {
+                targetSuppliers: {
+                  some: {
+                    supplierId: company.id,
+                    status: 'PENDING',
+                  },
+                },
+                status: OrderStatus.LANCADO_PELA_MARCA,
+              },
+              // Orders available to all (after rejection)
+              {
+                status: OrderStatus.DISPONIVEL_PARA_OUTRAS,
+              },
+            ],
           },
-          // Orders available to all (after rejection)
-          {
-            status: OrderStatus.DISPONIVEL_PARA_OUTRAS,
-          },
+          additionalWhere,
         ],
       },
       include: {
@@ -370,9 +433,77 @@ export class SuppliersService {
           },
         },
         attachments: true,
+        targetSuppliers: {
+          where: { supplierId: company.id },
+          select: { id: true, status: true, message: true },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
     });
+  }
+
+  // Express interest in a BIDDING/HYBRID order
+  async expressInterest(userId: string, orderId: string, message?: string) {
+    const company = await this.getMyProfile(userId);
+
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        targetSuppliers: {
+          where: { supplierId: company.id },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Pedido não encontrado');
+    }
+
+    if (order.status !== OrderStatus.LANCADO_PELA_MARCA && order.status !== OrderStatus.DISPONIVEL_PARA_OUTRAS) {
+      throw new ForbiddenException('Este pedido não está disponível para demonstrar interesse');
+    }
+
+    if (order.assignmentType === 'DIRECT') {
+      throw new ForbiddenException('Pedidos diretos não aceitam demonstração de interesse. Use a ação "Aceitar Pedido".');
+    }
+
+    // Check if already has a target record
+    const existingTarget = order.targetSuppliers[0];
+
+    if (existingTarget) {
+      if (existingTarget.status === OrderTargetStatus.INTERESTED) {
+        throw new ForbiddenException('Você já demonstrou interesse neste pedido');
+      }
+      if (existingTarget.status === OrderTargetStatus.ACCEPTED) {
+        throw new ForbiddenException('Você já foi aceito neste pedido');
+      }
+
+      // Update existing PENDING target to INTERESTED
+      await this.prisma.orderTargetSupplier.update({
+        where: { id: existingTarget.id },
+        data: {
+          status: OrderTargetStatus.INTERESTED,
+          message: message || null,
+          respondedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new target record with INTERESTED status (for DISPONIVEL_PARA_OUTRAS)
+      await this.prisma.orderTargetSupplier.create({
+        data: {
+          orderId,
+          supplierId: company.id,
+          status: OrderTargetStatus.INTERESTED,
+          message: message || null,
+          respondedAt: new Date(),
+        },
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Interesse demonstrado com sucesso. A marca será notificada.',
+    };
   }
 
   // Search suppliers (for brands and admins)
