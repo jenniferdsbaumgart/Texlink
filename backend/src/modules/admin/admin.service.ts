@@ -272,6 +272,11 @@ export class AdminService {
     startDate.setDate(1);
     startDate.setHours(0, 0, 0, 0);
 
+    const previousStartDate = new Date(startDate);
+    previousStartDate.setMonth(previousStartDate.getMonth() - months);
+
+    const monthsInterval = `${Math.floor(Math.abs(months))} months`;
+
     const monthlyData = await this.prisma.$queryRaw<
       { month: Date; revenue: number; orders: number; previousRevenue: number }[]
     >`
@@ -287,13 +292,13 @@ export class AdminService {
       ),
       previous_period AS (
         SELECT
-          DATE_TRUNC('month', "updatedAt" + INTERVAL '${months} months') as month,
+          DATE_TRUNC('month', "updatedAt" + ${monthsInterval}::interval) as month,
           COALESCE(SUM("totalValue"), 0)::float as previous_revenue
         FROM "orders"
         WHERE "status" = 'FINALIZADO'
-          AND "updatedAt" >= ${startDate} - INTERVAL '${months} months'
+          AND "updatedAt" >= ${previousStartDate}
           AND "updatedAt" < ${startDate}
-        GROUP BY DATE_TRUNC('month', "updatedAt" + INTERVAL '${months} months')
+        GROUP BY DATE_TRUNC('month', "updatedAt" + ${monthsInterval}::interval)
       )
       SELECT
         c.month,

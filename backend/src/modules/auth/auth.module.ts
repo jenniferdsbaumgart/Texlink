@@ -11,12 +11,18 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService): JwtModuleOptions => ({
-        secret: config.get<string>('jwt.secret') || 'default-secret',
-        signOptions: {
-          expiresIn: 604800, // 7 days in seconds
-        },
-      }),
+      useFactory: (config: ConfigService): JwtModuleOptions => {
+        const secret = config.get<string>('jwt.secret');
+        if (!secret) {
+          throw new Error('JWT_SECRET environment variable is required');
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: 604800, // 7 days in seconds
+          },
+        };
+      },
     }),
   ],
   controllers: [AuthController],
