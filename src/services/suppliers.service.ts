@@ -25,22 +25,6 @@ export interface SupplierDashboard {
     };
 }
 
-export interface OnboardingPhase2 {
-    interesse?: string;
-    faturamentoDesejado?: number;
-    maturidadeGestao?: string;
-    qtdColaboradores?: number;
-    tempoMercado?: string;
-}
-
-export interface OnboardingPhase3 {
-    productTypes: string[];
-    specialties?: string[];
-    monthlyCapacity: number;
-    currentOccupancy?: number;
-    onboardingComplete?: boolean;
-}
-
 export interface SupplierSearchFilters {
     city?: string;
     state?: string;
@@ -168,28 +152,6 @@ export const suppliersService = {
         }
 
         const response = await api.get('/suppliers/profile');
-        return response.data;
-    },
-
-    async updatePhase2(data: OnboardingPhase2) {
-        if (MOCK_MODE) {
-            await simulateDelay(600);
-            console.log('[MOCK] Onboarding Phase 2 updated:', data);
-            return { success: true, message: 'Dados salvos (modo demo)' };
-        }
-
-        const response = await api.patch('/suppliers/onboarding/phase2', data);
-        return response.data;
-    },
-
-    async updatePhase3(data: OnboardingPhase3) {
-        if (MOCK_MODE) {
-            await simulateDelay(600);
-            console.log('[MOCK] Onboarding Phase 3 updated:', data);
-            return { success: true, message: 'Dados salvos (modo demo)' };
-        }
-
-        const response = await api.patch('/suppliers/onboarding/phase3', data);
         return response.data;
     },
 

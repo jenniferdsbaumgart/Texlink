@@ -104,8 +104,6 @@ const SupplierPartnershipRequestsPage = React.lazy(() => import('./pages/supplie
 
 // Onboarding pages
 const OnboardingLayout = React.lazy(() => import('./components/onboarding/OnboardingLayout'));
-const Phase2Page = React.lazy(() => import('./pages/onboarding/Phase2Page'));
-const Phase3Page = React.lazy(() => import('./pages/onboarding/Phase3Page'));
 
 
 const queryClient = new QueryClient({
@@ -141,10 +139,7 @@ const App: React.FC = () => {
                                             <Route path="/aceitar-convite/:token" element={<AcceptInvitationPage />} />
 
                                             {/* Onboarding routes (protected, supplier only) */}
-                                            <Route path="/onboarding" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><OnboardingLayout /></ProtectedRoute>}>
-                                                <Route path="phase2" element={<Phase2Page />} />
-                                                <Route path="phase3" element={<Phase3Page />} />
-                                            </Route>
+                                            <Route path="/onboarding" element={<ProtectedRoute allowedRoles={['SUPPLIER']}><OnboardingLayout /></ProtectedRoute>} />
 
                                             {/* Dashboard redirect */}
                                             <Route path="/dashboard" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />

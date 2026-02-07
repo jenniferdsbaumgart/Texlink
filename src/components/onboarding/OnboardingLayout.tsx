@@ -4,8 +4,6 @@ import { CheckCircle2, Circle, Factory } from 'lucide-react';
 
 const steps = [
     { id: 1, name: 'Dados da Empresa', path: '/onboarding/company' },
-    { id: 2, name: 'Qualificação', path: '/onboarding/phase2' },
-    { id: 3, name: 'Capacidade', path: '/onboarding/phase3' },
 ];
 
 const OnboardingLayout: React.FC = () => {
@@ -13,8 +11,6 @@ const OnboardingLayout: React.FC = () => {
 
     const getCurrentStep = () => {
         if (location.pathname.includes('company')) return 1;
-        if (location.pathname.includes('phase2')) return 2;
-        if (location.pathname.includes('phase3')) return 3;
         return 1;
     };
 
