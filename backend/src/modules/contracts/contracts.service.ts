@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   SupplierCredentialStatus,
@@ -29,6 +30,14 @@ import {
   RequestRevisionDto,
   RespondRevisionDto,
 } from './dto';
+import {
+  CONTRACT_SENT_FOR_SIGNATURE,
+  CONTRACT_REVISION_REQUESTED,
+  CONTRACT_REVISION_RESPONDED,
+  CONTRACT_SIGNED,
+  CONTRACT_FULLY_SIGNED,
+  CONTRACT_CANCELLED,
+} from '../notifications/events/notification.events';
 
 @Injectable()
 export class ContractsService {
@@ -39,7 +48,10 @@ export class ContractsService {
     'contracts',
   );
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {
     // Criar diretório de uploads se não existir
     if (!fs.existsSync(this.uploadsPath)) {
       fs.mkdirSync(this.uploadsPath, { recursive: true });
@@ -240,11 +252,18 @@ export class ContractsService {
 
     this.logger.log(`Contrato ${contract.displayId} enviado para assinatura`);
 
-    // TODO: Disparar notificação para o fornecedor
-    // await this.notificationsService.create({
-    //   type: NotificationType.CONTRACT_SENT_FOR_SIGNATURE,
-    //   ...
-    // });
+    this.eventEmitter.emit(CONTRACT_SENT_FOR_SIGNATURE, {
+      contractId: contract.id,
+      displayId: contract.displayId,
+      brandId: contract.brandId,
+      brandName: contract.brand?.tradeName || contract.brand?.legalName,
+      supplierId: contract.supplierId,
+      supplierName: contract.supplier?.tradeName || contract.supplier?.legalName,
+      title: contract.title,
+      sentById: userId,
+      sentByName: '',
+      message,
+    });
 
     return updated;
   }
@@ -298,7 +317,18 @@ export class ContractsService {
       `Revisão solicitada para contrato ${contract.displayId} por ${userId}`,
     );
 
-    // TODO: Disparar notificação para a marca
+    this.eventEmitter.emit(CONTRACT_REVISION_REQUESTED, {
+      revisionId: revision.id,
+      contractId: contract.id,
+      displayId: contract.displayId,
+      brandId: contract.brandId,
+      brandName: '',
+      supplierId: contract.supplierId,
+      supplierName: revision.requestedBy?.name || '',
+      requestedById: userId,
+      requestedByName: revision.requestedBy?.name || '',
+      message: dto.message,
+    });
 
     return revision;
   }
@@ -344,7 +374,18 @@ export class ContractsService {
       `Revisão ${dto.revisionId} respondida com status ${dto.status}`,
     );
 
-    // TODO: Disparar notificação para o fornecedor
+    this.eventEmitter.emit(CONTRACT_REVISION_RESPONDED, {
+      revisionId: updated.id,
+      contractId: revision.contract.id,
+      displayId: updated.contract?.displayId || '',
+      brandId: revision.contract.brandId,
+      supplierId: revision.contract.supplierId,
+      supplierName: '',
+      respondedById: userId,
+      respondedByName: updated.respondedBy?.name || '',
+      status: dto.status,
+      responseNotes: dto.responseNotes,
+    });
 
     return updated;
   }
@@ -391,6 +432,30 @@ export class ContractsService {
     this.logger.log(
       `Contrato ${contract.displayId} assinado pela marca (${signerName})`,
     );
+
+    this.eventEmitter.emit(CONTRACT_SIGNED, {
+      contractId: contract.id,
+      displayId: contract.displayId,
+      brandId: contract.brandId,
+      brandName: updated.brand?.tradeName || updated.brand?.legalName || '',
+      supplierId: contract.supplierId,
+      supplierName: updated.supplier?.tradeName || updated.supplier?.legalName || '',
+      signedBy: 'BRAND',
+      signerName,
+      signerId: userId,
+    });
+
+    if (updated.status === ContractStatus.SIGNED) {
+      this.eventEmitter.emit(CONTRACT_FULLY_SIGNED, {
+        contractId: contract.id,
+        displayId: contract.displayId,
+        brandId: contract.brandId,
+        brandName: updated.brand?.tradeName || updated.brand?.legalName || '',
+        supplierId: contract.supplierId,
+        supplierName: updated.supplier?.tradeName || updated.supplier?.legalName || '',
+        title: contract.title,
+      });
+    }
 
     return updated;
   }
@@ -461,6 +526,30 @@ export class ContractsService {
       `Contrato ${contract.displayId} assinado pelo fornecedor (${signerName})`,
     );
 
+    this.eventEmitter.emit(CONTRACT_SIGNED, {
+      contractId: contract.id,
+      displayId: contract.displayId,
+      brandId: contract.brandId,
+      brandName: updated.brand?.tradeName || updated.brand?.legalName || '',
+      supplierId: contract.supplierId,
+      supplierName: updated.supplier?.tradeName || updated.supplier?.legalName || '',
+      signedBy: 'SUPPLIER',
+      signerName,
+      signerId: userId,
+    });
+
+    if (updated.status === ContractStatus.SIGNED) {
+      this.eventEmitter.emit(CONTRACT_FULLY_SIGNED, {
+        contractId: contract.id,
+        displayId: contract.displayId,
+        brandId: contract.brandId,
+        brandName: updated.brand?.tradeName || updated.brand?.legalName || '',
+        supplierId: contract.supplierId,
+        supplierName: updated.supplier?.tradeName || updated.supplier?.legalName || '',
+        title: contract.title,
+      });
+    }
+
     // Se ambos assinaram, ativar relacionamento
     if (updated.status === ContractStatus.SIGNED && updated.relationshipId) {
       await this.prisma.supplierBrandRelationship.update({
@@ -509,6 +598,18 @@ export class ContractsService {
     });
 
     this.logger.log(`Contrato ${contract.displayId} cancelado por ${userId}`);
+
+    this.eventEmitter.emit(CONTRACT_CANCELLED, {
+      contractId: contract.id,
+      displayId: contract.displayId,
+      brandId: contract.brandId,
+      brandName: updated.brand?.tradeName || updated.brand?.legalName || '',
+      supplierId: contract.supplierId,
+      supplierName: updated.supplier?.tradeName || updated.supplier?.legalName || '',
+      cancelledById: userId,
+      cancelledByName: '',
+      reason,
+    });
 
     return updated;
   }
